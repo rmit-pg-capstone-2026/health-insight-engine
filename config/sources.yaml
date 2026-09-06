@@ -1,16 +1,23 @@
 # Monitored sources for the health-insight-engine.
 #
 # `sources` is a list of publications the pipeline polls for new articles and
-# data releases. Add one entry per monitored page. The entries below are
-# placeholders and should be replaced with real URLs.
+# data releases. AIHW reports span several sub-pages (About, Summary, Key
+# findings, etc.) that all belong to one report: those entries use `base_url`
+# plus a list of `pages`. Single-article sources use a flat `url`.
 
 sources:
-  - id: aihw-placeholder
-    name: "AIHW placeholder article"
+  - id: aihw-burden-of-disease-2024
+    name: "Australian Burden of Disease Study 2024"
     agency: AIHW
-    type: article
-    url: https://www.aihw.gov.au/reports/PLACEHOLDER
-    enabled: true
+    type: report
+    base_url: https://www.aihw.gov.au/reports/burden-of-disease/australian-burden-of-disease-study-2024
+    pages:
+      - "contents/about"
+      - "contents/summary"
+      - "contents/key-findings"
+      - "contents/technical-notes"
+      - "contents/frequently-asked-questions"
+      - "data"
 
   - id: abs-placeholder
     name: "ABS placeholder article"
