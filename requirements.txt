@@ -1,0 +1,6 @@
+requests
+trafilatura
+beautifulsoup4
+pdfplumber
+pyyaml
+pytest

@@ -1,0 +1,20 @@
+# Monitored sources for the health-insight-engine.
+#
+# `sources` is a list of publications the pipeline polls for new articles and
+# data releases. Add one entry per monitored page. The entries below are
+# placeholders and should be replaced with real URLs.
+
+sources:
+  - id: aihw-placeholder
+    name: "AIHW placeholder article"
+    agency: AIHW
+    type: article
+    url: https://www.aihw.gov.au/reports/PLACEHOLDER
+    enabled: true
+
+  - id: abs-placeholder
+    name: "ABS placeholder article"
+    agency: ABS
+    type: article
+    url: https://www.abs.gov.au/statistics/PLACEHOLDER/latest-release
+    enabled: true
