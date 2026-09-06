@@ -217,5 +217,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Local-only context file for AI coding assistants; not shared with the team repo.
+# Local-only context file
 CONTEXT.md
