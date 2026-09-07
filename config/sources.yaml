@@ -1,6 +1,0 @@
-# Monitored sources for the health-insight-engine.
-#
-# Each entry describes a publication the pipeline polls for new or changed
-# content. Fill in per-source config as the fetchers are built.
-
-sources: []
