@@ -219,3 +219,7 @@ __marimo__/
 
 # Local-only context file
 CONTEXT.md
+
+# Raw scraped snapshots (regenerable; kept local, not shared)
+/data/raw/*
+!/data/raw/.gitkeep
