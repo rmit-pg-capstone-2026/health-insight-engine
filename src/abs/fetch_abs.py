@@ -11,7 +11,7 @@ ABS article ingestion module for the RMIT x Medibank Health Insight Engine.
 """
 
 from __future__ import annotations
-
+import yaml
 import json
 import logging
 import re
@@ -27,10 +27,7 @@ from bs4 import BeautifulSoup, Tag
 # Configuration
 # ============================================================
 
-ARTICLE_URL = (
-    "https://www.abs.gov.au/articles/"
-    "childrens-physical-activity-screen-time-and-sleep"
-)
+CONFIG_FILE = Path("config") / "sources.yaml"
 
 USER_AGENT = (
     "health-insight-engine/0.1 "
@@ -56,6 +53,50 @@ logger = logging.getLogger(__name__)
 class FetchError(RuntimeError):
     """Raised when an ABS article cannot be downloaded or extracted."""
 
+# ============================================================
+# Load ABS sources from configuration
+# ============================================================
+
+def load_abs_sources() -> list[dict]:
+    """
+    Load enabled ABS article sources from config/sources.yaml.
+    """
+
+    try:
+        with CONFIG_FILE.open(
+            "r",
+            encoding="utf-8"
+        ) as file:
+            config = yaml.safe_load(file)
+
+    except (OSError, yaml.YAMLError) as exc:
+        raise FetchError(
+            f"Failed to load configuration file: {CONFIG_FILE}"
+        ) from exc
+
+    abs_sources = []
+
+    for source in config.get("sources", []):
+
+        # Only select ABS sources
+        if source.get("agency") != "ABS":
+            continue
+
+        # Only select article-type sources
+        if source.get("type") != "article":
+            continue
+
+        # Skip source if explicitly disabled
+        if source.get("enabled", True) is False:
+            continue
+
+        # Skip source if no URL is provided
+        if not source.get("url"):
+            continue
+
+        abs_sources.append(source)
+
+    return abs_sources
 
 # ============================================================
 # Helper functions
@@ -752,7 +793,6 @@ def save_article(
 
     return output_file
 
-
 # ============================================================
 # Main program
 # ============================================================
@@ -760,6 +800,8 @@ def save_article(
 def main() -> None:
     """
     Run the ABS article ingestion pipeline.
+
+    ABS article URLs are loaded from config/sources.yaml.
     """
 
     logging.basicConfig(
@@ -767,70 +809,90 @@ def main() -> None:
         format="%(levelname)s: %(message)s"
     )
 
-    filename = (
-        "childrens-physical-activity-"
-        "screen-time-and-sleep"
-    )
-
     try:
 
-        article = fetch_article(
-            ARTICLE_URL
-        )
+        # Load ABS sources from sources.yaml
+        abs_sources = load_abs_sources()
 
-        json_file = save_article(
-            article,
-            filename
-        )
-
-        print()
-        print(
-            "ABS article ingestion completed successfully."
-        )
+        if not abs_sources:
+            raise FetchError(
+                "No enabled ABS article sources found in sources.yaml."
+            )
 
         print(
-            "Title:",
-            article["title"]
+            f"Found {len(abs_sources)} ABS article source(s)."
         )
 
-        print(
-            "Publication date:",
-            article["publication_date"]
-        )
+        # Process each ABS article
+        for source in abs_sources:
 
-        print(
-            "Sections extracted:",
-            article[
-                "extraction_summary"
-            ]["number_of_sections"]
-        )
+            source_id = source["id"]
+            source_name = source.get(
+                "name",
+                source_id
+            )
+            url = source["url"]
 
-        print(
-            "Tables extracted:",
-            article[
-                "extraction_summary"
-            ]["number_of_tables"]
-        )
+            print()
+            print(
+                f"Processing: {source_name}"
+            )
 
-        print(
-            "Images identified:",
-            article[
-                "extraction_summary"
-            ]["number_of_images"]
-        )
+            article = fetch_article(
+                url
+            )
 
-        print(
-            "JSON saved to:",
-            json_file
-        )
+            json_file = save_article(
+                article,
+                source_id
+            )
+
+            print(
+                "ABS article ingestion completed successfully."
+            )
+
+            print(
+                "Title:",
+                article["title"]
+            )
+
+            print(
+                "Publication date:",
+                article["publication_date"]
+            )
+
+            print(
+                "Sections extracted:",
+                article[
+                    "extraction_summary"
+                ]["number_of_sections"]
+            )
+
+            print(
+                "Tables extracted:",
+                article[
+                    "extraction_summary"
+                ]["number_of_tables"]
+            )
+
+            print(
+                "Images identified:",
+                article[
+                    "extraction_summary"
+                ]["number_of_images"]
+            )
+
+            print(
+                "JSON saved to:",
+                json_file
+            )
+
     except FetchError as exc:
 
         logger.error(
             "%s",
             exc
         )
-
-
 # ============================================================
 # Execute
 # ============================================================
