@@ -19,9 +19,9 @@ sources:
       - "contents/frequently-asked-questions"
       - "data"
 
-  - id: abs-placeholder
-    name: "ABS placeholder article"
-    agency: ABS
-    type: article
-    url: https://www.abs.gov.au/statistics/PLACEHOLDER/latest-release
-    enabled: true
+  - - id: abs-childrens-physical-activity-screen-time-sleep
+      name: "Children's physical activity, screen time and sleep"
+      agency: ABS
+      type: article
+      url: https://www.abs.gov.au/articles/childrens-physical-activity-screen-time-and-sleep
+      enabled: true
