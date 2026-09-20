@@ -402,6 +402,25 @@ def check_direction(result):
     return flagged
 
 
+def check_scope(result):
+    """The out-of-scope verdict and the insight list have to agree.
+
+    A model that says out_of_scope and then lists six insights has decided
+    one thing and done another, which is worth seeing rather than silently
+    keeping the insights."""
+    scope = result.get("document_scope")
+    n = len(result.get("insights") or [])
+    problems = []
+    if scope == "out_of_scope" and n:
+        problems.append("document_scope is out_of_scope but %d insight(s) "
+                        "were returned" % n)
+    if scope == "out_of_scope" and not result.get("no_insights_reason"):
+        problems.append("document_scope is out_of_scope but no reason given")
+    if not n and not result.get("no_insights_reason"):
+        problems.append("no insights returned and no reason given")
+    return problems
+
+
 def check_reasoning(result):
     """Flag reasoning that could be pasted under any other finding. The
     prompt bans these phrases by name; this counts how often it ignores it."""
@@ -431,11 +450,33 @@ def validate_schema(result):
     ]
 
 
+def annotate(result, retrieval_date):
+    """Add the two fields the model never sees.
+
+    insight_id is assigned here rather than asked for, because models are
+    unreliable at sequential numbering; retrieval_date is assigned here
+    because a model cannot know when the file was fetched. Both are added in
+    place, after validation, so the wire schema stays exactly what was sent.
+
+    Ids are per document. If the next stage merges several documents into one
+    briefing it should prefix these with a source identifier of its own."""
+    if not isinstance(result, dict):
+        return result
+    source = result.setdefault("source", {})
+    if isinstance(source, dict):
+        source["retrieval_date"] = retrieval_date
+    for n, ins in enumerate(result.get("insights") or [], 1):
+        if isinstance(ins, dict):
+            ins["insight_id"] = "INSIGHT_%03d" % n
+    return result
+
+
 # ------------------------------------------------------------- run + report
 
 def run_model(model, article_text, prompt, api_key, repeats, out_dir,
               temperature, reasoning, provider):
     runs = []
+    retrieval_date = time.strftime("%Y-%m-%d")
     for n in range(1, repeats + 1):
         print("  run %d/%d" % (n, repeats))
         result, meta = call_model(model, article_text, prompt, api_key,
@@ -443,10 +484,14 @@ def run_model(model, article_text, prompt, api_key, repeats, out_dir,
 
         record = {"model": model, "run": n, "meta": meta, "result": result}
         if result is not None:
+            # Validate the model's output first, then add our own fields -
+            # otherwise additionalProperties:false rejects what we just added.
             record["schema_errors"] = validate_schema(result)
+            annotate(result, retrieval_date)
             record["quote_checks"] = verify_quotes(result, article_text)
             record["lazy_reasoning"] = check_reasoning(result)
             record["reversed_conditionals"] = check_direction(result)
+            record["scope_problems"] = check_scope(result)
 
         path = out_dir / ("%s__run%d.json" % (model.replace("/", "_"), n))
         path.write_text(json.dumps(record, indent=2, ensure_ascii=False))
@@ -465,6 +510,9 @@ def run_model(model, article_text, prompt, api_key, repeats, out_dir,
             if meta.get("reasoning_tokens"):
                 reasoning_note = ", %s reasoning tokens" % meta["reasoning_tokens"]
             reversed_n = len(record["reversed_conditionals"])
+            for msg in record["scope_problems"]:
+                print("      !! %s" % msg)
+            print("      scope: %s" % result.get("document_scope"))
             stitched_n = sum(
                 1 for c in record["quote_checks"] if c.get("stitched"))
             if stitched_n:
