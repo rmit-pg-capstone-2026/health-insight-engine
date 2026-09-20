@@ -1,0 +1,51 @@
+{
+  "source": "aihw-ref1.md — AIHW, Dementia in Australia (released 30 July 2026)",
+  "insights": [
+    {
+      "finding": "Two new Alzheimer's therapies were approved by the TGA in 2025, but donanemab was refused PBS listing, leaving both drugs available only through private payment.",
+      "evidence": "In May 2025, the Therapeutic Goods Association (TGA) approved the use of donanemab for Australians with mild cognitive impairment due to Alzheimer’s disease, or early symptomatic Alzheimer’s disease (TGA 2025). In July 2025, the Pharmaceutical Benefits Advisory Committee did not recommend listing donanemab on the PBS due to the modest clinical impact and high burden of treatment (PBS 2025). In September 2025 the TGA approved lecanemab for use in early Alzheimer’s Disease. Suitable patients can access donanemab and lecanemab privately with restrictions on use due to the risk of serious side effects.",
+      "reasoning": "This is the single most actionable item in the report. A first-in-class disease-modifying therapy approved for use but rejected for public subsidy creates demand that flows straight to private channels — member enquiries about coverage, private infusion capacity, and monitoring costs (these drugs require MRI surveillance for brain swelling and bleeding). It is a new treatment, the change is discrete and dated, and it is something Medibank could form a position on now rather than observe."
+    },
+    {
+      "finding": "Dementia prevalence is 439,000 in 2025, rising to 459,000 in 2026 and a projected 1.1 million by 2066 — a 2.5-fold increase.",
+      "evidence": "With an ageing and growing population, it is predicted that the number of Australians living with dementia will increase 2.5-fold, to nearly 1.1 million by 2066 (670,000 women and 395,000 men) (Figure 1).",
+      "reasoning": "A demand trajectory with a named growth multiple, from the body that Medibank's own briefing sources treat as authoritative. Relevant to long-run product design and to which age cohorts drive claims, though the horizon is far enough out that it is context rather than a trigger for action."
+    },
+    {
+      "finding": "Dementia accounted for about 27,800 hospitalisations as the principal diagnosis in 2023–24, with an average length of stay of 15.1 days.",
+      "evidence": "For people hospitalised due to dementia, the average length of hospital stay was 15.1 days.",
+      "reasoning": "The length of stay is the part worth noticing. The all-cause Australian average sits at a few days; 15.1 is an outlier, which makes each of these admissions disproportionately expensive per episode. For an insurer this is a cost-per-admission signal, not just a volume one, and it is the kind of figure that supports a case for earlier intervention or alternative care settings."
+    },
+    {
+      "finding": "Dementia has moved from the fifth leading cause of disease burden in Australia in 2011 to the second in 2024.",
+      "evidence": "Dementia was the second leading cause of burden of disease in Australia in 2024, behind coronary heart disease. In comparison, dementia was the third leading cause of burden of disease in 2018 and 2015, and the fifth leading cause of burden of disease in 2011.",
+      "reasoning": "A movement across four measurement points, not a static ranking. That distinction matters: it separates an ongoing trend from a one-off, which is one of the factors Amy asked to be considered. A condition climbing three places in thirteen years is a structural shift in where health burden sits."
+    },
+    {
+      "finding": "One in five people dispensed dementia-specific medication were also dispensed antipsychotics, rising to 24% among those with younger onset dementia.",
+      "evidence": "In 2023–24, antipsychotic medications were dispensed to one-fifth (20%) of the 77,500 people who had been dispensed dementia-specific medications. A higher proportion of people with younger onset dementia (aged 30–64) were dispensed antipsychotic medications (24%) compared with people aged 85 and over (20%).",
+      "reasoning": "Antipsychotic prescribing in dementia was a named finding of the Royal Commission into Aged Care Quality and Safety, so this is a prescribing-practice and quality-of-care signal with regulatory attention behind it. The counter-intuitive part — that the rate is higher in the younger cohort, not the oldest — is what makes it worth investigating rather than merely noting."
+    },
+    {
+      "finding": "Dementia occurring before age 65 (younger onset dementia) is treated as a distinct group throughout the report, with its own service pathways through the NDIS rather than aged care.",
+      "evidence": "Dementia can also develop in people under 65, referred to as younger onset dementia, and in children, which is known as childhood dementia.",
+      "reasoning": "This is the part of the dementia population that overlaps most with private health insurance membership. Most dementia sits above 65 and is handled through aged care, which is largely outside private cover — but the under-65 group is working-age, more likely to hold a policy, and more likely to be using hospital and specialist services rather than residential care. If Medibank looks at only one slice of this report, this is the slice."
+    },
+    {
+      "finding": "Around 45% of dementia cases are attributed to potentially modifiable risk factors.",
+      "evidence": "While some risk factors cannot be avoided, international evidence suggests that around 45% of dementia cases are due to potentially modifiable risk factors (Livingston et al. 2024).",
+      "reasoning": "Directly relevant to preventive health programs, which insurers run and fund. The listed factors — obesity, smoking, hypertension, untreated hearing loss, untreated vision loss, diabetes, depression — overlap heavily with things already covered under extras or targeted by existing wellness programs, so there is a plausible route from this figure to a product decision."
+    },
+    {
+      "finding": "Dementia-attributable spending was almost $6 billion in 2023–24, but 45% went to residential aged care and only 24% to hospital services.",
+      "evidence": "Residential aged care services accounted for the largest share of expenditure (45%, or $2.7 billion), followed by hospital services (24%, or $1.4 billion), and community-based aged care services (20%, or $1.2 billion) (Figure 5).",
+      "reasoning": "Included as much for the split as the total. The headline $6 billion figure overstates the exposure of a private health insurer, because most of it sits in aged care, which private hospital cover does not fund. The $1.4 billion hospital share is the number that actually bears on claims. Worth recording precisely so nobody quotes the larger figure in the wrong context."
+    },
+    {
+      "finding": "An estimated 102,000 informal carers supported people with dementia in 2024; 42% provided 60 or more hours of care a week and 24% said they needed more respite care.",
+      "evidence": "- 1 in 4 (24%) reported that they needed more respite care to support them",
+      "reasoning": "An unmet-need figure attached to a specific service. Respite is a purchasable service, and carer breakdown is a known driver of unplanned admissions and earlier entry to residential care. This is the clearest line in the report from a population statistic to something an insurer could actually offer."
+    }
+  ],
+  "summary": "Dementia in Australia is a web report from the Australian Institute of Health and Welfare presenting a national picture of dementia. It opens with what dementia is, the main types including Alzheimer's disease, and the risk factors associated with it, both modifiable and non-modifiable. It then reports prevalence, estimated at 439,000 Australians in 2025 and projected to reach nearly 1.1 million by 2066, broken down by age, sex, geography and socioeconomic area. Further sections cover deaths, where dementia was the leading cause in Australia in 2024 with more than 18,300 deaths; burden of disease, measured in disability-adjusted life years; carers of people with dementia and the hours and impacts of that care; use of primary health care and Medicare-subsidised services; dementia-specific medications dispensed under the PBS and RPBS, together with antipsychotic prescribing; hospitalisations and length of stay; aged care needs assessments and residential aged care; and health and aged care expenditure attributable to dementia, split across service areas. Separate sections address younger onset dementia in people under 65, childhood dementia, and dementia among First Nations people and people from culturally and linguistically diverse backgrounds, alongside first-person accounts from people living with dementia and their families. Most statistics relate to 2023-24, with prevalence projections extending to 2066 and mortality trends running from 2009. The report also documents known gaps in Australian dementia data and the national plans addressing them. Figures are drawn from a range of administrative collections, survey data and epidemiological studies rather than a single source."
+}
