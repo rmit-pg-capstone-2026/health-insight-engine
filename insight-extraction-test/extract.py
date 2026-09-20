@@ -124,7 +124,8 @@ def call_model(model, article_text, system_prompt, api_key,
             {
                 "role": "user",
                 "content": (
-                    "Extract findings from the article below.\n\n"
+                    "Read the document below and produce the briefing "
+                    "insights.\n\n"
                     "<article>\n" + article_text + "\n</article>"
                 ),
             },
@@ -260,51 +261,164 @@ def parse_json(content):
 
 # ------------------------------------------------------------ verification
 
+LIST_MARKER = re.compile(r"^\s*(?:[-*•‣▪◦]+|\d+[.)])\s+")
+ELLIPSIS = re.compile(r"\s*(?:\.\.\.+|…)\s*")
+
+
 def normalise(text):
-    """Collapse whitespace and unify quote characters for comparison."""
+    """Collapse whitespace and unify punctuation for comparison.
+
+    Source documents are markdown, so a quote the model copies faithfully can
+    still differ from the file by a leading "- " bullet marker or a pair of
+    emphasis asterisks. Those are formatting, not content, and treating them
+    as mismatches made the checker cry wolf on nearly every quote."""
     text = text.replace("’", "'").replace("‘", "'")
     text = text.replace("“", '"').replace("”", '"')
     text = text.replace("–", "-").replace("—", "-")
     text = text.replace(" ", " ")
+    # Strip list markers per line, so a quote spanning several bullets matches.
+    lines = [LIST_MARKER.sub("", ln) for ln in text.split("\n")]
+    text = " ".join(lines).replace("*", "").replace("_", "")
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
-def verify_quotes(result, article_text):
-    """Check every quote appears verbatim in the source. This is the
-    traceability check - it is what makes week 12's evaluation automatic.
+SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9])")
 
-    connection_quote gets the same treatment: it is the model's evidence that
-    the article itself links this finding to care. If it cannot be found in
-    the source, the model invented the connection."""
+
+def evidence_fragments(evidence):
+    """Break a quote into checkable pieces: first on ellipses, then on
+    sentence boundaries.
+
+    The prompt asks for one contiguous passage. When the model instead
+    stitches separate sentences together, every piece can be real while the
+    passage as a whole never existed - so we need to tell those apart."""
+    pieces = []
+    for part in ELLIPSIS.split(evidence or ""):
+        part = part.strip()
+        if part:
+            pieces.extend(p.strip() for p in SENTENCE_END.split(part) if p.strip())
+    return pieces or ([evidence] if evidence else [])
+
+
+def verify_quotes(result, article_text):
+    """Check every insight's evidence appears verbatim in the source.
+
+    The finding itself is written by the model and cannot be checked this way,
+    so evidence is the only anchor left - it matters more here than it did
+    when findings were copied."""
     haystack = normalise(article_text)
     checks = []
-    for i, finding in enumerate(result.get("findings", [])):
-        quote = finding.get("quote", "")
-        link = finding.get("connection_quote", "")
+    for i, ins in enumerate(result.get("insights", [])):
+        evidence = ins.get("evidence", "")
+        finding = ins.get("finding", "")
+        fragments = evidence_fragments(evidence)
+        found = [normalise(f) in haystack for f in fragments] or [False]
+        contiguous = bool(evidence) and normalise(evidence) in haystack
         checks.append({
             "index": i,
-            "topic": finding.get("topic"),
-            "found_in_source": normalise(quote) in haystack if quote else False,
-            "connection_found_in_source": (
-                normalise(link) in haystack if link else False),
-            "connection_same_as_quote": normalise(link) == normalise(quote),
-            "quote": quote,
-            "connection_quote": link,
+            "finding": finding,
+            # Every piece is real text from the document.
+            "found_in_source": all(found),
+            # The passage appears in the document exactly as quoted.
+            "contiguous_in_source": contiguous,
+            # Real sentences welded into a passage that never existed.
+            "stitched": all(found) and not contiguous and len(fragments) > 1,
+            "fragments": len(fragments),
+            "fragments_missing": [
+                f[:200] for f, ok in zip(fragments, found) if not ok],
+            "is_ellipsis_joined": bool(ELLIPSIS.search(evidence or "")),
+            "finding_is_copied": (
+                normalise(finding) == normalise(evidence) and bool(finding)),
+            "evidence": evidence,
         })
     return checks
 
 
-def check_measures(result):
-    """The prompt says value_text must contain a digit. Words like "highest"
-    in a measure field mean the model is stuffing prose into a numeric slot."""
-    bad = []
-    for i, finding in enumerate(result.get("findings", [])):
-        for m in finding.get("measures", []):
-            text = m.get("value_text") or ""
-            if not any(ch.isdigit() for ch in text):
-                bad.append({"index": i, "topic": finding.get("topic"),
-                            "value_text": text})
-    return bad
+STOP = set(
+    "the a an of and or to in on for with by at as is are was were be been had "
+    "has have this that these those it its their there who whom which what "
+    "more than over under about from into during between among people person "
+    "persons year years aged age last previous prior months month any all "
+    "three four five one two half most some each per cent percent".split())
+
+
+def _content_words(text):
+    return {w for w in re.findall(r"[a-z][a-z0-9-]{2,}", (text or "").lower())
+            if w not in STOP}
+
+
+def _jaccard(a, b):
+    if not a or not b:
+        return 0.0
+    return len(a & b) / float(len(a | b))
+
+
+def check_direction(result):
+    """Catch reversed conditionals.
+
+    "74.9% of people with suicidal thoughts had a mental disorder" and
+    "74.9% of people with a mental disorder had suicidal thoughts" are
+    different claims, and only one of them is in the document. The quote check
+    passes either way because the evidence is verbatim and correct - it is the
+    finding that is wrong.
+
+    The signature is mechanical: the same percentage appears in both, and the
+    group named BEFORE it in the finding is the group named AFTER it in the
+    evidence, and vice versa."""
+    flagged = []
+    for i, ins in enumerate(result.get("insights", [])):
+        finding = ins.get("finding") or ""
+        evidence = ins.get("evidence") or ""
+        pct_re = re.compile(r"\d+(?:\.\d+)?\s*%")
+        shared = (set(pct_re.findall(finding.replace(" %", "%")))
+                  & set(pct_re.findall(evidence.replace(" %", "%"))))
+        for pct in shared:
+            fi = finding.find(pct)
+            # Compare against the fragment that actually holds this figure,
+            # not the whole quote - otherwise unrelated sentences in a
+            # stitched passage poison the comparison.
+            frag = next((f for f in evidence_fragments(evidence) if pct in f),
+                        evidence)
+            ei = frag.find(pct)
+            if fi < 0 or ei < 0:
+                continue
+            fb = _content_words(finding[max(0, fi - 90):fi])
+            fa = _content_words(finding[fi + len(pct):fi + len(pct) + 90])
+            eb = _content_words(frag[max(0, ei - 90):ei])
+            ea = _content_words(frag[ei + len(pct):ei + len(pct) + 90])
+            straight = _jaccard(fb, eb) + _jaccard(fa, ea)
+            swapped = _jaccard(fb, ea) + _jaccard(fa, eb)
+            # The genuine reversal scored 1.38; the false positives 0.31-0.69.
+            if swapped > straight and swapped >= 0.90:
+                flagged.append({
+                    "index": i,
+                    "percentage": pct,
+                    "straight_score": round(straight, 2),
+                    "swapped_score": round(swapped, 2),
+                    "finding": finding[:160],
+                    "evidence": frag[:160],
+                })
+                break
+    return flagged
+
+
+def check_reasoning(result):
+    """Flag reasoning that could be pasted under any other finding. The
+    prompt bans these phrases by name; this counts how often it ignores it."""
+    lazy = [
+        "informs health service planning", "affects demand for health services",
+        "relevant to healthcare", "supports strategic planning",
+        "can lead to", "may result in", "could drive", "is associated with",
+        "may affect", "relates to",
+    ]
+    flagged = []
+    for i, ins in enumerate(result.get("insights", [])):
+        text = (ins.get("reasoning") or "").lower()
+        hits = [p for p in lazy if p in text]
+        if hits:
+            flagged.append({"index": i, "phrases": hits,
+                            "finding": ins.get("finding", "")[:80]})
+    return flagged
 
 
 def validate_schema(result):
@@ -331,7 +445,8 @@ def run_model(model, article_text, prompt, api_key, repeats, out_dir,
         if result is not None:
             record["schema_errors"] = validate_schema(result)
             record["quote_checks"] = verify_quotes(result, article_text)
-            record["bad_measures"] = check_measures(result)
+            record["lazy_reasoning"] = check_reasoning(result)
+            record["reversed_conditionals"] = check_direction(result)
 
         path = out_dir / ("%s__run%d.json" % (model.replace("/", "_"), n))
         path.write_text(json.dumps(record, indent=2, ensure_ascii=False))
@@ -343,18 +458,27 @@ def run_model(model, article_text, prompt, api_key, repeats, out_dir,
             bad_quotes = sum(
                 1 for c in record["quote_checks"] if not c["found_in_source"]
             )
-            bad_links = sum(
-                1 for c in record["quote_checks"]
-                if not c["connection_found_in_source"]
+            copied = sum(
+                1 for c in record["quote_checks"] if c["finding_is_copied"]
             )
             reasoning_note = ""
             if meta.get("reasoning_tokens"):
                 reasoning_note = ", %s reasoning tokens" % meta["reasoning_tokens"]
-            print("    %d findings, %d schema errors, %d unverified quotes, "
-                  "%d invented connections, %d non-numeric measures%s"
-                  % (len(result.get("findings", [])),
-                     len(record["schema_errors"]), bad_quotes, bad_links,
-                     len(record["bad_measures"]), reasoning_note))
+            reversed_n = len(record["reversed_conditionals"])
+            stitched_n = sum(
+                1 for c in record["quote_checks"] if c.get("stitched"))
+            if stitched_n:
+                print("      %d quote(s) stitched from non-adjacent sentences"
+                      % stitched_n)
+            print("    %d insights, %d schema errors, %d unverified "
+                  "evidence, %d copied findings, %d lazy reasoning, "
+                  "%d REVERSED%s"
+                  % (len(result.get("insights", [])),
+                     len(record["schema_errors"]), bad_quotes, copied,
+                     len(record["lazy_reasoning"]), reversed_n, reasoning_note))
+            for rv in record["reversed_conditionals"]:
+                print("      !! possible reversed conditional (%s) in insight %d"
+                      % (rv["percentage"], rv["index"] + 1))
     return runs
 
 
@@ -366,14 +490,15 @@ def stability(runs):
     if len(ok) < 2:
         return None
     sets = [
-        {normalise(f.get("quote", "")) for f in r["result"].get("findings", [])}
+        {normalise(i.get("evidence", ""))
+         for i in r["result"].get("insights", [])}
         for r in ok
     ]
     counts = [len(s) for s in sets]
     common = set.intersection(*sets)
     union = set.union(*sets)
     return {
-        "findings_per_run": counts,
+        "insights_per_run": counts,
         "in_every_run": len(common),
         "seen_at_least_once": len(union),
         "agreement": round(len(common) / len(union), 2) if union else None,
@@ -397,28 +522,25 @@ def summarise(all_runs):
             unverified = sum(
                 1 for c in r["quote_checks"] if not c["found_in_source"]
             )
-            invented = sum(
-                1 for c in r["quote_checks"]
-                if not c["connection_found_in_source"]
+            copied = sum(
+                1 for c in r["quote_checks"] if c["finding_is_copied"]
             )
-            own_link = sum(
-                1 for c in r["quote_checks"]
-                if not c["connection_same_as_quote"]
-            )
-            print("  run %d: %2d findings | %d schema err | %d unverified"
-                  " quotes | %d invented links (%d needed a separate link) |"
-                  " %d bad measures | %ss | %s | %s"
-                  % (r["run"], len(r["result"].get("findings", [])),
-                     len(r["schema_errors"]), unverified, invented, own_link,
-                     len(r.get("bad_measures", [])),
+            stitched = sum(1 for c in r["quote_checks"] if c.get("stitched"))
+            print("  run %d: %2d insights | %d schema err | %d unverified"
+                  " evidence | %d stitched | %d copied | %d lazy |"
+                  " %d reversed | %ss | %s | %s"
+                  % (r["run"], len(r["result"].get("insights", [])),
+                     len(r["schema_errors"]), unverified, stitched, copied,
+                     len(r.get("lazy_reasoning", [])),
+                     len(r.get("reversed_conditionals", [])),
                      meta.get("seconds"),
                      meta.get("provider") or "?",
                      ("$%.5f" % cost) if cost is not None else "cost n/a"))
         s = stability(runs)
         if s:
-            print("  stability: %s findings per run, %d quote(s) in every run "
-                  "of %d seen, agreement %s"
-                  % (s["findings_per_run"], s["in_every_run"],
+            print("  stability: %s insights per run, %d passage(s) in every "
+                  "run of %d seen, agreement %s"
+                  % (s["insights_per_run"], s["in_every_run"],
                      s["seen_at_least_once"], s["agreement"]))
     if total_cost:
         print("\nTotal cost this session: $%.5f" % total_cost)
@@ -427,7 +549,8 @@ def summarise(all_runs):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("article", nargs="?",
-                    help="path to a .txt file holding the article")
+                    help="path to a plain-text or markdown file (.txt, .md) "
+                         "holding the article")
     ap.add_argument("--models", nargs="+", default=DEFAULT_MODELS)
     ap.add_argument("--repeats", type=int, default=1,
                     help="run each model this many times on the same article")
@@ -460,7 +583,16 @@ def main():
     article_path = Path(args.article)
     if not article_path.exists():
         sys.exit("No such file: %s" % article_path)
-    article_text = article_path.read_text(encoding="utf-8")
+    if article_path.suffix.lower() in (".pdf", ".docx", ".doc", ".xlsx",
+                                       ".pptx", ".zip"):
+        sys.exit("%s is a binary format. Convert it to .txt or .md first - "
+                 "this script sends the file's text straight to the model."
+                 % article_path.suffix)
+    try:
+        article_text = article_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        sys.exit("Could not read %s as UTF-8 text. Plain text or markdown "
+                 "only." % article_path)
     if not article_text.strip():
         sys.exit("Article file is empty: %s" % article_path)
 

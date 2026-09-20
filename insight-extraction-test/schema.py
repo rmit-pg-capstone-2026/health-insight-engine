@@ -1,55 +1,28 @@
-MEASURE = {
-    "type": "object",
-    "additionalProperties": False,
-    "properties": {
-        "value_text": {"type": "string"},
-        "value_number": {"type": ["number", "null"]},
-        "unit": {"type": ["string", "null"]},
-        "population": {"type": ["string", "null"]},
-        "period": {"type": ["string", "null"]},
-        "comparison": {"type": ["string", "null"]},
-        "direction": {
-            "type": "string",
-            "enum": ["increase", "decrease", "no_change", "not_stated"],
-        },
-    },
-    "required": [
-        "value_text", "value_number", "unit",
-        "population", "period", "comparison", "direction",
-    ],
-}
+"""JSON schema for the insight extraction step.
+
+OpenRouter's strict mode follows the OpenAI convention: every property must
+appear in `required`, and `additionalProperties` must be false. Fields that
+may be absent are declared nullable rather than optional.
+
+The findings here are written by the model, not copied, so only `evidence` can
+be verified mechanically against the source text. That is the trade made when
+moving from transcription to judgement.
+"""
+
+MAX_INSIGHTS = 10
 
 DOMAINS = ["clinical", "pharmaceutical", "medical_technology"]
 
-FINDING = {
+INSIGHT = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
         "finding": {"type": "string"},
-        "quote": {"type": "string"},
-        "connection_quote": {"type": "string"},
-        "topic": {"type": "string"},
+        "evidence": {"type": "string"},
+        "reasoning": {"type": "string"},
         "domain": {"type": "string", "enum": DOMAINS},
-        "also_relevant_to": {
-            "type": "array",
-            "items": {"type": "string", "enum": DOMAINS},
-        },
-        "measures": {"type": "array", "items": MEASURE},
-        "evidence_type": {
-            "type": "string",
-            "enum": [
-                "official_statistic",
-                "report_finding",
-                "listing_change",
-                "commentary",
-            ],
-        },
-        "relevance_reason": {"type": "string"},
     },
-    "required": [
-        "finding", "quote", "connection_quote", "topic", "domain",
-        "also_relevant_to", "measures", "evidence_type", "relevance_reason",
-    ],
+    "required": ["finding", "evidence", "reasoning", "domain"],
 }
 
 EXTRACTION_SCHEMA = {
@@ -58,22 +31,36 @@ EXTRACTION_SCHEMA = {
     "properties": {
         "title": {"type": ["string", "null"]},
         "publisher": {"type": ["string", "null"]},
-        "publication_date": {"type": ["string", "null"]},
         "source_url": {"type": ["string", "null"]},
-        "findings": {"type": "array", "items": FINDING},
-        "no_findings_reason": {"type": ["string", "null"]},
+        "publication_date": {"type": ["string", "null"]},
+        "period_covered": {"type": ["string", "null"]},
+        "insights": {
+            "type": "array",
+            "items": INSIGHT,
+            "maxItems": MAX_INSIGHTS,
+        },
+        "summary": {"type": "string"},
+        "no_insights_reason": {"type": ["string", "null"]},
     },
     "required": [
-        "title", "publisher", "publication_date",
-        "source_url", "findings", "no_findings_reason",
+        "title", "publisher", "source_url", "publication_date",
+        "period_covered", "insights", "summary", "no_insights_reason",
     ],
 }
+
+# Strict mode does not support maxItems (nor minimum, pattern, format). Sending
+# it can fail the call outright, so the cap is enforced in the prompt and
+# checked locally instead - the schema that goes over the wire omits it.
+import copy as _copy
+
+_API_SCHEMA = _copy.deepcopy(EXTRACTION_SCHEMA)
+_API_SCHEMA["properties"]["insights"].pop("maxItems", None)
 
 RESPONSE_FORMAT = {
     "type": "json_schema",
     "json_schema": {
-        "name": "health_article_extraction",
+        "name": "health_insight_extraction",
         "strict": True,
-        "schema": EXTRACTION_SCHEMA,
+        "schema": _API_SCHEMA,
     },
 }
