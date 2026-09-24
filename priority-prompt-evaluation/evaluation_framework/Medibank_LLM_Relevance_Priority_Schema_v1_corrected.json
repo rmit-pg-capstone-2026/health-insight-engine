@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/medibank/relevance-priority-schema-v1.json",
+  "title": "RMIT–Medibank LLM Relevance Assessment and Prioritisation Schema v1",
+  "description": "Corrected schema aligned with the Step 3 reference-assessment prompt and concise Trello schema. Keep source-grounded findings separate from Medibank interpretation. Use null or 'not stated' where evidence is missing; do not guess.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "article_metadata",
+    "source_grounded_findings",
+    "medibank_assessment"
+  ],
+  "properties": {
+    "article_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "source",
+        "url",
+        "publication_date",
+        "last_updated_date",
+        "reference_period",
+        "comparison_period",
+        "retrieval_date"
+      ],
+      "properties": {
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publication_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_updated_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reference_period": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "comparison_period": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retrieval_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "source_grounded_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding",
+          "affected_population",
+          "geography",
+          "measure",
+          "value",
+          "unit",
+          "comparator_or_baseline",
+          "magnitude_or_trend",
+          "supporting_evidence",
+          "source_location",
+          "source_caveat"
+        ],
+        "properties": {
+          "finding": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "affected_population": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geography": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "measure": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {
+            "type": [
+              "string",
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "comparator_or_baseline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "magnitude_or_trend": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supporting_evidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_caveat": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "medibank_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relevance",
+        "relevance_rationale",
+        "criteria_assessment",
+        "priority",
+        "priority_rationale",
+        "why_it_may_matter_to_medibank",
+        "monitoring_or_followup",
+        "information_gaps"
+      ],
+      "properties": {
+        "relevance": {
+          "type": "string",
+          "enum": [
+            "Relevant",
+            "Uncertain",
+            "Not relevant"
+          ]
+        },
+        "relevance_rationale": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "criteria_assessment": {
+          "type": "array",
+          "description": "Assess the agreed Medibank criteria. Each item records the criterion, source-grounded evidence, and the separate judgement.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "criterion",
+              "evidence",
+              "judgement"
+            ],
+            "properties": {
+              "criterion": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "judgement": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "High Priority",
+            "Medium Priority",
+            "Watchlist",
+            "Informational"
+          ]
+        },
+        "priority_rationale": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "why_it_may_matter_to_medibank": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "monitoring_or_followup": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "information_gaps": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

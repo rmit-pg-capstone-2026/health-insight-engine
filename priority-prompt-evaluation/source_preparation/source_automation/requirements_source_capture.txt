@@ -1,0 +1,13 @@
+requests>=2.31
+beautifulsoup4>=4.12
+markdownify>=0.13
+pypdf>=5.0
+
+# Browser-rendered interactive capture.
+# Python 3.9 needs the last compatible Playwright line plus a greenlet wheel
+# that is available for CPython 3.9 on Windows.
+playwright==1.54.0; python_version == "3.9"
+greenlet==3.1.1; python_version == "3.9"
+
+# Current supported line for Python 3.10+.
+playwright==1.62.0; python_version >= "3.10"
