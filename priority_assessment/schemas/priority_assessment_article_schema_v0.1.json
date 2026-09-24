@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RMIT-Medibank Priority Assessment Article Mode Output v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "assessments"
+  ],
+  "properties": {
+    "assessments": {
+      "type": "array",
+      "items": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "RMIT-Medibank Priority Assessment v0.1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "insight_id",
+          "relevance",
+          "criteria",
+          "priority",
+          "priority_rationale"
+        ],
+        "properties": {
+          "insight_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relevance": {
+            "type": "string",
+            "enum": [
+              "Relevant",
+              "Uncertain",
+              "Not relevant"
+            ]
+          },
+          "criteria": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "clinical_significance",
+              "utilisation_demand",
+              "population_affected",
+              "magnitude_of_change",
+              "cost_implications",
+              "private_health_relevance",
+              "trend_continuity",
+              "emerging_treatment_or_technology",
+              "evidence_strength",
+              "actionability"
+            ],
+            "properties": {
+              "clinical_significance": {
+                "type": "string",
+                "enum": [
+                  "High",
+                  "Moderate",
+                  "Low",
+                  "Unclear"
+                ]
+              },
+              "utilisation_demand": {
+                "type": "string",
+                "enum": [
+                  "High",
+                  "Moderate",
+                  "Low",
+                  "Unclear"
+                ]
+              },
+              "population_affected": {
+                "type": "string",
+                "enum": [
+                  "Large",
+                  "Moderate",
+                  "Small",
+                  "Unclear"
+                ]
+              },
+              "magnitude_of_change": {
+                "type": "string",
+                "enum": [
+                  "Large",
+                  "Moderate",
+                  "Small",
+                  "Stable",
+                  "Unclear"
+                ]
+              },
+              "cost_implications": {
+                "type": "string",
+                "enum": [
+                  "High",
+                  "Moderate",
+                  "Low",
+                  "Unclear"
+                ]
+              },
+              "private_health_relevance": {
+                "type": "string",
+                "enum": [
+                  "High",
+                  "Moderate",
+                  "Low",
+                  "Unclear"
+                ]
+              },
+              "trend_continuity": {
+                "type": "string",
+                "enum": [
+                  "Strong",
+                  "Moderate",
+                  "Weak",
+                  "Unclear"
+                ]
+              },
+              "emerging_treatment_or_technology": {
+                "type": "string",
+                "enum": [
+                  "Yes",
+                  "No",
+                  "Unclear"
+                ]
+              },
+              "evidence_strength": {
+                "type": "string",
+                "enum": [
+                  "High",
+                  "Moderate",
+                  "Low",
+                  "Unclear"
+                ]
+              },
+              "actionability": {
+                "type": "string",
+                "enum": [
+                  "High",
+                  "Moderate",
+                  "Low",
+                  "Unclear"
+                ]
+              }
+            }
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "High Priority",
+              "Medium Priority",
+              "Watchlist",
+              "Informational",
+              "Not Applicable"
+            ]
+          },
+          "priority_rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
