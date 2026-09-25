@@ -12,7 +12,7 @@ This folder records **how the prioritisation prompt was developed and evaluated*
 - the complete available Case 1 frozen input, reference answer and six blinded outputs;
 - the evaluation rubric and rubric-audit artefacts;
 - the deterministic evaluation harness used for JSON/schema validation, integrity checking and blinded anonymisation;
-- a scaffold for Case 2 and cross-case evaluation files that still need to be restored from local copies.
+- the completed Case 2 and cross-case evaluation artefacts.
 
 The source-automation code here is **research support tooling**. It is not the project's production source-extraction module; that module is owned by another teammate/workstream.
 
@@ -79,27 +79,3 @@ priority-prompt-evaluation/
 `evaluation_tools/harness.py` preserves the original Evaluation Harness v0.1 used to validate and anonymise controlled candidate runs before human/LLM rubric scoring. It checks required files, hashes raw outputs, validates JSON and the frozen schema, creates seeded anonymous copies, records a private mapping, and builds a blinded package. It does **not** perform the scoring itself.
 
 The v0.1 script is intentionally preserved as a historical artefact and is configured around the Case 2 filenames. See `evaluation_tools/README.md` before reusing it for another case.
-
-## Files still needed
-
-Open `docs/MISSING_FILES.md`. The package is ready to push now, but restoring those originals will make the historical evaluation archive complete.
-
-## Recommended Git branch
-
-Create the branch directly from `main`, not from the current sprint branch:
-
-```bash
-git switch main
-git pull origin main
-git switch -c research/priority-prompt-evaluation
-```
-
-Extract/copy this folder into the repository, then:
-
-```bash
-git add priority-prompt-evaluation
-git commit -m "docs: add prioritisation prompt evaluation research"
-git push -u origin research/priority-prompt-evaluation
-```
-
-Do not merge the branch into the production/integration branch merely to preserve contribution history. Merge only if the team wants these research artefacts in the main project tree.
