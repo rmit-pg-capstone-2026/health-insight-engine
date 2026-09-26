@@ -1,0 +1,19 @@
+# One install for every stage of the pipeline:
+#   pip install -r requirements.txt
+
+# Stage 1 - collect_and_extract (fetch + HTML -> markdown)
+requests>=2.31
+trafilatura
+lxml
+lxml_html_clean       # lxml 5.2+ split this out; trafilatura still imports it
+beautifulsoup4
+
+# Stage 2 - insight-extraction-test (schema validation)
+# Stage 3 - priority_assessment     (needs 4.20+, below 5)
+jsonschema>=4.20,<5
+
+# Stage 4 - briefing (PDF rendering)
+reportlab
+
+# All stages - read settings from the root .env file
+python-dotenv

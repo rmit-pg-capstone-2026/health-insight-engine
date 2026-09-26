@@ -5,6 +5,14 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib import error, request
 
+# When run on its own, read PROMPT2_* from the repo-root .env. Anything already
+# exported in the shell still wins.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+except ImportError:
+    pass
+
 
 def _load_json(path: Path) -> Dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:

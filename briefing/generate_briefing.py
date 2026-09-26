@@ -7,13 +7,15 @@ e.g. one AIHW report and one ABS release) and writes a single PDF with a title
 block listing every source and one combined Insights section.
 
 Usage:
+    python generate_briefing.py                           # the pipeline default
     python generate_briefing.py briefing_input.json
     python generate_briefing.py aihw_dementia.json abs_respiratory.json
     python generate_briefing.py briefing_inputs/          # every .json in a folder
     python generate_briefing.py briefing_inputs/ -o my_briefing.pdf
 
-By default the PDF is saved as briefing_report.pdf in the same folder as the
-first input (or inside the folder, if a folder is given).
+With no inputs it reads every .json in <repo root>/data/priority-tagged-insight-files.
+The PDF is saved as <repo root>/data/briefing-paper/briefing_report.pdf unless
+-o is given.
 
 Requires:
     pip install reportlab
@@ -43,6 +45,11 @@ from reportlab.platypus import (
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+
+# Shared pipeline folders: stage 3 writes the first, the PDF goes in the second.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "priority-tagged-insight-files"
+DEFAULT_OUTPUT_PDF = REPO_ROOT / "data" / "briefing-paper" / "briefing_report.pdf"
 
 BRAND = colors.HexColor("#0B3D91")      # dark blue for headings
 TEXT = colors.HexColor("#1F2933")
@@ -369,23 +376,21 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate a Healthcare Intelligence Briefing PDF from "
                     "one or more briefing JSON files.")
-    parser.add_argument("inputs", nargs="+",
-                        help="JSON file(s) and/or folder(s) containing JSON files")
+    parser.add_argument("inputs", nargs="*",
+                        help="JSON file(s) and/or folder(s) containing JSON files "
+                             "(default: data/priority-tagged-insight-files)")
     parser.add_argument("-o", "--output",
-                        help="Output PDF path (default: briefing_report.pdf "
-                             "next to the first input)")
+                        help="Output PDF path "
+                             "(default: data/briefing-paper/briefing_report.pdf)")
     args = parser.parse_args()
 
-    json_paths = collect_json_files(args.inputs)
+    inputs = args.inputs or [str(DEFAULT_INPUT_DIR)]
+    json_paths = collect_json_files(inputs)
     if not json_paths:
-        sys.exit("Error: no JSON files found in the given input(s).")
+        sys.exit("Error: no JSON files found in: %s" % ", ".join(inputs))
 
-    if args.output:
-        pdf_path = Path(args.output)
-    else:
-        first = Path(args.inputs[0])
-        folder = first if first.is_dir() else first.parent
-        pdf_path = folder / "briefing_report.pdf"
+    pdf_path = Path(args.output) if args.output else DEFAULT_OUTPUT_PDF
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
     source_count, insight_count = generate(json_paths, pdf_path)
     print(f"Created {pdf_path} from {source_count} source(s) "

@@ -9,9 +9,10 @@ Flow (matches the sketch):
 3. Repeat the same prompt loop for ABS.
 4. Once all URLs are collected, fetch each page, extract the main content as
    Markdown (trafilatura), attach YAML frontmatter, and save one .md file per
-   URL into:
-       source-extracted-files/AIHW/
-       source-extracted-files/ABS/
+   URL into the shared pipeline folder, flat, with the source as a filename
+   prefix so both agencies sit side by side:
+       <repo root>/data/source-extracted-files/aihw-<title>-<hash>.md
+       <repo root>/data/source-extracted-files/abs-<title>-<hash>.md
 
    AIHW publishes long reports as many pages under a shared
    ".../contents/<section>" path (a sidebar table of contents), rather than
@@ -55,7 +56,10 @@ import requests
 import trafilatura
 from bs4 import BeautifulSoup, Tag
 
-OUTPUT_ROOT = Path("source-extracted-files")
+# Resolved from this file's location, not the current directory, so the output
+# lands in the same place no matter where the script is run from.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_ROOT = REPO_ROOT / "data" / "source-extracted-files"
 MANIFEST_PATH = OUTPUT_ROOT / "manifest.json"
 REQUEST_TIMEOUT = 20
 USER_AGENT = "MedibankCapstoneBot/0.1 (RMIT WIL project; contact: team)"
@@ -1052,11 +1056,13 @@ def save_markdown(source_label: str, url: str, result: ExtractResult, content_ha
     one silently overwrite the other's file. It's stable across runs for the
     same URL, so re-fetching a report always rewrites the same file.
     """
-    dest_dir = OUTPUT_ROOT / source_label
+    dest_dir = OUTPUT_ROOT
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     url_suffix = hashlib.sha256(url.encode("utf-8")).hexdigest()[:8]
-    filename = f"{slugify(result.title)}-{url_suffix}.md"
+    # Flat folder shared by both agencies: the lowercase source prefix
+    # (aihw-/abs-) is what tells them apart.
+    filename = f"{source_label.lower()}-{slugify(result.title)}-{url_suffix}.md"
     dest_path = dest_dir / filename
 
     page_lines = "".join(

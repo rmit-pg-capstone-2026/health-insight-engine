@@ -18,11 +18,21 @@ try:
 except ImportError:
     jsonschema = None
 
-HERE = Path(__file__).parent
+HERE = Path(__file__).resolve().parent
+REPO_ROOT = HERE.parent
 PROMPT_PATH = HERE / "prompt.md"
 RUNS_DIR = HERE / "runs"
-SOURCE_DIR = HERE / "source_extracted_files"
-OUTPUT_DIR = HERE / "insight_generated_files"
+# Shared pipeline folders: stage 1 writes the first, stage 3 reads the second.
+SOURCE_DIR = REPO_ROOT / "data" / "source-extracted-files"
+OUTPUT_DIR = REPO_ROOT / "data" / "insight-generated-files"
+
+# Settings come from the repo-root .env. Anything already set in the shell
+# wins, so a one-off `export` still overrides the file.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(REPO_ROOT / ".env")
+except ImportError:
+    pass
 TEXT_SUFFIXES = (".txt", ".md", ".markdown")
 BINARY_SUFFIXES = (".pdf", ".docx", ".doc", ".xlsx", ".xls", ".pptx", ".zip")
 API_URL = "https://openrouter.ai/api/v1/chat/completions"

@@ -221,4 +221,5 @@ __marimo__/
 .DS_Store
 
 
-briefing_report.pdf
+# Pipeline data - generated at runtime, keep the folder structure only
+priority_assessment/data/*/*
