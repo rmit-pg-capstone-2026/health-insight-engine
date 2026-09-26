@@ -1,0 +1,263 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "run": 1,
+  "meta": {
+    "model_returned": "deepseek/deepseek-v4-flash-0731",
+    "provider": "DeepInfra",
+    "prompt_tokens": 84348,
+    "completion_tokens": 3170,
+    "reasoning_tokens": 0,
+    "cost_usd": 0.00550476,
+    "seconds": 88.6,
+    "reasoning_setting": "off",
+    "provider_pinned": "deepinfra",
+    "error": null
+  },
+  "result": {
+    "document_scope": "in_scope",
+    "source": {
+      "publisher": "Australian Institute of Health and Welfare",
+      "title": "First Nations Burden of Disease Study 2022",
+      "url": "https://www.aihw.gov.au/reports/burden-of-disease/first-nations-burden-of-disease-study-2022",
+      "publication_date": "2026-09-04",
+      "period_covered": "2011, 2018, 2022",
+      "retrieval_date": "2026-09-24"
+    },
+    "summary": "This AIHW web report presents the burden of disease for Aboriginal and Torres Strait Islander (First Nations) people in Australia for the reference year 2022, with comparisons to 2011 and 2018. It measures total burden (DALY), non-fatal burden (YLD), and fatal burden (YLL) across 220 diseases and injuries, and includes analyses by sex, age group, disease group, state/territory, and remoteness area. The report also quantifies the gap in burden between First Nations and non-Indigenous Australians, including excess burden, and provides detailed sections on key disease groups such as mental health conditions, injuries, cardiovascular diseases, endocrine disorders, and kidney disease. Data are drawn from national mortality, hospital, survey, and disease register sources, with adjustments for Indigenous under-identification.",
+    "insights": [
+      {
+        "insight_type": "clinical",
+        "finding": "Mental health conditions & substance use disorders are now the leading cause of total disease burden among First Nations people, contributing 20% of all DALYs in 2022, and their age-standardised burden rate rose 11% between 2011 and 2022—driven by a 14% rise in non-fatal burden—even as fatal burden from these conditions fell 45%.",
+        "evidence": "Between 2011 and 2022, the age-standardised rate of total burden due to mental health conditions & substance use disorders for First Nations people increased from 59 to 66 DALY per 1,000 people, an increase of 11%. This was driven by an increase in the non-fatal burden (14%). Rates of fatal burden due to mental health conditions & substance use disorders decreased between 2011 and 2022 (from 3.2 to 1.8 YLL per 1,000; decrease of 45%).",
+        "evidence_location": "Mental health conditions & substance use disorders - How has the burden changed over time?",
+        "target_population": "First Nations people",
+        "caveat": null,
+        "reasoning": "This is a major shift in the disease burden profile of a population with high health needs. The rise in non-fatal mental health burden, particularly anxiety and depressive disorders, points to growing demand for psychological and psychiatric services, which are often accessed through private providers. For an insurer, this signals potential growth in claims for mental health-related outpatient and hospital services among First Nations members, and highlights an area where targeted care coordination or partnerships with Aboriginal Community Controlled Health Services could be valuable.",
+        "insight_id": "INSIGHT_001"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2022, 54% of the total disease burden experienced by First Nations people—172,639 DALYs—was excess burden that would not occur if they had the same burden rates as non-Indigenous Australians; the largest contributors were mental health conditions & substance use disorders (19% of excess), injuries (15%), and cardiovascular diseases (13%).",
+        "evidence": "In 2022, 54% of the total burden experienced by First Nations people was considered excess burden (172,639 DALY). More of this excess was from fatal burden (99,033 YLL) compared with non-fatal burden (73,606 YLD).",
+        "evidence_location": "Gap in disease burden - Excess burden",
+        "target_population": "First Nations people",
+        "caveat": null,
+        "reasoning": "Excess burden quantifies the preventable health gap and is a direct measure of unmet need. The fact that over half of all burden in this population is excess—and concentrated in mental health, injuries, and cardiovascular disease—provides a clear, quantified case for investment in prevention and early intervention. For an insurer, this suggests that proactive programs targeting these conditions in First Nations members could have a substantial impact on reducing future claims and improving health outcomes.",
+        "insight_id": "INSIGHT_002"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "The gap in disease burden between First Nations and non-Indigenous Australians is widening in Major cities: the absolute gap in total burden increased by 9.4% between 2011 and 2022 (from 205 to 224 DALY per 1,000), and the rate ratio rose from 2.0 to 2.1, driven by a 4.0% increase in the First Nations burden rate.",
+        "evidence": "in *Major cities*, the absolute gap increased by 9.4% (from 205 to 224 DALY per 1,000), and the rate ratio increased slightly (from 2.0 to 2.1).",
+        "evidence_location": "Burden of disease by remoteness - Changes in the gap over time",
+        "target_population": "First Nations people in Major cities",
+        "caveat": null,
+        "reasoning": "While burden has declined in remote areas, the situation in Major cities is worsening—a counter-intuitive finding given better access to services. This suggests that urban First Nations populations may be underserved or facing different risk factors. For an insurer, this highlights a potential gap in care for urban First Nations members and an opportunity to investigate why burden is rising in this group, which may be more likely to hold private health insurance.",
+        "insight_id": "INSIGHT_003"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2022, First Nations people in Remote and Very remote areas had total burden rates of 499 and 481 DALY per 1,000, respectively, compared with 423 in Major cities; the difference was driven almost entirely by fatal burden, which was 1.4 times higher in remote areas, while non-fatal burden rates were similar across all remoteness categories.",
+        "evidence": "In 2022, First Nations people in *Remote* and *Very remote* areas experienced higher rates of total burden (DALY) than those in *Major cities* across Australia (499 and 481 DALY per 1,000 people compared with 423 DALY per 1,000).",
+        "evidence_location": "Burden of disease by remoteness - Key findings",
+        "target_population": "First Nations people in Remote and Very remote areas",
+        "caveat": "The report notes that non-fatal burden estimates rely on diagnosis, which is affected by access to services, and that remoteness proportions derived from hospitalisation data may reflect access differences rather than true prevalence.",
+        "reasoning": "The higher fatal burden in remote areas points to a gap in access to timely and effective care, particularly for conditions like cardiovascular disease and injuries. For an insurer, this suggests that members in remote areas may have higher rates of severe, preventable conditions, and that telehealth or outreach programs could be particularly impactful in reducing mortality and associated hospital costs.",
+        "insight_id": "INSIGHT_004"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Injuries were the leading cause of fatal burden among First Nations people in 2022, accounting for 22% of all YLL, with suicide & self-inflicted injuries the top specific cause (9.0% of fatal burden); injury burden was 2.6 times the rate of non-Indigenous Australians, and 88% of injury burden was fatal.",
+        "evidence": "Injuries (22%), cancer (21%) and cardiovascular diseases (19%) caused most of the fatal burden for First Nations people in 2022. Together, these 3 disease groups accounted for 62% of the fatal burden in First Nations people.",
+        "evidence_location": "Fatal burden (YLL) - Key findings",
+        "target_population": "First Nations people",
+        "caveat": null,
+        "reasoning": "The high and largely fatal injury burden, particularly from suicide, represents a significant and preventable loss of life, with major implications for families and communities. For an insurer, this highlights the need for robust mental health support and suicide prevention services, as well as the potential for higher claims related to trauma care and rehabilitation for non-fatal injuries.",
+        "insight_id": "INSIGHT_005"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Coronary heart disease (CHD) remained the leading specific cause of disease burden among First Nations people in 2022, despite a 30% fall in its age-standardised burden rate since 2011 (from 45 to 32 DALY per 1,000); CHD also contributed the most to the gap in burden with non-Indigenous Australians (10.5% of the gap for males, 7.6% for females).",
+        "evidence": "Although coronary heart disease (CHD) remained the leading cause of disease burden in 2022, the total burden age-standardised rate for CHD fell by 30% between 2011 and 2022, from 45 to 32 DALY per 1,000 people.",
+        "evidence_location": "Changes in burden over time - Key findings",
+        "target_population": "First Nations people",
+        "caveat": null,
+        "reasoning": "The substantial decline in CHD burden shows that prevention and treatment efforts are working, but CHD remains the top cause of health loss and a major driver of the health gap. For an insurer, this suggests that continued investment in cardiovascular risk factor management and cardiac care for First Nations members is critical, and that the success in reducing CHD could be replicated for other conditions.",
+        "insight_id": "INSIGHT_006"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Adults aged 25–64 make up 43% of the First Nations population but account for 58% of the total disease burden, with the largest relative gap in burden compared with non-Indigenous Australians occurring in the 30–54 age group, where rates are 2.5 to 2.8 times higher.",
+        "evidence": "Adults aged 25–64 comprised 43% (439,400 people) of the First Nations population and more than half (58%, 183,914 DALY) of the total burden.",
+        "evidence_location": "Burden across life stages - Burden by age",
+        "target_population": "First Nations adults aged 25-64",
+        "caveat": null,
+        "reasoning": "This concentration of burden in working-age adults has significant economic and social implications, affecting workforce participation and family stability. For an insurer, this is a key demographic for private health insurance, and the high burden suggests a need for accessible, effective treatment for chronic conditions and mental health issues in this age group to reduce long-term disability and claims.",
+        "insight_id": "INSIGHT_007"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "COVID-19 was the 14th leading cause of total burden among First Nations people in 2022, contributing 2.0% of all DALYs, and was the largest single contributor to the infectious diseases group, accounting for 47% of its total burden; the burden was predominantly fatal (68%).",
+        "evidence": "Among First Nations people in 2022, COVID-19 was the 14th leading cause of total burden (contributing 2.0% of DALY). COVID-19 was the largest overall contributor to the infectious diseases group, accounting for 47% of its total burden.",
+        "evidence_location": "Total burden (DALY) - COVID-19 burden in 2022",
+        "target_population": "First Nations people",
+        "caveat": "Estimates for post-acute consequences of COVID-19 should be interpreted with caution due to substantial modelling.",
+        "reasoning": "The emergence of COVID-19 as a significant cause of burden, particularly fatal burden, highlights the ongoing impact of the pandemic on this population. For an insurer, this may translate into claims for hospitalisations, ICU care, and long-term management of post-COVID conditions, and underscores the importance of vaccination and early treatment programs.",
+        "insight_id": "INSIGHT_008"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Chronic kidney disease (CKD) is a major driver of health inequity: First Nations people have a CKD burden rate 5.9 times that of non-Indigenous Australians, and 84% of the burden from kidney & urinary diseases is considered excess; in Very remote areas, the rate ratio for kidney & urinary diseases is 17 times that of non-Indigenous Australians.",
+        "evidence": "In 2022, the age-standardised rate of burden due to kidney & urinary diseases for First Nations people was 4.9 times the rate for non-Indigenous Australians (age-standardised rates of 12.3 and 2.5 DALY per 1,000 people, respectively).",
+        "evidence_location": "Kidney and urinary diseases - Comparisons with non-Indigenous Australians",
+        "target_population": "First Nations people",
+        "caveat": null,
+        "reasoning": "The extreme disparity in CKD burden, especially in remote areas, points to a critical need for early detection and management of risk factors like diabetes and hypertension. For an insurer, this suggests potential for high-cost claims related to dialysis and kidney transplantation, and highlights the value of preventive programs targeting CKD in First Nations communities.",
+        "insight_id": "INSIGHT_009"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "The burden of disease among First Nations people is increasingly non-fatal: between 2011 and 2022, the fatal burden rate fell 11% while non-fatal burden remained stable, and in 2022 fatal and non-fatal burden contributed equally to total burden, a shift from 2011 when fatal burden was 52.1%.",
+        "evidence": "The decrease in total burden was driven by a reduction (of 11%) in the age-standardised rate of fatal burden between 2011 and 2022, from 262 to 233 YLL per 1,000 people. There was no substantial change in the age-standardised rate of non-fatal burden between 2011 and 2022.",
+        "evidence_location": "Changes in burden over time - Key findings",
+        "target_population": "First Nations people",
+        "caveat": null,
+        "reasoning": "The shift from fatal to non-fatal burden means that more First Nations people are living with chronic illness and disability, which has implications for long-term care needs and healthcare costs. For an insurer, this suggests a growing demand for services that manage chronic conditions, rehabilitation, and mental health support, rather than just acute care.",
+        "insight_id": "INSIGHT_010"
+      }
+    ],
+    "no_insights_reason": null
+  },
+  "schema_errors": [],
+  "quote_checks": [
+    {
+      "index": 0,
+      "finding": "Mental health conditions & substance use disorders are now the leading cause of total disease burden among First Nations people, contributing 20% of all DALYs in 2022, and their age-standardised burden rate rose 11% between 2011 and 2022—driven by a 14% rise in non-fatal burden—even as fatal burden from these conditions fell 45%.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 3,
+      "fragments_missing": [
+        "Rates of fatal burden due to mental health conditions & substance use disorders decreased between 2011 and 2022 (from 3.2 to 1.8 YLL per 1,000; decrease of 45%)."
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Between 2011 and 2022, the age-standardised rate of total burden due to mental health conditions & substance use disorders for First Nations people increased from 59 to 66 DALY per 1,000 people, an increase of 11%. This was driven by an increase in the non-fatal burden (14%). Rates of fatal burden due to mental health conditions & substance use disorders decreased between 2011 and 2022 (from 3.2 to 1.8 YLL per 1,000; decrease of 45%)."
+    },
+    {
+      "index": 1,
+      "finding": "In 2022, 54% of the total disease burden experienced by First Nations people—172,639 DALYs—was excess burden that would not occur if they had the same burden rates as non-Indigenous Australians; the largest contributors were mental health conditions & substance use disorders (19% of excess), injuries (15%), and cardiovascular diseases (13%).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2022, 54% of the total burden experienced by First Nations people was considered excess burden (172,639 DALY). More of this excess was from fatal burden (99,033 YLL) compared with non-fatal burden (73,606 YLD)."
+    },
+    {
+      "index": 2,
+      "finding": "The gap in disease burden between First Nations and non-Indigenous Australians is widening in Major cities: the absolute gap in total burden increased by 9.4% between 2011 and 2022 (from 205 to 224 DALY per 1,000), and the rate ratio rose from 2.0 to 2.1, driven by a 4.0% increase in the First Nations burden rate.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "in *Major cities*, the absolute gap increased by 9.4% (from 205 to 224 DALY per 1,000), and the rate ratio increased slightly (from 2.0 to 2.1)."
+    },
+    {
+      "index": 3,
+      "finding": "In 2022, First Nations people in Remote and Very remote areas had total burden rates of 499 and 481 DALY per 1,000, respectively, compared with 423 in Major cities; the difference was driven almost entirely by fatal burden, which was 1.4 times higher in remote areas, while non-fatal burden rates were similar across all remoteness categories.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2022, First Nations people in *Remote* and *Very remote* areas experienced higher rates of total burden (DALY) than those in *Major cities* across Australia (499 and 481 DALY per 1,000 people compared with 423 DALY per 1,000)."
+    },
+    {
+      "index": 4,
+      "finding": "Injuries were the leading cause of fatal burden among First Nations people in 2022, accounting for 22% of all YLL, with suicide & self-inflicted injuries the top specific cause (9.0% of fatal burden); injury burden was 2.6 times the rate of non-Indigenous Australians, and 88% of injury burden was fatal.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "Together, these 3 disease groups accounted for 62% of the fatal burden in First Nations people."
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Injuries (22%), cancer (21%) and cardiovascular diseases (19%) caused most of the fatal burden for First Nations people in 2022. Together, these 3 disease groups accounted for 62% of the fatal burden in First Nations people."
+    },
+    {
+      "index": 5,
+      "finding": "Coronary heart disease (CHD) remained the leading specific cause of disease burden among First Nations people in 2022, despite a 30% fall in its age-standardised burden rate since 2011 (from 45 to 32 DALY per 1,000); CHD also contributed the most to the gap in burden with non-Indigenous Australians (10.5% of the gap for males, 7.6% for females).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Although coronary heart disease (CHD) remained the leading cause of disease burden in 2022, the total burden age-standardised rate for CHD fell by 30% between 2011 and 2022, from 45 to 32 DALY per 1,000 people."
+    },
+    {
+      "index": 6,
+      "finding": "Adults aged 25–64 make up 43% of the First Nations population but account for 58% of the total disease burden, with the largest relative gap in burden compared with non-Indigenous Australians occurring in the 30–54 age group, where rates are 2.5 to 2.8 times higher.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Adults aged 25–64 comprised 43% (439,400 people) of the First Nations population and more than half (58%, 183,914 DALY) of the total burden."
+    },
+    {
+      "index": 7,
+      "finding": "COVID-19 was the 14th leading cause of total burden among First Nations people in 2022, contributing 2.0% of all DALYs, and was the largest single contributor to the infectious diseases group, accounting for 47% of its total burden; the burden was predominantly fatal (68%).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Among First Nations people in 2022, COVID-19 was the 14th leading cause of total burden (contributing 2.0% of DALY). COVID-19 was the largest overall contributor to the infectious diseases group, accounting for 47% of its total burden."
+    },
+    {
+      "index": 8,
+      "finding": "Chronic kidney disease (CKD) is a major driver of health inequity: First Nations people have a CKD burden rate 5.9 times that of non-Indigenous Australians, and 84% of the burden from kidney & urinary diseases is considered excess; in Very remote areas, the rate ratio for kidney & urinary diseases is 17 times that of non-Indigenous Australians.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [
+        "In 2022, the age-standardised rate of burden due to kidney & urinary diseases for First Nations people was 4.9 times the rate for non-Indigenous Australians (age-standardised rates of 12.3 and 2.5 DAL"
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2022, the age-standardised rate of burden due to kidney & urinary diseases for First Nations people was 4.9 times the rate for non-Indigenous Australians (age-standardised rates of 12.3 and 2.5 DALY per 1,000 people, respectively)."
+    },
+    {
+      "index": 9,
+      "finding": "The burden of disease among First Nations people is increasingly non-fatal: between 2011 and 2022, the fatal burden rate fell 11% while non-fatal burden remained stable, and in 2022 fatal and non-fatal burden contributed equally to total burden, a shift from 2011 when fatal burden was 52.1%.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "The decrease in total burden was driven by a reduction (of 11%) in the age-standardised rate of fatal burden between 2011 and 2022, from 262 to 233 YLL per 1,000 people. There was no substantial change in the age-standardised rate of non-fatal burden between 2011 and 2022."
+    }
+  ],
+  "lazy_reasoning": [],
+  "reversed_conditionals": [],
+  "scope_problems": []
+}

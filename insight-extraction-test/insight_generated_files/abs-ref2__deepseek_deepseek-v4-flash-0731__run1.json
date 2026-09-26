@@ -1,0 +1,225 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "run": 1,
+  "meta": {
+    "model_returned": "deepseek/deepseek-v4-flash-0731",
+    "provider": "DeepInfra",
+    "prompt_tokens": 8498,
+    "completion_tokens": 2359,
+    "reasoning_tokens": 0,
+    "cost_usd": 0.0009345,
+    "seconds": 63.8,
+    "reasoning_setting": "off",
+    "provider_pinned": "deepinfra",
+    "error": null
+  },
+  "result": {
+    "document_scope": "in_scope",
+    "source": {
+      "publisher": "Australian Bureau of Statistics",
+      "title": "National Study of Mental Health and Wellbeing",
+      "url": null,
+      "publication_date": "5/10/2023",
+      "period_covered": "2020-2022",
+      "retrieval_date": "2026-09-24"
+    },
+    "summary": "This release from the Australian Bureau of Statistics presents findings from the National Study of Mental Health and Wellbeing (NSMHW) for the reference period 2020-2022. It provides national and state/territory estimates of the prevalence of mental disorders among Australians aged 16-85 years, including lifetime and 12-month prevalence for Anxiety, Affective, and Substance Use disorders. The report also covers comorbidity of mental disorders with physical conditions, use of health services for mental health (including consultations and digital services), dispensing of PBS-subsidised mental health-related medications, and lived experience of suicidal thoughts, behaviours, and self-harm. Data were collected through a national survey, with modelled estimates provided for Primary Health Networks and Statistical Areas Level 2. The report includes caveats about sampling error and exclusions, such as people in Very Remote areas and discrete Aboriginal and Torres Strait Islander communities.",
+    "insights": [
+      {
+        "insight_type": "clinical",
+        "finding": "More than one in three Australians aged 16-85 (38.8%) had a 12-month mental disorder in 2020-2022, with anxiety the most common group (17.2%), and prevalence was highest among young adults aged 16-24.",
+        "evidence": "38.8% of people aged 16–24 years had a 12-month mental disorder",
+        "evidence_location": "Key statistics",
+        "target_population": "People aged 16-85 years",
+        "caveat": null,
+        "reasoning": "This high prevalence, particularly among young adults, signals a substantial population with mental health needs that may require treatment and support. For a health insurer, this could indicate potential demand for mental health services, including psychological therapies and psychiatric care, among a demographic that is often targeted for private health insurance products.",
+        "insight_id": "INSIGHT_001"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Only 45.1% of Australians with a 12-month mental disorder saw a health professional for their mental health in 2020-2022, leaving a majority (54.9%) without such consultations, with lower rates among males (36.4%) and older adults aged 65-85 (35.1%).",
+        "evidence": "There were 4.3 million Australians aged 16–85 years with a 12-month mental disorder. Of these, 1.9 million (45.1%) saw a health professional for their mental health in 2020–2022",
+        "evidence_location": "Use of services - Consultations with health professionals for mental health",
+        "target_population": "People aged 16-85 years with a 12-month mental disorder",
+        "caveat": null,
+        "reasoning": "This gap between need and treatment is a key signal for insurers. It suggests a large unmet demand for mental health care, which could translate into future claims if these individuals seek help. The lower consultation rates among males and older adults highlight specific segments that may be underserved, potentially informing targeted outreach or product design.",
+        "insight_id": "INSIGHT_002"
+      },
+      {
+        "insight_type": "pharmaceutical",
+        "finding": "One in three Australians (33.3%) with a 12-month mental disorder were dispensed a PBS-subsidised mental health-related medication in 2020-2022, with rates varying sharply by age: 51.0% of those aged 65-85 compared with 25.1% of those aged 16-34.",
+        "evidence": "There were 4.3 million Australians aged 16–85 years with a 12-month mental disorder. Of these, 1.4 million (33.3%) were dispensed at least one PBS subsidised mental health-related medication in the 12 months prior to interview: 51.0% of people aged 65–85 years with a 12-month mental health disorder were dispensed at least one mental health-related medication, compared with 25.1% of people aged 16–34 years",
+        "evidence_location": "Mental health-related medications dispensed to people with a 12-month mental disorder",
+        "target_population": "People aged 16-85 years with a 12-month mental disorder",
+        "caveat": "PBS data cannot determine what condition a medication was prescribed for and only shows that a medication has been dispensed.",
+        "reasoning": "This indicates a significant reliance on medication as a treatment modality, particularly among older adults. For an insurer, this could inform understanding of pharmaceutical claims patterns and potential interactions with other health services. The age disparity suggests that younger adults with mental disorders may be less likely to receive medication, possibly indicating different treatment pathways or barriers to access.",
+        "insight_id": "INSIGHT_003"
+      },
+      {
+        "insight_type": "pharmaceutical",
+        "finding": "Of the 3.5 million Australians dispensed a mental health-related medication in 2020-2022, only 40.7% had a 12-month mental disorder, while 34.9% had no lifetime disorder, indicating substantial prescribing to people without a current or past mental disorder.",
+        "evidence": "Of the 3.5 million people aged 16–85 years who were dispensed at least one PBS subsidised mental health-related medication in the 12 months prior to interview, 40.7% had a 12-month mental disorder, 24.2% had a lifetime disorder with no 12-month symptoms, and the remainder (34.9%) had no lifetime disorder.",
+        "evidence_location": "People who were dispensed a mental health-related medication",
+        "target_population": "People aged 16-85 years dispensed a mental health-related medication",
+        "caveat": "PBS data cannot determine what condition a medication was prescribed for and only shows that a medication has been dispensed.",
+        "reasoning": "This finding is counter-intuitive and important: a large share of mental health-related medication dispensing occurs outside a diagnosed mental disorder. This could reflect off-label use, prescribing for other conditions, or over-prescribing. For an insurer, this may have implications for pharmaceutical benefits management, formulary decisions, and understanding the true drivers of mental health-related drug costs.",
+        "insight_id": "INSIGHT_004"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Among the 644,600 Australians who reported suicidal thoughts or behaviours in the last 12 months, 74.9% had a 12-month mental disorder, indicating a strong link between current mental illness and suicidality.",
+        "evidence": "Of the 644,600 people who reported any suicidal thoughts or behaviours in the last 12 months, three in four (74.9%) had a 12-month mental disorder.",
+        "evidence_location": "Lived experience of suicide",
+        "target_population": "People aged 16-85 years with suicidal thoughts or behaviours in the last 12 months",
+        "caveat": null,
+        "reasoning": "This highlights that the vast majority of people experiencing suicidal thoughts or behaviours have a diagnosable mental disorder, reinforcing the importance of mental health treatment in suicide prevention. For an insurer, this could inform the design of mental health support programs, crisis intervention services, and the potential for integrated care models to reduce suicide risk.",
+        "insight_id": "INSIGHT_005"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2020-2022, 8.4% of Australians aged 16-85 had both a 12-month mental disorder and a physical condition, and this comorbidity is more common in females (9.9%) than males (6.8%).",
+        "evidence": "1.7 million people (8.4%) had both a 12-month mental disorder and a physical condition",
+        "evidence_location": "Comorbidity of mental disorders and physical conditions",
+        "target_population": "People aged 16-85 years",
+        "caveat": "Comorbidity data presented in this figure does not incorporate hierarchy rules which give precedence to diagnosis of one mental disorder over another.",
+        "reasoning": "The co-occurrence of mental and physical conditions is clinically significant, as it is associated with more severe health problems and higher healthcare costs. For an insurer, this suggests a need for integrated care coordination and chronic disease management programs that address both mental and physical health, potentially reducing overall claims costs.",
+        "insight_id": "INSIGHT_006"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2020-2022, 8.7% of females aged 16-24 had self-harmed in the last 12 months, compared with 3.3% of males in the same age group, and 27.9% of females in this age group had self-harmed in their lifetime.",
+        "evidence": "8.7% of females aged 16–24 years had self-harmed in the last 12 months, compared with 3.3% of males aged 16–24 years.",
+        "evidence_location": "Self-harm",
+        "target_population": "Females aged 16-24 years",
+        "caveat": null,
+        "reasoning": "This highlights a significant mental health issue among young women, with high rates of self-harm. For an insurer, this could indicate a need for targeted mental health services and support for this demographic, including access to psychological therapies and crisis services, and may inform the design of youth-specific mental health programs.",
+        "insight_id": "INSIGHT_007"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2020-2022, 4.8% of Australians aged 16-85 accessed other mental health services via phone, internet, or digital technology, with usage highest among young adults aged 16-34 (8.2%) and females aged 16-34 (11.1%).",
+        "evidence": "Nearly 945,000 Australians (4.8%) aged 16–85 years used these methods to access other services for their mental health in the 12 months prior to interview: 8.2% of people aged 16–34 years accessed other services by phone, internet, or another digital technology compared with 1.0% of people aged 65–85 years",
+        "evidence_location": "Other services for mental health accessed using digital technologies",
+        "target_population": "People aged 16-85 years",
+        "caveat": "Proportions for males aged 65–85 has a relative standard error of 25–50% and should be used with caution.",
+        "reasoning": "The use of digital technologies for mental health services is notable, particularly among younger demographics. This suggests a growing channel for mental health care delivery that insurers may need to consider in their coverage and provider networks, including telehealth and online counselling services, to meet member preferences and improve access.",
+        "insight_id": "INSIGHT_008"
+      }
+    ],
+    "no_insights_reason": null
+  },
+  "schema_errors": [],
+  "quote_checks": [
+    {
+      "index": 0,
+      "finding": "More than one in three Australians aged 16-85 (38.8%) had a 12-month mental disorder in 2020-2022, with anxiety the most common group (17.2%), and prevalence was highest among young adults aged 16-24.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "38.8% of people aged 16–24 years had a 12-month mental disorder"
+    },
+    {
+      "index": 1,
+      "finding": "Only 45.1% of Australians with a 12-month mental disorder saw a health professional for their mental health in 2020-2022, leaving a majority (54.9%) without such consultations, with lower rates among males (36.4%) and older adults aged 65-85 (35.1%).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "There were 4.3 million Australians aged 16–85 years with a 12-month mental disorder. Of these, 1.9 million (45.1%) saw a health professional for their mental health in 2020–2022"
+    },
+    {
+      "index": 2,
+      "finding": "One in three Australians (33.3%) with a 12-month mental disorder were dispensed a PBS-subsidised mental health-related medication in 2020-2022, with rates varying sharply by age: 51.0% of those aged 65-85 compared with 25.1% of those aged 16-34.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "Of these, 1.4 million (33.3%) were dispensed at least one PBS subsidised mental health-related medication in the 12 months prior to interview: 51.0% of people aged 65–85 years with a 12-month mental h"
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "There were 4.3 million Australians aged 16–85 years with a 12-month mental disorder. Of these, 1.4 million (33.3%) were dispensed at least one PBS subsidised mental health-related medication in the 12 months prior to interview: 51.0% of people aged 65–85 years with a 12-month mental health disorder were dispensed at least one mental health-related medication, compared with 25.1% of people aged 16–34 years"
+    },
+    {
+      "index": 3,
+      "finding": "Of the 3.5 million Australians dispensed a mental health-related medication in 2020-2022, only 40.7% had a 12-month mental disorder, while 34.9% had no lifetime disorder, indicating substantial prescribing to people without a current or past mental disorder.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Of the 3.5 million people aged 16–85 years who were dispensed at least one PBS subsidised mental health-related medication in the 12 months prior to interview, 40.7% had a 12-month mental disorder, 24.2% had a lifetime disorder with no 12-month symptoms, and the remainder (34.9%) had no lifetime disorder."
+    },
+    {
+      "index": 4,
+      "finding": "Among the 644,600 Australians who reported suicidal thoughts or behaviours in the last 12 months, 74.9% had a 12-month mental disorder, indicating a strong link between current mental illness and suicidality.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Of the 644,600 people who reported any suicidal thoughts or behaviours in the last 12 months, three in four (74.9%) had a 12-month mental disorder."
+    },
+    {
+      "index": 5,
+      "finding": "In 2020-2022, 8.4% of Australians aged 16-85 had both a 12-month mental disorder and a physical condition, and this comorbidity is more common in females (9.9%) than males (6.8%).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "1.7 million people (8.4%) had both a 12-month mental disorder and a physical condition"
+    },
+    {
+      "index": 6,
+      "finding": "In 2020-2022, 8.7% of females aged 16-24 had self-harmed in the last 12 months, compared with 3.3% of males in the same age group, and 27.9% of females in this age group had self-harmed in their lifetime.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "8.7% of females aged 16–24 years had self-harmed in the last 12 months, compared with 3.3% of males aged 16–24 years."
+    },
+    {
+      "index": 7,
+      "finding": "In 2020-2022, 4.8% of Australians aged 16-85 accessed other mental health services via phone, internet, or digital technology, with usage highest among young adults aged 16-34 (8.2%) and females aged 16-34 (11.1%).",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [
+        "Nearly 945,000 Australians (4.8%) aged 16–85 years used these methods to access other services for their mental health in the 12 months prior to interview: 8.2% of people aged 16–34 years accessed oth"
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Nearly 945,000 Australians (4.8%) aged 16–85 years used these methods to access other services for their mental health in the 12 months prior to interview: 8.2% of people aged 16–34 years accessed other services by phone, internet, or another digital technology compared with 1.0% of people aged 65–85 years"
+    }
+  ],
+  "lazy_reasoning": [
+    {
+      "index": 5,
+      "phrases": [
+        "is associated with"
+      ],
+      "finding": "In 2020-2022, 8.4% of Australians aged 16-85 had both a 12-month mental disorder"
+    }
+  ],
+  "reversed_conditionals": [],
+  "scope_problems": []
+}

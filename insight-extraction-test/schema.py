@@ -15,7 +15,7 @@ finding, reasoning and caveat are written by the model - that is the trade
 made when moving from transcription to judgement.
 """
 
-MAX_INSIGHTS = 10
+MAX_INSIGHTS = 20
 
 INSIGHT_TYPES = ["clinical", "pharmaceutical", "medical_technology"]
 

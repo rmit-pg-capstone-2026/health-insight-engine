@@ -21,6 +21,10 @@ except ImportError:
 HERE = Path(__file__).parent
 PROMPT_PATH = HERE / "prompt.md"
 RUNS_DIR = HERE / "runs"
+SOURCE_DIR = HERE / "source_extracted_files"
+OUTPUT_DIR = HERE / "insight_generated_files"
+TEXT_SUFFIXES = (".txt", ".md", ".markdown")
+BINARY_SUFFIXES = (".pdf", ".docx", ".doc", ".xlsx", ".xls", ".pptx", ".zip")
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODELS_URL = "https://openrouter.ai/api/v1/models"
 
@@ -471,10 +475,126 @@ def annotate(result, retrieval_date):
     return result
 
 
+def load_article(path):
+    """Read one article, or raise ValueError with a readable reason."""
+    if path.suffix.lower() in BINARY_SUFFIXES:
+        raise ValueError("%s is a binary format - convert to .txt or .md first"
+                         % path.suffix)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        raise ValueError("not readable as UTF-8 text")
+    if not text.strip():
+        raise ValueError("file is empty")
+    return text
+
+
+def process_article(path, prompt, api_key, out_dir, args):
+    """Run every model over one article. Returns {model: [run records]}."""
+    article_text = load_article(path)
+    print("Article:   %s (%d characters)" % (path.name, len(article_text)))
+    print("Reasoning: %s" % args.reasoning)
+    print("Provider:  %s" % (args.provider or "whatever OpenRouter picks"))
+    print("Output:    %s\n" % out_dir)
+
+    all_runs = {}
+    for model in args.models:
+        print(model)
+        all_runs[model] = run_model(
+            model, article_text, prompt, api_key, args.repeats, out_dir,
+            args.temperature, args.reasoning, args.provider, path.stem,
+        )
+    return all_runs
+
+
+def run_batch(in_dir, out_dir, prompt, api_key, args):
+    """Process every text file in a folder, writing results flat into another.
+
+    One file failing does not stop the batch - a run of twenty articles
+    should not be lost because the fourth one was a PDF."""
+    if not in_dir.is_dir():
+        sys.exit("No such folder: %s\nCreate it and put .txt or .md files in "
+                 "it, or pass a single file path instead." % in_dir)
+
+    files = sorted(f for f in in_dir.iterdir()
+                   if f.is_file() and f.suffix.lower() in TEXT_SUFFIXES)
+    skipped = sorted(f.name for f in in_dir.iterdir()
+                     if f.is_file() and f.suffix.lower() not in TEXT_SUFFIXES
+                     and not f.name.startswith("."))
+    if not files:
+        sys.exit("No .txt or .md files in %s" % in_dir)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    print("Batch: %d file(s) from %s" % (len(files), in_dir))
+    print("       output to %s" % out_dir)
+    if skipped:
+        print("       ignoring non-text file(s): %s" % ", ".join(skipped))
+    print()
+
+    results, failures = {}, []
+    for i, path in enumerate(files, 1):
+        print("-" * 74)
+        print("[%d/%d] %s" % (i, len(files), path.name))
+        print("-" * 74)
+        try:
+            results[path.name] = process_article(
+                path, prompt, api_key, out_dir, args)
+        except ValueError as exc:
+            print("  SKIPPED: %s" % exc)
+            failures.append((path.name, str(exc)))
+        except Exception as exc:                       # keep the batch alive
+            print("  FAILED: %s" % exc)
+            failures.append((path.name, str(exc)))
+        print()
+
+    batch_summary(results, failures)
+    return results
+
+
+def batch_summary(results, failures):
+    print("=" * 78)
+    print("BATCH SUMMARY")
+    print("=" * 78)
+    print("%-26s %-34s %8s %6s %6s" % ("ARTICLE", "MODEL", "INSIGHTS",
+                                       "FLAGS", "COST"))
+    print("-" * 78)
+    total_cost, total_insights, total_flags = 0.0, 0, 0
+    for name, all_runs in results.items():
+        for model, runs in all_runs.items():
+            for r in runs:
+                if r["result"] is None:
+                    print("%-26s %-34s %8s %6s %6s"
+                          % (name[:26], model[:34], "FAILED", "-", "-"))
+                    continue
+                n = len(r["result"].get("insights", []))
+                flags = (
+                    sum(1 for c in r["quote_checks"]
+                        if not c["found_in_source"])
+                    + len(r.get("lazy_reasoning", []))
+                    + len(r.get("reversed_conditionals", []))
+                    + len(r.get("scope_problems", []))
+                    + len(r.get("schema_errors", []))
+                )
+                cost = r["meta"].get("cost_usd") or 0.0
+                total_cost += cost
+                total_insights += n
+                total_flags += flags
+                print("%-26s %-34s %8d %6d %6s"
+                      % (name[:26], model[:34], n, flags, "$%.4f" % cost))
+    print("-" * 78)
+    print("%d insight(s), %d flag(s), $%.4f total"
+          % (total_insights, total_flags, total_cost))
+    if failures:
+        print("\n%d file(s) not processed:" % len(failures))
+        for name, why in failures:
+            print("  %-30s %s" % (name, why))
+    print("\nReview anything with flags before passing these on.")
+
+
 # ------------------------------------------------------------- run + report
 
 def run_model(model, article_text, prompt, api_key, repeats, out_dir,
-              temperature, reasoning, provider):
+              temperature, reasoning, provider, stem):
     runs = []
     retrieval_date = time.strftime("%Y-%m-%d")
     for n in range(1, repeats + 1):
@@ -493,7 +613,8 @@ def run_model(model, article_text, prompt, api_key, repeats, out_dir,
             record["reversed_conditionals"] = check_direction(result)
             record["scope_problems"] = check_scope(result)
 
-        path = out_dir / ("%s__run%d.json" % (model.replace("/", "_"), n))
+        path = out_dir / ("%s__%s__run%d.json"
+                          % (stem, model.replace("/", "_"), n))
         path.write_text(json.dumps(record, indent=2, ensure_ascii=False))
         runs.append(record)
 
@@ -597,8 +718,8 @@ def summarise(all_runs):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("article", nargs="?",
-                    help="path to a plain-text or markdown file (.txt, .md) "
-                         "holding the article")
+                    help="a single .txt or .md file. Omit it to process every "
+                         "text file in --in-dir instead")
     ap.add_argument("--models", nargs="+", default=DEFAULT_MODELS)
     ap.add_argument("--repeats", type=int, default=1,
                     help="run each model this many times on the same article")
@@ -612,7 +733,14 @@ def main():
                          "(e.g. deepinfra). Fallbacks are turned off, so the "
                          "call fails rather than silently going elsewhere. "
                          "Use this whenever you are comparing runs")
-    ap.add_argument("--out", default=None, help="output directory")
+    ap.add_argument("--in-dir", default=str(SOURCE_DIR),
+                    help="folder of .txt/.md files to process when no single "
+                         "article is given (default: %s)" % SOURCE_DIR.name)
+    ap.add_argument("--out-dir", default=str(OUTPUT_DIR),
+                    help="folder the batch writes into, one JSON per article "
+                         "per model per run (default: %s)" % OUTPUT_DIR.name)
+    ap.add_argument("--out", default=None,
+                    help="single-file mode only: output directory")
     ap.add_argument("--check-models", action="store_true",
                     help="report which models support strict JSON schemas, "
                          "and what they cost, then exit")
@@ -621,49 +749,30 @@ def main():
     if args.check_models:
         sys.exit(0 if check_models(args.models) else 1)
 
-    if not args.article:
-        ap.error("an article file is required (or use --check-models)")
-
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         sys.exit("Set OPENROUTER_API_KEY (see .env.example)")
 
+    prompt = PROMPT_PATH.read_text(encoding="utf-8")
+
+    # No single article named: process the whole folder.
+    if not args.article:
+        run_batch(Path(args.in_dir), Path(args.out_dir), prompt, api_key, args)
+        return
+
     article_path = Path(args.article)
     if not article_path.exists():
         sys.exit("No such file: %s" % article_path)
-    if article_path.suffix.lower() in (".pdf", ".docx", ".doc", ".xlsx",
-                                       ".pptx", ".zip"):
-        sys.exit("%s is a binary format. Convert it to .txt or .md first - "
-                 "this script sends the file's text straight to the model."
-                 % article_path.suffix)
-    try:
-        article_text = article_path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        sys.exit("Could not read %s as UTF-8 text. Plain text or markdown "
-                 "only." % article_path)
-    if not article_text.strip():
-        sys.exit("Article file is empty: %s" % article_path)
-
-    prompt = PROMPT_PATH.read_text(encoding="utf-8")
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
     out_dir = Path(args.out) if args.out else RUNS_DIR / (
         "%s__%s" % (article_path.stem, stamp))
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Article:   %s (%d characters)" % (article_path, len(article_text)))
-    print("Reasoning: %s" % args.reasoning)
-    print("Provider:  %s" % (args.provider or "whatever OpenRouter picks"))
-    print("Output:    %s\n" % out_dir)
-
-    all_runs = {}
-    for model in args.models:
-        print(model)
-        all_runs[model] = run_model(
-            model, article_text, prompt, api_key,
-            args.repeats, out_dir, args.temperature, args.reasoning,
-            args.provider,
-        )
+    try:
+        all_runs = process_article(article_path, prompt, api_key, out_dir, args)
+    except ValueError as exc:
+        sys.exit("%s: %s" % (article_path, exc))
 
     summarise(all_runs)
     print("\nPer-run JSON written to %s" % out_dir)

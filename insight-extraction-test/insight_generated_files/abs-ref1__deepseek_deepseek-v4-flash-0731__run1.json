@@ -1,0 +1,273 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "run": 1,
+  "meta": {
+    "model_returned": "deepseek/deepseek-v4-flash-0731",
+    "provider": "DeepInfra",
+    "prompt_tokens": 9346,
+    "completion_tokens": 2393,
+    "reasoning_tokens": 0,
+    "cost_usd": 0.0009915,
+    "seconds": 69.7,
+    "reasoning_setting": "off",
+    "provider_pinned": "deepinfra",
+    "error": null
+  },
+  "result": {
+    "document_scope": "in_scope",
+    "source": {
+      "publisher": "Australian Bureau of Statistics",
+      "title": "Children's physical activity, screen time and sleep",
+      "url": null,
+      "publication_date": "30/06/2026",
+      "period_covered": "January 2023 to March 2024",
+      "retrieval_date": "2026-09-24"
+    },
+    "summary": "This ABS release reports on children's physical activity, sedentary screen time, and sleep, based on the National Nutrition and Physical Activity Survey (NNPAS) 2023, which ran from January 2023 to March 2024. It covers children aged 2–17 years, with separate analyses for toddlers/preschoolers (2–5 years) and children/young people (5–17 years), and compares results to the 2011–12 NNPAS where available. The report details the proportion of children meeting each recommendation of the 24-Hour Movement Guidelines for Australians, including physical activity, muscle and bone strengthening, sedentary screen time, secured sitting, and sleep, as well as average daily durations, types of screen devices used, and screen use before bed. Data were collected via interviews with children and their parents, with some physical activity and sleep measures assessed using wearable accelerometers in a separate release.",
+    "insights": [
+      {
+        "insight_type": "clinical",
+        "finding": "Only 7.2% of children aged 5–17 years met all measured 24-Hour Movement Guideline recommendations in 2023, with physical activity (18.3%) and sedentary screen time (27.8%) being the least met, while sleep (84.1%) and muscle strengthening (84.3%) were much higher.",
+        "evidence": "In 2023, 18.1% of toddlers and preschool-aged children (2–5 years) and 7.2% of children and young people (5–17 years) met all measured recommendations of the guidelines for their age group.",
+        "evidence_location": "At a glance - who met the guidelines",
+        "target_population": "Children aged 5–17 years",
+        "caveat": null,
+        "reasoning": "This low overall adherence highlights a significant gap in children's health behaviours, which could inform preventive health programs and family-focused interventions. For a health insurer, it signals potential long-term risk factors for chronic conditions, though the direct link to claims is indirect.",
+        "insight_id": "INSIGHT_001"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Physical activity adherence among 5–17 year olds drops sharply with age, from 30.8% of 5–8 year olds to 7.6% of 15–17 year olds, and only 18.3% overall met the daily 60-minute recommendation in 2023.",
+        "evidence": "The proportion of children who met the physical activity recommendation decreased with age, from 30.8% of 5–8 year olds to 7.6% of 15–17 year olds.",
+        "evidence_location": "Children aged 5–17 years",
+        "target_population": "Children aged 5–17 years",
+        "caveat": null,
+        "reasoning": "The steep decline in physical activity during adolescence is a well-known precursor to adult inactivity and associated health risks. This could inform targeted wellness programs for teenagers, though the insurer's direct role is limited to prevention rather than treatment.",
+        "insight_id": "INSIGHT_002"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Screen use before bed is near-universal among older teenagers: 86.7% of 15–17 year olds used a screen in the hour before bed and 94.2% had a screen-based device in their bedroom, against a backdrop where only 78.0% of 14–17 year olds met sleep recommendations.",
+        "evidence": "Children aged 15–17 years had the highest rate of screen use in the hour before bed (86.7%) and almost all (94.2%) had screen-based devices in their bedroom.",
+        "evidence_location": "Screen-based devices and healthy sleep behaviour",
+        "target_population": "Children aged 15–17 years",
+        "caveat": null,
+        "reasoning": "This combination of high pre-bed screen use and lower sleep adherence in older teens points to a modifiable risk factor for sleep-related health issues. For an insurer, it could support educational content on sleep hygiene for families, though it is more public health than claims-driven.",
+        "insight_id": "INSIGHT_003"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Average daily sedentary screen time for 5–17 year olds was 2h 51min in 2023, with 15–17 year olds averaging 4h 9min per day—over two hours more than 5–8 year olds (1h 51min).",
+        "evidence": "On average, children aged 15–17 years did over 2 hours more sedentary screen activity per day than children aged 5–8 years (4h 9min compared to 1h 51min).",
+        "evidence_location": "Average daily sedentary screen time",
+        "target_population": "Children aged 5–17 years",
+        "caveat": null,
+        "reasoning": "High screen time in adolescence is associated with obesity, poor mental health, and sleep problems, which can lead to increased healthcare utilisation. This data could inform population health strategies, though the insurer's relevance is more in prevention than direct claims.",
+        "insight_id": "INSIGHT_004"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Among 2–5 year olds, 67.7% met the physical activity recommendation (at least 3 hours daily) in 2023, similar to 2011–12 (71.9%), but only 28.5% met the sedentary screen time recommendation (≤1 hour daily).",
+        "evidence": "In 2023, around three in ten (28.5%) children aged 2–5 years met the sedentary screen time recommendation in the week before their interview.",
+        "evidence_location": "Children aged 2–5 years",
+        "target_population": "Children aged 2–5 years",
+        "caveat": null,
+        "reasoning": "While physical activity is high in this age group, screen time is a concern, potentially setting habits that persist. This could inform early childhood health programs, but the insurer's role is likely limited to general wellness promotion.",
+        "insight_id": "INSIGHT_005"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Sleep duration for 5–17 year olds was stable between 2011–12 (9h 49min) and 2023 (9h 43min), but 14–17 year olds slept 35 minutes longer on weekend nights than weeknights (9h 24min vs 8h 49min), indicating a weekday sleep deficit.",
+        "evidence": "Children aged 14–17 years who reported for a weekend night slept 35 minutes longer on average than those who reported for a weeknight (9h 24min compared to 8h 49min).",
+        "evidence_location": "Children aged 5–17 years",
+        "target_population": "Children aged 14–17 years",
+        "caveat": null,
+        "reasoning": "The weekend catch-up sleep suggests chronic weekday sleep deprivation in teenagers, which can affect academic performance and mental health. This could be relevant for school-based health initiatives, though the insurer's direct interest is limited.",
+        "insight_id": "INSIGHT_006"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Almost all (98.6%) children aged 2–17 years used a screen-based device in the week before the interview, with televisions most common (81.2%), followed by smart phones or watches (51.1%) and tablets (45.7%).",
+        "evidence": "Almost all (98.6%) 2–17 year olds used a screen-based device in the week before their interview. Televisions were the most popular screen-based devices (81.2%), followed by smart phones or watches (51.1%) and tablets (45.7%).",
+        "evidence_location": "Types of screen-based devices used",
+        "target_population": "Children aged 2–17 years",
+        "caveat": null,
+        "reasoning": "Universal screen use among children underscores the challenge of reducing screen time. For an insurer, this is context for understanding the scale of the issue, but it is not directly actionable for claims or services.",
+        "insight_id": "INSIGHT_007"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Only 41.6% of 5–17 year olds averaged 2 hours or less of sedentary screen time per day across the week, despite the guideline recommending no more than 2 hours daily.",
+        "evidence": "When averaged across the week, 41.6% of children aged 5–17 years did 2 hours or less per day of sedentary screen time.",
+        "evidence_location": "At a glance - who met the guidelines",
+        "target_population": "Children aged 5–17 years",
+        "caveat": null,
+        "reasoning": "This indicates that while daily adherence is low, many children are closer to the guideline when averaged, suggesting that occasional high-screen days are common. This nuance could inform messaging that encourages consistency rather than just reduction.",
+        "insight_id": "INSIGHT_008"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Children aged 2–5 years spent an average of 1h 24min per day on sedentary screen activity, exceeding the 1-hour guideline, with higher use on weekends (1h 32min) than weekdays (1h 21min).",
+        "evidence": "On average, children aged 2–5 years spent 1h 24min per day engaged in sedentary screen activity.",
+        "evidence_location": "Children aged 2–5 years",
+        "target_population": "Children aged 2–5 years",
+        "caveat": null,
+        "reasoning": "Exceeding the screen time guideline in early childhood could have developmental implications. This could support early intervention programs, but the insurer's role is likely limited to general health promotion.",
+        "insight_id": "INSIGHT_009"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Sleep quality declines with age: 85.7% of 2–5 year olds had good or very good sleep quality, compared to 79.7% of 5–13 year olds and 75.3% of 14–17 year olds.",
+        "evidence": "More children aged 2–5 years (85.7%) had good or very good sleep compared to those aged 5–13 years (79.7%) and 14–17 years (75.3%).",
+        "evidence_location": "Quality of sleep",
+        "target_population": "Children aged 2–17 years",
+        "caveat": null,
+        "reasoning": "Poorer sleep quality in older children is associated with mental health and academic issues. This could inform school-based sleep education, though the insurer's direct relevance is limited.",
+        "insight_id": "INSIGHT_010"
+      }
+    ],
+    "no_insights_reason": null
+  },
+  "schema_errors": [],
+  "quote_checks": [
+    {
+      "index": 0,
+      "finding": "Only 7.2% of children aged 5–17 years met all measured 24-Hour Movement Guideline recommendations in 2023, with physical activity (18.3%) and sedentary screen time (27.8%) being the least met, while sleep (84.1%) and muscle strengthening (84.3%) were much higher.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2023, 18.1% of toddlers and preschool-aged children (2–5 years) and 7.2% of children and young people (5–17 years) met all measured recommendations of the guidelines for their age group."
+    },
+    {
+      "index": 1,
+      "finding": "Physical activity adherence among 5–17 year olds drops sharply with age, from 30.8% of 5–8 year olds to 7.6% of 15–17 year olds, and only 18.3% overall met the daily 60-minute recommendation in 2023.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "The proportion of children who met the physical activity recommendation decreased with age, from 30.8% of 5–8 year olds to 7.6% of 15–17 year olds."
+    },
+    {
+      "index": 2,
+      "finding": "Screen use before bed is near-universal among older teenagers: 86.7% of 15–17 year olds used a screen in the hour before bed and 94.2% had a screen-based device in their bedroom, against a backdrop where only 78.0% of 14–17 year olds met sleep recommendations.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Children aged 15–17 years had the highest rate of screen use in the hour before bed (86.7%) and almost all (94.2%) had screen-based devices in their bedroom."
+    },
+    {
+      "index": 3,
+      "finding": "Average daily sedentary screen time for 5–17 year olds was 2h 51min in 2023, with 15–17 year olds averaging 4h 9min per day—over two hours more than 5–8 year olds (1h 51min).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "On average, children aged 15–17 years did over 2 hours more sedentary screen activity per day than children aged 5–8 years (4h 9min compared to 1h 51min)."
+    },
+    {
+      "index": 4,
+      "finding": "Among 2–5 year olds, 67.7% met the physical activity recommendation (at least 3 hours daily) in 2023, similar to 2011–12 (71.9%), but only 28.5% met the sedentary screen time recommendation (≤1 hour daily).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2023, around three in ten (28.5%) children aged 2–5 years met the sedentary screen time recommendation in the week before their interview."
+    },
+    {
+      "index": 5,
+      "finding": "Sleep duration for 5–17 year olds was stable between 2011–12 (9h 49min) and 2023 (9h 43min), but 14–17 year olds slept 35 minutes longer on weekend nights than weeknights (9h 24min vs 8h 49min), indicating a weekday sleep deficit.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Children aged 14–17 years who reported for a weekend night slept 35 minutes longer on average than those who reported for a weeknight (9h 24min compared to 8h 49min)."
+    },
+    {
+      "index": 6,
+      "finding": "Almost all (98.6%) children aged 2–17 years used a screen-based device in the week before the interview, with televisions most common (81.2%), followed by smart phones or watches (51.1%) and tablets (45.7%).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Almost all (98.6%) 2–17 year olds used a screen-based device in the week before their interview. Televisions were the most popular screen-based devices (81.2%), followed by smart phones or watches (51.1%) and tablets (45.7%)."
+    },
+    {
+      "index": 7,
+      "finding": "Only 41.6% of 5–17 year olds averaged 2 hours or less of sedentary screen time per day across the week, despite the guideline recommending no more than 2 hours daily.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "When averaged across the week, 41.6% of children aged 5–17 years did 2 hours or less per day of sedentary screen time."
+    },
+    {
+      "index": 8,
+      "finding": "Children aged 2–5 years spent an average of 1h 24min per day on sedentary screen activity, exceeding the 1-hour guideline, with higher use on weekends (1h 32min) than weekdays (1h 21min).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "On average, children aged 2–5 years spent 1h 24min per day engaged in sedentary screen activity."
+    },
+    {
+      "index": 9,
+      "finding": "Sleep quality declines with age: 85.7% of 2–5 year olds had good or very good sleep quality, compared to 79.7% of 5–13 year olds and 75.3% of 14–17 year olds.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "More children aged 2–5 years (85.7%) had good or very good sleep compared to those aged 5–13 years (79.7%) and 14–17 years (75.3%)."
+    }
+  ],
+  "lazy_reasoning": [
+    {
+      "index": 3,
+      "phrases": [
+        "can lead to",
+        "is associated with"
+      ],
+      "finding": "Average daily sedentary screen time for 5–17 year olds was 2h 51min in 2023, wit"
+    },
+    {
+      "index": 9,
+      "phrases": [
+        "is associated with"
+      ],
+      "finding": "Sleep quality declines with age: 85.7% of 2–5 year olds had good or very good sl"
+    }
+  ],
+  "reversed_conditionals": [],
+  "scope_problems": []
+}
