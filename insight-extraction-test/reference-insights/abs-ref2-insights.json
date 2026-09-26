@@ -1,0 +1,46 @@
+{
+  "source": "abs-ref2.md — ABS, National Study of Mental Health and Wellbeing (reference period 2020–2022, released 5 October 2023)",
+  "insights": [
+    {
+      "finding": "Fewer than half of Australians with a 12-month mental disorder saw any health professional about it — 1.9 million of 4.3 million people, or 45.1%.",
+      "evidence": "There were 4.3 million Australians aged 16–85 years with a 12-month mental disorder. Of these, 1.9 million (45.1%) saw a health professional for their mental health in 2020–2022",
+      "reasoning": "The most important number in the document. A 55% treatment gap in a condition group that private cover pays for is simultaneously an unmet need, a latent demand risk, and a product opportunity. If even part of that gap closes — through awareness campaigns, digital services or policy change — utilisation of psychology and psychiatric services rises sharply. This is the kind of figure that should drive a briefing item, not sit in a table."
+    },
+    {
+      "finding": "21.3% of people with a 12-month mental disorder saw a psychologist, against 35.5% who saw a GP.",
+      "evidence": "35.5% of people with a 12-month mental disorder saw a general practitioner for their mental health and 21.3% saw a psychologist.",
+      "reasoning": "Psychology is funded under extras and is one of the most claimed allied health services. The split between GP and psychologist shows where care actually happens and gives a baseline against which to read any future shift — for example if Better Access session limits change, this is the number that would move."
+    },
+    {
+      "finding": "Men with a mental disorder are far less likely to seek help than women — 36.4% against 51.1%.",
+      "evidence": "Females with a 12-month mental disorder were more likely to have seen a health professional for their mental health than males with a 12-month mental disorder (51.1% compared with 36.4%)",
+      "reasoning": "A 15-point gap in help-seeking within the same diagnosed population. For an insurer this is both a member engagement problem and a claims-timing one: untreated conditions tend to present later and more acutely, often through hospital rather than community care. It identifies a specific segment a targeted program could address."
+    },
+    {
+      "finding": "1.7 million people (8.4%) had both a 12-month mental disorder and a long-term physical condition.",
+      "evidence": "1.7 million people (8.4%) had both a 12-month mental disorder and a physical condition",
+      "reasoning": "Comorbidity is where cost concentrates. Members with a mental health condition alongside a chronic physical one have longer stays, more readmissions and more complex care pathways than either group alone. This quantifies the overlap at national level, which is the starting point for any chronic disease management program design."
+    },
+    {
+      "finding": "38.8% of people aged 16–24 had a 12-month mental disorder, against 21.5% across all ages 16–85.",
+      "evidence": "38.8% of people aged 16–24 years had a 12-month mental disorder",
+      "reasoning": "Nearly double the national rate in the youngest adult cohort — the age band that is deciding whether to take up private cover, and that will hold it for decades. This is the figure Medibank's own project brief already cites as an example insight, which is a useful signal that it matches how the stakeholder thinks about relevance."
+    },
+    {
+      "finding": "Only 4.8% of Australians used phone, internet or other digital services for their mental health, but uptake among 16–34 year olds was 8.2% against 1.0% for those aged 65–85.",
+      "evidence": "8.2% of people aged 16–34 years accessed other services by phone, internet, or another digital technology compared with 1.0% of people aged 65–85 years",
+      "reasoning": "Digital mental health is a delivery model insurers actively invest in and can offer outside the hospital system. The eightfold difference by age tells you which members such a service would actually reach, and the low absolute base suggests headroom rather than saturation."
+    },
+    {
+      "finding": "17.6% of Australians (3.5 million people) were dispensed at least one PBS-subsidised mental health medication, rising to 25.8% among those aged 65–85.",
+      "evidence": "In 2020–2022, 17.6% of Australians (3.5 million people) aged 16–85 years were dispensed at least one PBS subsidised mental health-related medication in the 12 months prior to interview",
+      "reasoning": "Recorded with a caveat: these are PBS-subsidised medicines, so an insurer does not pay for them. The value is as a demand indicator — medication volumes are a proxy for treated prevalence, and the age gradient runs opposite to help-seeking, with older Australians medicated more and consulting less."
+    },
+    {
+      "finding": "42.9% of people aged 16–85 had experienced a mental disorder at some point in their life.",
+      "evidence": "42.9% of people aged 16–85 years had experienced a mental disorder at some time in their life",
+      "reasoning": "Lifetime prevalence sets the size of the addressable population. Close to half of all members will at some stage meet diagnostic criteria, which is the context for any decision about how mental health sits in product design rather than being treated as a minority need."
+    }
+  ],
+  "summary": "The National Study of Mental Health and Wellbeing is an Australian Bureau of Statistics survey reporting on mental health among people aged 16 to 85, with a reference period of 2020 to 2022. It provides national and state and territory estimates of the prevalence of mental disorders, distinguishing lifetime disorders from 12-month disorders, where a person had experienced a disorder at some point and had sufficient symptoms in the year before interview. Disorders are grouped into anxiety, affective and substance use disorders, and results are reported by age and sex. Alongside prevalence, the study covers the co-occurrence of mental disorders with long-term physical health conditions; use of services, including consultations with general practitioners, psychologists and other health professionals, and services accessed by phone, internet or other digital technology; mental health-related medications dispensed under the Pharmaceutical Benefits Scheme, including antidepressants, anxiolytics, and hypnotics and sedatives; and the prevalence of suicidal thoughts and behaviours and of self-harm, in the previous 12 months and across a lifetime. Service use and medication figures are reported both for the whole population and separately for people with a 12-month disorder. The report follows the Mindframe guidelines for reporting on suicide and mental health and carries crisis support contacts throughout."
+}

@@ -1,0 +1,36 @@
+{
+  "source": "aihw-ref2.md — AIHW, First Nations Burden of Disease Study 2022 (released 4 September 2026)",
+  "insights": [
+    {
+      "finding": "Mental health conditions and substance use disorders account for 40% of non-fatal burden among First Nations people — the largest single disease group.",
+      "evidence": "In 2022, the main disease groups contributing to non-fatal burden for First Nations people were mental health conditions & substance use disorders, musculoskeletal conditions and respiratory diseases.",
+      "reasoning": "Mental health is the disease group with the clearest line to private health cover in this report — psychology and psychiatric services are funded under extras and hospital cover, and demand there has been rising across the whole population. At 40% of non-fatal burden this is a far larger share than in the general population, which makes it the one figure here that could shape a service or partnership decision rather than just describe a population."
+    },
+    {
+      "finding": "At the individual disease level, anxiety disorders (10% of non-fatal burden), depressive disorders (6.9%) and asthma (5.7%) lead non-fatal burden.",
+      "evidence": "At the individual disease level, the leading causes of non-fatal burden were anxiety disorders (10% of non-fatal burden), depressive disorders (6.9%) and asthma (5.7%).",
+      "reasoning": "Named conditions with specific figures, each tied to services an insurer funds — psychological therapy for the first two, respiratory management and medicines for the third. More useful than the disease-group aggregate because it names what would actually be treated."
+    },
+    {
+      "finding": "Coronary heart disease burden has fallen 30% since 2011 but remains the single leading cause of burden.",
+      "evidence": "The CHD burden rate has fallen by 30% since 2011, however CHD remained the leading cause of burden in 2022",
+      "reasoning": "A large, sustained directional change attached to a condition that drives cardiac procedures and admissions. The combination is what makes it notable: the trend is strongly favourable, yet the absolute position has not changed, which is a different story from either fact alone."
+    },
+    {
+      "finding": "Adults aged 25–64 are 43% of the First Nations population but carry 58% of total disease burden.",
+      "evidence": "Adults aged 25–64 comprised 43% of the First Nations population and more than half (58%) of the total burden.",
+      "reasoning": "Burden concentrated in working age rather than old age is the pattern that matters for insurance, because that is the age band where people hold cover and claim against it. In the general population, burden skews much later in life."
+    },
+    {
+      "finding": "The gap in non-fatal burden narrowed partly because non-fatal burden among non-Indigenous Australians rose by 7.3%, from 98 to 105 YLD per 1,000 people.",
+      "evidence": "The decrease in the gap in non-fatal burden was driven by an increase in the rate of non-fatal burden among non-Indigenous Australians between 2011 and 2022 (7.3% increase, from 98 to 105 YLD per 1,000 people).",
+      "reasoning": "Easy to miss and worth catching. The headline is that the gap is closing; the mechanism here is partly that the comparison group got worse, not only that First Nations outcomes improved. The 7.3% rise in non-fatal burden across non-Indigenous Australians is itself a demand signal for the insured population, which is the part of this report most directly relevant to Medibank."
+    },
+    {
+      "finding": "First Nations people in Remote and Very remote areas experience total burden rates of 499 and 481 DALY per 1,000 people, against 423 in Major cities.",
+      "evidence": "In 2022, First Nations people in *Remote* and *Very remote* areas experienced higher rates of total burden (DALY) than those in *Major cities* across Australia (499 and 481 DALY per 1,000 people compared with 423 DALY per 1,000).",
+      "reasoning": "Included with a caveat. It is a clear measured difference tied to geography, but private health insurance penetration is low in remote areas and private hospital capacity is concentrated in cities, so the commercial relevance is weak. Recorded as context for understanding service demand rather than as something to act on."
+    }
+  ],
+  "summary": "The First Nations Burden of Disease Study 2022, published by the Australian Institute of Health and Welfare, measures the impact of 220 diseases and injuries on Aboriginal and Torres Strait Islander people. Burden is expressed in disability-adjusted life years, which combine years of life lost to premature death (fatal burden) with years lived in ill health (non-fatal burden). In 2022 First Nations people lost 317,333 years of healthy life, divided almost evenly between the two. The report is organised into sections on total, fatal and non-fatal burden, each broken down by disease group, specific disease, sex and age group, followed by sections comparing states and territories and remoteness areas. Mental health conditions and substance use disorders, injuries, cardiovascular diseases, cancer and respiratory diseases account for most of the total burden, while coronary heart disease, anxiety disorders, suicide and self-inflicted injuries, chronic obstructive pulmonary disease and depressive disorders are the leading individual causes. A further strand compares First Nations people with non-Indigenous Australians, reporting the gap in burden as both a rate difference and a rate ratio, and the portion of burden considered excess. Estimates for 2022 are set against earlier estimates for 2011 and 2018 to show change over time. The report explains its methods and the summary measures used, and notes that content on health-adjusted life expectancy and burden attributable to risk factors is still to be added."
+}

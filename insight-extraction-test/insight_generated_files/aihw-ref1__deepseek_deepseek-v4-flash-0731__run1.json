@@ -1,0 +1,267 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "run": 1,
+  "meta": {
+    "model_returned": "deepseek/deepseek-v4-flash-0731",
+    "provider": "DeepInfra",
+    "prompt_tokens": 163257,
+    "completion_tokens": 3234,
+    "reasoning_tokens": 0,
+    "cost_usd": 0.01025082,
+    "seconds": 95.3,
+    "reasoning_setting": "off",
+    "provider_pinned": "deepinfra",
+    "error": null
+  },
+  "result": {
+    "document_scope": "in_scope",
+    "source": {
+      "publisher": "Australian Institute of Health and Welfare",
+      "title": "Dementia in Australia",
+      "url": "https://www.aihw.gov.au/reports/dementia/dementia-in-aus",
+      "publication_date": "2026-07-30",
+      "period_covered": "2009-2026",
+      "retrieval_date": "2026-09-24"
+    },
+    "summary": "This AIHW web report provides a comprehensive statistical overview of dementia in Australia. It covers prevalence estimates and projections to 2066, deaths, burden of disease, health and aged care service use, medications, carers, and expenditure. Data are drawn from multiple national sources including the ABS, PBS, National Hospital Morbidity Database, and the National Aged Care Data Clearinghouse, with the most recent data covering 2023-24 and 2024. The report is structured into chapters on prevalence, risk factors, deaths, burden, carers, health services, aged care, support services, and specific population groups such as First Nations people, culturally and linguistically diverse people, and those with younger onset dementia.",
+    "insights": [
+      {
+        "insight_type": "pharmaceutical",
+        "finding": "Two new Alzheimer's disease-modifying therapies, donanemab and lecanemab, have been approved by the TGA for use in Australia, but neither is listed on the PBS, meaning they are only accessible through private payment.",
+        "evidence": "In May 2025, the Therapeutic Goods Association (TGA) approved the use of donanemab for Australians with mild cognitive impairment due to Alzheimer’s disease, or early symptomatic Alzheimer’s disease (TGA 2025). In July 2025, the Pharmaceutical Benefits Advisory Committee did not recommend listing donanemab on the PBS due to the modest clinical impact and high burden of treatment (PBS 2025). In September 2025 the TGA approved lecanemab for use in early Alzheimer’s Disease. Suitable patients can access donanemab and lecanemab privately with restrictions on use due to the risk of serious side effects.",
+        "evidence_location": "Dementia-specific medications",
+        "target_population": null,
+        "caveat": null,
+        "reasoning": "This is a specific, dated event with direct commercial implications. The approval of new therapies that are not publicly subsidised creates a clear pathway for private funding, including through private health insurance. This will likely drive member enquiries about coverage, and the need for private infusion services and MRI monitoring, which are significant costs. It is a new development that the business can form a position on now.",
+        "insight_id": "INSIGHT_001"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Dementia is now the second leading cause of disease burden in Australia, rising from fifth in 2011, and is the leading cause for women and for people aged 80 and over.",
+        "evidence": "Dementia was the second leading cause of burden of disease in Australia in 2024, behind coronary heart disease. In comparison, dementia was the third leading cause of burden of disease in 2018 and 2015, and the fifth leading cause of burden of disease in 2011. For women, and for Australians aged 80 and over, dementia was the leading cause of burden of disease.",
+        "evidence_location": "Dementia is a leading cause of burden of disease",
+        "target_population": "Australians, particularly women and those aged 80 and over",
+        "caveat": null,
+        "reasoning": "This trend shows dementia's growing impact on the health system, moving up the rankings of disease burden. For a health insurer, this signals a growing population with complex care needs, which will likely increase demand for hospital, aged care, and community-based services. The specific impact on women and the oldest old is important for planning and product design.",
+        "insight_id": "INSIGHT_002"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "The number of Australians living with dementia is projected to more than double from 439,000 in 2025 to nearly 1.1 million by 2066, driven by population ageing.",
+        "evidence": "With an ageing and growing population, it is predicted that the number of Australians living with dementia will increase 2.5-fold, to nearly 1.1 million by 2066 (670,000 women and 395,000 men) (Figure 1).",
+        "evidence_location": "Figure 1: Australians living with dementia between 2010 to 2066: estimated number by sex",
+        "target_population": "Australians",
+        "caveat": "These estimates should be interpreted with caution: demographic projections over long periods carry a large degree of uncertainty and this approach assumes there will be no change in dementia incidence and mortality rates.",
+        "reasoning": "This long-term projection is a key signal for strategic planning. It indicates a sustained and significant increase in the population that will require health and aged care services, including those potentially covered by private health insurance. This is a fundamental demographic driver that will affect the future demand for a range of services, from hospital care to home support.",
+        "insight_id": "INSIGHT_003"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, hospitalisations due to dementia had an average length of stay of 15 days, nearly six times the average for all hospitalisations, and the average cost per hospitalisation in public hospitals was around $27,800.",
+        "evidence": "the average length of stay was 15 days – this was almost 6 times higher than the average length of stay of 2.7 days for all hospitalisations (AIHW 2024)",
+        "evidence_location": "Hospitalisations due to dementia",
+        "target_population": "People hospitalised due to dementia",
+        "caveat": null,
+        "reasoning": "This is a strong cost and intensity signal. The high length of stay and cost per episode for dementia-related hospitalisations highlights the significant financial impact on the hospital system. For a private health insurer, this indicates the potential for high claims costs for members with dementia, particularly for hospital cover, and underscores the importance of care coordination and alternative care models.",
+        "insight_id": "INSIGHT_004"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, 20% of the 77,500 people dispensed dementia-specific medications were also dispensed antipsychotics, with a higher proportion (24%) among those aged 30-64 compared to those aged 85 and over (20%).",
+        "evidence": "In 2023–24, antipsychotic medications were dispensed to one-fifth (20%) of the 77,500 people who had been dispensed dementia-specific medications. A higher proportion of people with younger onset dementia (aged 30–64) were dispensed antipsychotic medications (24%) compared with people aged 85 and over (20%).",
+        "evidence_location": "Dementia-specific medications",
+        "target_population": "People with dementia dispensed dementia-specific medications",
+        "caveat": null,
+        "reasoning": "This is a significant signal about the management of behavioural and psychological symptoms of dementia (BPSD). The high rate of antipsychotic use, particularly in younger people, is a known quality-of-care concern and a target for policy intervention. For an insurer, this could indicate a need for better support services and care coordination to manage BPSD and potentially reduce hospitalisations and inappropriate medication use.",
+        "insight_id": "INSIGHT_005"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, an estimated $6 billion was spent on health and aged care directly attributable to dementia, with residential aged care accounting for the largest share (45%, $2.7 billion), followed by hospital services (24%, $1.4 billion).",
+        "evidence": "It is estimated that almost $6 billion of health and aged care spending in 2023–24 was directly attributable to the diagnosis, treatment and care of people with dementia. Residential aged care services accounted for the largest share of expenditure (45%, or $2.7 billion), followed by hospital services (24%, or $1.4 billion), and community-based aged care services (20%, or $1.2 billion) (Figure 5).",
+        "evidence_location": "Spending on dementia",
+        "target_population": null,
+        "caveat": "current expenditure estimates are conservative due to data limitations, as it excludes costs such as state and territory expenditure on aged care, government payments to support people with dementia and their carers, and indirect expenditure (such as lost wages and productivity).",
+        "reasoning": "This provides a clear picture of where the financial burden of dementia falls. The dominance of residential aged care and hospital costs is a key insight for an insurer, as it highlights the potential for private health insurance to play a role in covering some of these costs, particularly for hospital and potentially community-based services. It also signals the scale of the market for related services.",
+        "insight_id": "INSIGHT_006"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, the average cost of a public hospitalisation for a patient with dementia was 2 times higher for abnormalities of gait and mobility ($20,800) compared to those without dementia ($10,300), and 1.2 times higher for fracture of femur ($33,800 vs $28,300).",
+        "evidence": "Abnormalities of gait and mobility had the greatest difference in the average cost per hospitalisation. It typically cost 2 times higher to care for patients with dementia hospitalised due to this condition ($20,800) compared to those without dementia ($10,300). In total, $7.9 million was spent on caring for patients with dementia hospitalised due to abnormalities of gait and mobility, and over half (53%) of these costs were attributable to dementia ($4.2 million, Table S17.8). Fracture of femur had the greatest total spending of the diagnoses considered (Table S17.8). Nearly 20% of total spending on patients hospitalised with dementia was for fracture of femur ($118 million), with 18% of these costs attributable to dementia ($21.6 million). The average cost of hospitalisations due to fracture of femur was 1.2 times higher for patients with dementia ($33,800) compared with patients without dementia ($28,300) (Table S17.7).",
+        "evidence_location": "How does dementia affect the cost of hospitalisations in public hospitals for common principal diagnoses?",
+        "target_population": "Patients with dementia hospitalised for common conditions",
+        "caveat": null,
+        "reasoning": "This is a specific cost signal showing that dementia significantly increases the cost of hospital care for common conditions, even when it is not the primary reason for admission. This is important for an insurer to understand when assessing risk and setting premiums, as it indicates that members with dementia will have higher claims costs across a range of hospital admissions.",
+        "insight_id": "INSIGHT_007"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, there were nearly 217,000 hospitalisations due to or with dementia, equivalent to almost 1 in every 58 hospitalisations in Australia, with the most common principal diagnoses when dementia was an additional diagnosis being problems related to medical facilities, fracture of femur, and urinary system disorders.",
+        "evidence": "When accounting for all possible inclusions of dementia codes in a patient record, in 2023–24, there were just under 217,000 hospitalisations due to or with dementia (105,000 for men and 112,000 for women; Table S9.9). This is equivalent to almost 1 out of every 58 hospitalisations in Australia.",
+        "evidence_location": "Trends in hospitalisations due to or with dementia",
+        "target_population": "People with dementia hospitalised",
+        "caveat": null,
+        "reasoning": "This shows the broad impact of dementia on the hospital system, far beyond admissions where it is the principal diagnosis. The high volume of hospitalisations where dementia is a comorbidity indicates a large population of patients with complex needs. This is relevant for an insurer in terms of care coordination, discharge planning, and managing the risk of complications and readmissions.",
+        "insight_id": "INSIGHT_008"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2022, 42% of primary carers of people with dementia provided 60 or more hours of care per week, and 24% reported needing more respite care, highlighting significant unmet need for carer support.",
+        "evidence": "According to the ABS 2022 Survey of Disability, Ageing and Carers, among carers of people with dementia, about: 2 in 5 (42%) provided an average of 60 or more hours of care per week; 1 in 2 (45%) reported one or more physical or emotional impacts of the role; 1 in 4 (24%) reported that they needed more respite care to support them; 1 in 3 (28%) experienced negative financial impacts since taking on the role.",
+        "evidence_location": "Carers of people with dementia",
+        "target_population": "Informal carers of people with dementia",
+        "caveat": null,
+        "reasoning": "This highlights a significant gap between the needs of carers and the support available. The high intensity of care and unmet need for respite suggests that carers are under significant strain, which can lead to carer burnout and potentially earlier or more frequent use of formal services, including hospital and residential care. This is a potential area for an insurer to develop support services or products that address this unmet need.",
+        "insight_id": "INSIGHT_009"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, 60% of people with dementia who completed a comprehensive aged care needs assessment reported experiencing one or more behavioural and psychological symptoms (BPSD) 'always' or 'regularly', with insomnia, anxiety, and depression being the most common.",
+        "evidence": "During their comprehensive aged care needs assessment, 3 in 5 people with dementia (60%, 18,300) and 1 in 2 people without dementia (51%, 87,700) reported experiencing one or more symptoms. People with dementia were nearly twice as likely to report experiencing three or more symptoms always or regularly (21%, 6,500) compared with people without dementia (11%, 18,800) (Figure 16.2; Table S16.7).",
+        "evidence_location": "Number of symptoms reported",
+        "target_population": "People with dementia who completed a comprehensive aged care needs assessment",
+        "caveat": "These questions have not been validated for measuring BPSD, and the 'symptoms' recorded do not always reflect the preferred clinical terms.",
+        "reasoning": "This provides a national estimate of the prevalence of BPSD among people seeking aged care, which is a major driver of care complexity and cost. The high prevalence of these symptoms, particularly insomnia and anxiety, indicates a significant need for specialised behaviour support services and for training among care providers. This is relevant for an insurer in understanding the care needs of its older members and the potential for complications.",
+        "insight_id": "INSIGHT_010"
+      }
+    ],
+    "no_insights_reason": null
+  },
+  "schema_errors": [],
+  "quote_checks": [
+    {
+      "index": 0,
+      "finding": "Two new Alzheimer's disease-modifying therapies, donanemab and lecanemab, have been approved by the TGA for use in Australia, but neither is listed on the PBS, meaning they are only accessible through private payment.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 4,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In May 2025, the Therapeutic Goods Association (TGA) approved the use of donanemab for Australians with mild cognitive impairment due to Alzheimer’s disease, or early symptomatic Alzheimer’s disease (TGA 2025). In July 2025, the Pharmaceutical Benefits Advisory Committee did not recommend listing donanemab on the PBS due to the modest clinical impact and high burden of treatment (PBS 2025). In September 2025 the TGA approved lecanemab for use in early Alzheimer’s Disease. Suitable patients can access donanemab and lecanemab privately with restrictions on use due to the risk of serious side effects."
+    },
+    {
+      "index": 1,
+      "finding": "Dementia is now the second leading cause of disease burden in Australia, rising from fifth in 2011, and is the leading cause for women and for people aged 80 and over.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 3,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Dementia was the second leading cause of burden of disease in Australia in 2024, behind coronary heart disease. In comparison, dementia was the third leading cause of burden of disease in 2018 and 2015, and the fifth leading cause of burden of disease in 2011. For women, and for Australians aged 80 and over, dementia was the leading cause of burden of disease."
+    },
+    {
+      "index": 2,
+      "finding": "The number of Australians living with dementia is projected to more than double from 439,000 in 2025 to nearly 1.1 million by 2066, driven by population ageing.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "With an ageing and growing population, it is predicted that the number of Australians living with dementia will increase 2.5-fold, to nearly 1.1 million by 2066 (670,000 women and 395,000 men) (Figure 1)."
+    },
+    {
+      "index": 3,
+      "finding": "In 2023-24, hospitalisations due to dementia had an average length of stay of 15 days, nearly six times the average for all hospitalisations, and the average cost per hospitalisation in public hospitals was around $27,800.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "the average length of stay was 15 days – this was almost 6 times higher than the average length of stay of 2.7 days for all hospitalisations (AIHW 2024)"
+    },
+    {
+      "index": 4,
+      "finding": "In 2023-24, 20% of the 77,500 people dispensed dementia-specific medications were also dispensed antipsychotics, with a higher proportion (24%) among those aged 30-64 compared to those aged 85 and over (20%).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2023–24, antipsychotic medications were dispensed to one-fifth (20%) of the 77,500 people who had been dispensed dementia-specific medications. A higher proportion of people with younger onset dementia (aged 30–64) were dispensed antipsychotic medications (24%) compared with people aged 85 and over (20%)."
+    },
+    {
+      "index": 5,
+      "finding": "In 2023-24, an estimated $6 billion was spent on health and aged care directly attributable to dementia, with residential aged care accounting for the largest share (45%, $2.7 billion), followed by hospital services (24%, $1.4 billion).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "It is estimated that almost $6 billion of health and aged care spending in 2023–24 was directly attributable to the diagnosis, treatment and care of people with dementia. Residential aged care services accounted for the largest share of expenditure (45%, or $2.7 billion), followed by hospital services (24%, or $1.4 billion), and community-based aged care services (20%, or $1.2 billion) (Figure 5)."
+    },
+    {
+      "index": 6,
+      "finding": "In 2023-24, the average cost of a public hospitalisation for a patient with dementia was 2 times higher for abnormalities of gait and mobility ($20,800) compared to those without dementia ($10,300), and 1.2 times higher for fracture of femur ($33,800 vs $28,300).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 6,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Abnormalities of gait and mobility had the greatest difference in the average cost per hospitalisation. It typically cost 2 times higher to care for patients with dementia hospitalised due to this condition ($20,800) compared to those without dementia ($10,300). In total, $7.9 million was spent on caring for patients with dementia hospitalised due to abnormalities of gait and mobility, and over half (53%) of these costs were attributable to dementia ($4.2 million, Table S17.8). Fracture of femur had the greatest total spending of the diagnoses considered (Table S17.8). Nearly 20% of total spending on patients hospitalised with dementia was for fracture of femur ($118 million), with 18% of these costs attributable to dementia ($21.6 million). The average cost of hospitalisations due to fracture of femur was 1.2 times higher for patients with dementia ($33,800) compared with patients without dementia ($28,300) (Table S17.7)."
+    },
+    {
+      "index": 7,
+      "finding": "In 2023-24, there were nearly 217,000 hospitalisations due to or with dementia, equivalent to almost 1 in every 58 hospitalisations in Australia, with the most common principal diagnoses when dementia was an additional diagnosis being problems related to medical facilities, fracture of femur, and urinary system disorders.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "When accounting for all possible inclusions of dementia codes in a patient record, in 2023–24, there were just under 217,000 hospitalisations due to or with dementia (105,000 for men and 112,000 for women; Table S9.9). This is equivalent to almost 1 out of every 58 hospitalisations in Australia."
+    },
+    {
+      "index": 8,
+      "finding": "In 2022, 42% of primary carers of people with dementia provided 60 or more hours of care per week, and 24% reported needing more respite care, highlighting significant unmet need for carer support.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [
+        "According to the ABS 2022 Survey of Disability, Ageing and Carers, among carers of people with dementia, about: 2 in 5 (42%) provided an average of 60 or more hours of care per week; 1 in 2 (45%) repo"
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "According to the ABS 2022 Survey of Disability, Ageing and Carers, among carers of people with dementia, about: 2 in 5 (42%) provided an average of 60 or more hours of care per week; 1 in 2 (45%) reported one or more physical or emotional impacts of the role; 1 in 4 (24%) reported that they needed more respite care to support them; 1 in 3 (28%) experienced negative financial impacts since taking on the role."
+    },
+    {
+      "index": 9,
+      "finding": "In 2023-24, 60% of people with dementia who completed a comprehensive aged care needs assessment reported experiencing one or more behavioural and psychological symptoms (BPSD) 'always' or 'regularly', with insomnia, anxiety, and depression being the most common.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "During their comprehensive aged care needs assessment, 3 in 5 people with dementia (60%, 18,300) and 1 in 2 people without dementia (51%, 87,700) reported experiencing one or more symptoms. People with dementia were nearly twice as likely to report experiencing three or more symptoms always or regularly (21%, 6,500) compared with people without dementia (11%, 18,800) (Figure 16.2; Table S16.7)."
+    }
+  ],
+  "lazy_reasoning": [
+    {
+      "index": 8,
+      "phrases": [
+        "can lead to"
+      ],
+      "finding": "In 2022, 42% of primary carers of people with dementia provided 60 or more hours"
+    }
+  ],
+  "reversed_conditionals": [],
+  "scope_problems": []
+}

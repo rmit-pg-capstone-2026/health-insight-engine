@@ -1,0 +1,35 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "run": 1,
+  "meta": {
+    "model_returned": "deepseek/deepseek-v4-flash-0731",
+    "provider": "DeepInfra",
+    "prompt_tokens": 4758,
+    "completion_tokens": 206,
+    "reasoning_tokens": 0,
+    "cost_usd": 0.00019584,
+    "seconds": 12.4,
+    "reasoning_setting": "off",
+    "provider_pinned": "deepinfra",
+    "error": null
+  },
+  "result": {
+    "document_scope": "out_of_scope",
+    "source": {
+      "publisher": "The Week",
+      "title": "8 Psychological Tricks of Restaurant Menus",
+      "url": null,
+      "publication_date": "2016-03-30",
+      "period_covered": null,
+      "retrieval_date": "2026-09-24"
+    },
+    "summary": "This article, published by The Week, explains eight psychological techniques that restaurants use to design menus and influence customer choices. It covers limiting options, adding photos, manipulating price presentation, using expensive decoys, layout and eye movement, color psychology, descriptive language, and evoking nostalgia. The content is based on commentary from menu engineers and consultants, along with references to academic studies, and is aimed at a general consumer audience.",
+    "insights": [],
+    "no_insights_reason": "The document is a consumer-focused article about restaurant menu design and marketing psychology, with no connection to health, healthcare, medicines, or health policy."
+  },
+  "schema_errors": [],
+  "quote_checks": [],
+  "lazy_reasoning": [],
+  "reversed_conditionals": [],
+  "scope_problems": []
+}

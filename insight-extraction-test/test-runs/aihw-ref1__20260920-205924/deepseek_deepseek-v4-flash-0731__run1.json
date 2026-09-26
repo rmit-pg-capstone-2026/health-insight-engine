@@ -1,0 +1,259 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "run": 1,
+  "meta": {
+    "model_returned": "deepseek/deepseek-v4-flash-0731",
+    "provider": "DeepInfra",
+    "prompt_tokens": 163257,
+    "completion_tokens": 3343,
+    "reasoning_tokens": 0,
+    "cost_usd": 0.01039716,
+    "seconds": 52.9,
+    "reasoning_setting": "off",
+    "provider_pinned": "deepinfra",
+    "error": null
+  },
+  "result": {
+    "document_scope": "in_scope",
+    "source": {
+      "publisher": "Australian Institute of Health and Welfare (AIHW)",
+      "title": "Dementia in Australia",
+      "url": "https://www.aihw.gov.au/reports/dementia/dementia-in-aus",
+      "publication_date": "2026-07-30",
+      "period_covered": "2009-2026",
+      "retrieval_date": "2026-09-20"
+    },
+    "summary": "This is a comprehensive web report by the Australian Institute of Health and Welfare (AIHW) providing national statistics on dementia in Australia. It covers prevalence estimates and projections to 2066, risk factors, deaths, burden of disease, health and aged care service use, medications, carers, and expenditure. The report draws on multiple data sources including the ABS Census, the Survey of Disability, Ageing and Carers, the National Mortality Database, the National Hospital Morbidity Database, PBS data, and the National Aged Care Data Clearinghouse. It includes dedicated chapters on specific population groups such as First Nations people, culturally and linguistically diverse people, people with younger onset and childhood dementia, and other priority groups, as well as sections on behavioural and psychological symptoms of dementia and the national policy response.",
+    "insights": [
+      {
+        "insight_type": "pharmaceutical",
+        "finding": "Two new Alzheimer's disease-modifying therapies, donanemab and lecanemab, have been approved by the TGA for use in Australia, but neither is listed on the PBS, meaning they are only accessible through private payment.",
+        "evidence": "In May 2025, the Therapeutic Goods Association (TGA) approved the use of donanemab for Australians with mild cognitive impairment due to Alzheimer’s disease, or early symptomatic Alzheimer’s disease (TGA 2025). In July 2025, the Pharmaceutical Benefits Advisory Committee did not recommend listing donanemab on the PBS due to the modest clinical impact and high burden of treatment (PBS 2025). In September 2025 the TGA approved lecanemab for use in early Alzheimer’s Disease. Suitable patients can access donanemab and lecanemab privately with restrictions on use due to the risk of serious side effects.",
+        "evidence_location": "Dementia-specific medications",
+        "target_population": null,
+        "caveat": null,
+        "reasoning": "This is a specific, dated event with direct commercial implications. The approval of these therapies creates a new category of high-cost, privately-funded treatment for a common condition. This will likely generate member enquiries about coverage, and the insurer will need to form a position on whether to cover these drugs, their associated monitoring costs (e.g., MRI scans), and any related hospital or infusion services.",
+        "insight_id": "INSIGHT_001"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Dementia is the leading cause of death in Australia, responsible for 1 in 10 deaths in 2024, and the number of deaths has more than doubled from 8,500 in 2009 to 18,300 in 2024.",
+        "evidence": "Dementia was the leading cause of death in Australia in 2024, accounting for more than 18,300 deaths (1 in 10, or 9.8% of all deaths). Dementia was the leading cause of death for women and the second leading cause for men, after coronary heart disease. The number of deaths due to dementia increased from 8,500 deaths in 2009 to 18,300 deaths in 2024.",
+        "evidence_location": "Dementia is the leading cause of death in Australia",
+        "target_population": "Australians",
+        "caveat": "Deaths registered in 2023 and 2024 are based on the preliminary version and are subject to further revision by the Australian Bureau of Statistics.",
+        "reasoning": "This confirms dementia as a dominant driver of mortality, which is a key signal for the insurer's long-term risk and product strategy. The doubling of deaths over 15 years, even accounting for an ageing population, points to a growing burden that will affect claims across health, hospital, and potentially life insurance products. It also underscores the importance of end-of-life and palliative care services.",
+        "insight_id": "INSIGHT_002"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "The number of Australians living with dementia is projected to more than double from 439,000 in 2025 to nearly 1.1 million by 2066, driven by population ageing.",
+        "evidence": "With Australia’s population expected to continue growing and ageing into the future, the number of people with dementia is also expected to rise. Applying the AIHW method for calculating dementia prevalence to Australian Bureau of Statistics population projections for each year to 2066, the estimated number of people with dementia in Australia will more than double over this period – from just under 439,000 in 2025 to nearly 1.1 million in 2066 (around 395,000 men and 670,000 women) (Figure 2.3).",
+        "evidence_location": "Close to 1.1 million Australians are projected to have dementia by the year 2066",
+        "target_population": "Australians",
+        "caveat": "These estimates should be interpreted with caution: demographic projections over long periods carry a large degree of uncertainty and this approach assumes there will be no change in dementia incidence and mortality rates.",
+        "reasoning": "This is a long-term demand signal. A doubling of dementia prevalence will have profound implications for the health and aged care systems, and for the insurer's future risk pool. It suggests a need to model the long-term impact on claims for hospital, medical, and potentially community-based services, and to consider how the product mix might need to evolve to meet the needs of an older, higher-need population.",
+        "insight_id": "INSIGHT_003"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, hospitalisations due to dementia had an average length of stay of 15 days, nearly six times the average for all hospitalisations (2.7 days), and the average cost per hospitalisation in public hospitals was $27,800.",
+        "evidence": "the average length of stay was 15 days – this was almost 6 times higher than the average length of stay of 2.7 days for all hospitalisations (AIHW 2024) ... The average cost per hospitalisation for patients with dementia was around $9,200 in private hospitals and around $27,800 in public hospitals.",
+        "evidence_location": "Hospitalisations due to dementia",
+        "target_population": "People hospitalised due to dementia",
+        "caveat": null,
+        "reasoning": "This is a clear cost and intensity signal. The high length of stay and cost per episode for dementia-related hospitalisations, particularly in public hospitals, highlights a significant area of healthcare expenditure. For a private insurer, this indicates that while most dementia admissions may be in public hospitals, the complexity and cost of these episodes is substantial, and any shift towards private hospital care for this population would be high-cost.",
+        "insight_id": "INSIGHT_004"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, an estimated $6 billion was spent on health and aged care directly attributable to dementia, with residential aged care accounting for the largest share (45%, or $2.7 billion), followed by hospital services (24%, or $1.4 billion).",
+        "evidence": "It is estimated that almost $6 billion of health and aged care spending in 2023–24 was directly attributable to the diagnosis, treatment and care of people with dementia. Residential aged care services accounted for the largest share of expenditure (45%, or $2.7 billion), followed by hospital services (24%, or $1.4 billion), and community-based aged care services (20%, or $1.2 billion) (Figure 5).",
+        "evidence_location": "Spending on dementia",
+        "target_population": null,
+        "caveat": "Current expenditure estimates are conservative due to data limitations, as it excludes costs such as state and territory expenditure on aged care, government payments to support people with dementia and their carers, and indirect expenditure.",
+        "reasoning": "This quantifies the economic weight of dementia on the health and aged care systems. The dominance of residential aged care spending is a key insight, as it is largely outside the private health insurance system. However, the $1.4 billion spent on hospital services represents a significant cost to the public system and highlights the potential for private hospital and insurance products to play a larger role if care models shift.",
+        "insight_id": "INSIGHT_005"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, 20% of the 77,500 people dispensed dementia-specific medications were also dispensed antipsychotic medications, with a higher proportion (24%) among people with younger onset dementia (aged 30-64).",
+        "evidence": "In 2023–24, antipsychotic medications were dispensed to one-fifth (20%) of the 77,500 people who had been dispensed dementia-specific medications. A higher proportion of people with younger onset dementia (aged 30–64) were dispensed antipsychotic medications (24%) compared with people aged 85 and over (20%).",
+        "evidence_location": "Dementia-specific medications",
+        "target_population": "People dispensed dementia-specific medications",
+        "caveat": null,
+        "reasoning": "This is a signal of high-intensity care and potential quality-of-care concerns. The use of antipsychotics in a fifth of this population, particularly among younger people, points to a significant burden of behavioural and psychological symptoms of dementia (BPSD). This has implications for the insurer in terms of the types of services and support that may be needed, and also flags a potential area for care coordination and risk management.",
+        "insight_id": "INSIGHT_006"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2022, 42% of primary carers of people with dementia provided 60 or more hours of care per week, and 24% reported needing more respite care, compared with 7% of carers of people without dementia.",
+        "evidence": "2 in 5 (42%) provided an average of 60 or more hours of care per week ... 1 in 4 (24%) reported that they needed more respite care to support them ... 24% reported they needed more respite care – this was higher than what was reported by primary carers of people without dementia (7%).",
+        "evidence_location": "Carers of people with dementia",
+        "target_population": "Primary carers of people with dementia",
+        "caveat": "Estimates for primary carers of people with dementia whose unmet needs include 'more respite care' have a relative standard error between 25% and 50% and should be used with caution.",
+        "reasoning": "This highlights a significant unmet need among informal carers, who are often family members. The high intensity of care and the need for more respite care suggests that the current system is placing a heavy burden on families. For an insurer, this could indicate a demand for services that support carers, such as respite care benefits or programs that help people with dementia remain at home, potentially reducing the need for more costly residential care.",
+        "insight_id": "INSIGHT_007"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2021-22, 54% of people in permanent residential aged care had dementia, and 84% of these required high levels of care in the cognition and behaviour domain, compared to 52% of those without dementia.",
+        "evidence": "Over 242,000 people were living in permanent residential aged care in 2021–22, and more than half (54%, or about 131,000) of these people had dementia. ... over 4 in 5 people living with dementia (84%) required high levels of care in the Cognition and behaviour domain (including cognitive skills, wandering, verbal behaviour, physical behaviour and depression) compared to 52% of people without dementia.",
+        "evidence_location": "Aged care services",
+        "target_population": "People in permanent residential aged care",
+        "caveat": "The most recent data on the number of people with dementia living in residential aged care are from 2021–22, with no further updates.",
+        "reasoning": "This is a critical insight into the aged care system. The high prevalence of dementia in residential care and the high level of cognitive and behavioural support required indicates that this is a major driver of care costs and complexity. For an insurer, this reinforces that dementia is a key condition driving the need for high-acuity care, and that the transition from home to residential care is a significant event with major cost implications.",
+        "insight_id": "INSIGHT_008"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "The rate of dementia among First Nations people is estimated to be 3 to 5 times as high as rates for Australia overall, and they have a younger age of onset, with a median age of 72 compared to 79 for non-Indigenous Australians.",
+        "evidence": "Among Aboriginal and Torres Strait Islander (First Nations) people, the rate of dementia is estimated to be 3 to 5 times as high as rates for Australia overall ... First Nations people also had a younger age of onset of dementia, with a median age of 72 years compared with a median age of 79 years among non-Indigenous Australians.",
+        "evidence_location": "First Nations people",
+        "target_population": "First Nations people",
+        "caveat": "There are no national-level estimates of the number of First Nations people with dementia, and studies conducted in smaller communities will not be representative of the entire First Nations population.",
+        "reasoning": "This is a significant health disparity with implications for a specific population segment. The higher prevalence and younger onset of dementia among First Nations people suggests a greater and earlier need for health and aged care services. For an insurer, this highlights a potential area of higher risk and the need for culturally appropriate services and support, as well as a focus on prevention and early intervention in this population.",
+        "insight_id": "INSIGHT_009"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, 60% of people with dementia who completed a comprehensive aged care needs assessment reported experiencing one or more behavioural and psychological symptoms (BPSD) 'always' or 'regularly', and they were nearly twice as likely to report three or more symptoms compared to people without dementia.",
+        "evidence": "During their comprehensive aged care needs assessment, 3 in 5 people with dementia (60%, 18,300) and 1 in 2 people without dementia (51%, 87,700) reported experiencing one or more symptoms. People with dementia were nearly twice as likely to report experiencing three or more symptoms always or regularly (21%, 6,500) compared with people without dementia (11%, 18,800) (Figure 16.2; Table S16.7).",
+        "evidence_location": "Behaviours captured in aged care needs assessments",
+        "target_population": "People who completed a comprehensive aged care needs assessment",
+        "caveat": "These questions have not been validated for measuring BPSD, and the 'symptoms' recorded do not always reflect the preferred clinical terms.",
+        "reasoning": "This provides a national, quantified picture of the prevalence of BPSD among people with dementia seeking aged care. The high rate of symptoms, especially multiple symptoms, underscores the complexity of care required and the strain on carers and the system. This is a key driver of the need for specialist behaviour support services and residential care, and it informs the insurer's understanding of the care needs of this population.",
+        "insight_id": "INSIGHT_010"
+      }
+    ],
+    "no_insights_reason": null
+  },
+  "schema_errors": [],
+  "quote_checks": [
+    {
+      "index": 0,
+      "finding": "Two new Alzheimer's disease-modifying therapies, donanemab and lecanemab, have been approved by the TGA for use in Australia, but neither is listed on the PBS, meaning they are only accessible through private payment.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 4,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In May 2025, the Therapeutic Goods Association (TGA) approved the use of donanemab for Australians with mild cognitive impairment due to Alzheimer’s disease, or early symptomatic Alzheimer’s disease (TGA 2025). In July 2025, the Pharmaceutical Benefits Advisory Committee did not recommend listing donanemab on the PBS due to the modest clinical impact and high burden of treatment (PBS 2025). In September 2025 the TGA approved lecanemab for use in early Alzheimer’s Disease. Suitable patients can access donanemab and lecanemab privately with restrictions on use due to the risk of serious side effects."
+    },
+    {
+      "index": 1,
+      "finding": "Dementia is the leading cause of death in Australia, responsible for 1 in 10 deaths in 2024, and the number of deaths has more than doubled from 8,500 in 2009 to 18,300 in 2024.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 3,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Dementia was the leading cause of death in Australia in 2024, accounting for more than 18,300 deaths (1 in 10, or 9.8% of all deaths). Dementia was the leading cause of death for women and the second leading cause for men, after coronary heart disease. The number of deaths due to dementia increased from 8,500 deaths in 2009 to 18,300 deaths in 2024."
+    },
+    {
+      "index": 2,
+      "finding": "The number of Australians living with dementia is projected to more than double from 439,000 in 2025 to nearly 1.1 million by 2066, driven by population ageing.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "With Australia’s population expected to continue growing and ageing into the future, the number of people with dementia is also expected to rise. Applying the AIHW method for calculating dementia prevalence to Australian Bureau of Statistics population projections for each year to 2066, the estimated number of people with dementia in Australia will more than double over this period – from just under 439,000 in 2025 to nearly 1.1 million in 2066 (around 395,000 men and 670,000 women) (Figure 2.3)."
+    },
+    {
+      "index": 3,
+      "finding": "In 2023-24, hospitalisations due to dementia had an average length of stay of 15 days, nearly six times the average for all hospitalisations (2.7 days), and the average cost per hospitalisation in public hospitals was $27,800.",
+      "found_in_source": true,
+      "contiguous_in_source": false,
+      "stitched": true,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": true,
+      "finding_is_copied": false,
+      "evidence": "the average length of stay was 15 days – this was almost 6 times higher than the average length of stay of 2.7 days for all hospitalisations (AIHW 2024) ... The average cost per hospitalisation for patients with dementia was around $9,200 in private hospitals and around $27,800 in public hospitals."
+    },
+    {
+      "index": 4,
+      "finding": "In 2023-24, an estimated $6 billion was spent on health and aged care directly attributable to dementia, with residential aged care accounting for the largest share (45%, or $2.7 billion), followed by hospital services (24%, or $1.4 billion).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "It is estimated that almost $6 billion of health and aged care spending in 2023–24 was directly attributable to the diagnosis, treatment and care of people with dementia. Residential aged care services accounted for the largest share of expenditure (45%, or $2.7 billion), followed by hospital services (24%, or $1.4 billion), and community-based aged care services (20%, or $1.2 billion) (Figure 5)."
+    },
+    {
+      "index": 5,
+      "finding": "In 2023-24, 20% of the 77,500 people dispensed dementia-specific medications were also dispensed antipsychotic medications, with a higher proportion (24%) among people with younger onset dementia (aged 30-64).",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2023–24, antipsychotic medications were dispensed to one-fifth (20%) of the 77,500 people who had been dispensed dementia-specific medications. A higher proportion of people with younger onset dementia (aged 30–64) were dispensed antipsychotic medications (24%) compared with people aged 85 and over (20%)."
+    },
+    {
+      "index": 6,
+      "finding": "In 2022, 42% of primary carers of people with dementia provided 60 or more hours of care per week, and 24% reported needing more respite care, compared with 7% of carers of people without dementia.",
+      "found_in_source": true,
+      "contiguous_in_source": false,
+      "stitched": true,
+      "fragments": 3,
+      "fragments_missing": [],
+      "is_ellipsis_joined": true,
+      "finding_is_copied": false,
+      "evidence": "2 in 5 (42%) provided an average of 60 or more hours of care per week ... 1 in 4 (24%) reported that they needed more respite care to support them ... 24% reported they needed more respite care – this was higher than what was reported by primary carers of people without dementia (7%)."
+    },
+    {
+      "index": 7,
+      "finding": "In 2021-22, 54% of people in permanent residential aged care had dementia, and 84% of these required high levels of care in the cognition and behaviour domain, compared to 52% of those without dementia.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "over 4 in 5 people living with dementia (84%) required high levels of care in the Cognition and behaviour domain (including cognitive skills, wandering, verbal behaviour, physical behaviour and depres"
+      ],
+      "is_ellipsis_joined": true,
+      "finding_is_copied": false,
+      "evidence": "Over 242,000 people were living in permanent residential aged care in 2021–22, and more than half (54%, or about 131,000) of these people had dementia. ... over 4 in 5 people living with dementia (84%) required high levels of care in the Cognition and behaviour domain (including cognitive skills, wandering, verbal behaviour, physical behaviour and depression) compared to 52% of people without dementia."
+    },
+    {
+      "index": 8,
+      "finding": "The rate of dementia among First Nations people is estimated to be 3 to 5 times as high as rates for Australia overall, and they have a younger age of onset, with a median age of 72 compared to 79 for non-Indigenous Australians.",
+      "found_in_source": true,
+      "contiguous_in_source": false,
+      "stitched": true,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": true,
+      "finding_is_copied": false,
+      "evidence": "Among Aboriginal and Torres Strait Islander (First Nations) people, the rate of dementia is estimated to be 3 to 5 times as high as rates for Australia overall ... First Nations people also had a younger age of onset of dementia, with a median age of 72 years compared with a median age of 79 years among non-Indigenous Australians."
+    },
+    {
+      "index": 9,
+      "finding": "In 2023-24, 60% of people with dementia who completed a comprehensive aged care needs assessment reported experiencing one or more behavioural and psychological symptoms (BPSD) 'always' or 'regularly', and they were nearly twice as likely to report three or more symptoms compared to people without dementia.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "During their comprehensive aged care needs assessment, 3 in 5 people with dementia (60%, 18,300) and 1 in 2 people without dementia (51%, 87,700) reported experiencing one or more symptoms. People with dementia were nearly twice as likely to report experiencing three or more symptoms always or regularly (21%, 6,500) compared with people without dementia (11%, 18,800) (Figure 16.2; Table S16.7)."
+    }
+  ],
+  "lazy_reasoning": [],
+  "reversed_conditionals": [],
+  "scope_problems": []
+}
