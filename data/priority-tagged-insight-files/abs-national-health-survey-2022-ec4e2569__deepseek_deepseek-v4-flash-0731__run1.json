@@ -1,0 +1,122 @@
+{
+  "source": {
+    "publisher": "ABS",
+    "title": "National Health Survey, 2022",
+    "url": "https://www.abs.gov.au/statistics/health/health-conditions-and-risks/national-health-survey/latest-release",
+    "publication_date": null,
+    "retrieval_date": "2026-09-26"
+  },
+  "summary": "The National Health Survey (NHS) 2022, conducted by the Australian Bureau of Statistics, is a comprehensive national survey of the health of Australians living in private dwellings. It collects data on the prevalence of long-term and chronic health conditions, health risk factors such as smoking, alcohol consumption, physical activity, and diet, as well as demographic and socioeconomic characteristics. The survey also links to Pharmaceutical Benefits Scheme (PBS) administrative data to report on prescription medications dispensed to participants, and collects self-reported use of over-the-counter pain relief. The release provides key statistics for Australia, states and territories, and modelled estimates at the Statistical Area Level 2 (SA2). It includes data tables covering a wide range of topics, from specific conditions like arthritis, asthma, cancer, and diabetes, to risk factors like BMI, waist circumference, and breastfeeding, and is structured with sections on health conditions, risk factors, medications, and state/territory findings.",
+  "priority_assessment_version": "v0.3_article",
+  "consolidation_version": "v0.1",
+  "insights": [
+    {
+      "insight_id": "INSIGHT_001",
+      "insight_type": "clinical",
+      "finding": "Three-quarters (74.5%) of adults with high measured blood pressure did not report having hypertension, indicating a large pool of undiagnosed or unreported hypertension in the community.",
+      "evidence": "Three in four (74.5%) adults with high measured blood pressure did not report having hypertension.",
+      "evidence_location": "Hypertension and high measured blood pressure",
+      "target_population": "adults with high measured blood pressure",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "Unclear",
+        "population_affected": "Unclear",
+        "magnitude_of_change": "Unclear",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "Moderate"
+      },
+      "priority": "Medium Priority",
+      "priority_rationale": "This is a relevant population-health care-gap signal: a large share of adults with high measured blood pressure did not report hypertension. Priority is driven mainly by the notable measured-versus-reported comparator and moderate clinical significance, while utilisation, costs and population scale are not quantified; the main caveat is that not reporting hypertension does not definitively prove undiagnosed disease, and no Medibank-specific prevalence is supplied."
+    },
+    {
+      "insight_id": "INSIGHT_004",
+      "insight_type": "clinical",
+      "finding": "Diabetes prevalence has slowly increased from 3.3% in 2001 to 5.3% in 2022, with 1.3 million people now living with the condition.",
+      "evidence": "Diabetes prevalence has slowly increased from 3.3% in 2001 to 5.3% in 2022.",
+      "evidence_location": "Diabetes",
+      "target_population": "people with diabetes",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "High",
+        "utilisation_demand": "Unclear",
+        "population_affected": "Large",
+        "magnitude_of_change": "Moderate",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Strong",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "Moderate"
+      },
+      "priority": "Medium Priority",
+      "priority_rationale": "This is relevant through a substantial and sustained chronic-disease burden: diabetes prevalence increased from 3.3% in 2001 to 5.3% in 2022, affecting an explicitly large population of 1.3 million. The strong trend, large affected population, and moderate magnitude of change drive Medium Priority, but the evidence is national and does not establish Medibank-specific prevalence, utilisation, or cost impact."
+    },
+    {
+      "insight_id": "INSIGHT_002",
+      "insight_type": "pharmaceutical",
+      "finding": "83.0% of people with one or more chronic conditions were dispensed at least one PBS medication in the six months before or after their interview, compared to 68.6% of the total population.",
+      "evidence": "Over eight in ten (83.0%) of people with one or more chronic conditions were dispensed at least one PBS medication.",
+      "evidence_location": "Pharmaceutical Benefits Scheme (PBS) medications",
+      "target_population": "people with one or more chronic conditions",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "High",
+        "population_affected": "Unclear",
+        "magnitude_of_change": "Unclear",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "Moderate"
+      },
+      "priority": "Informational",
+      "priority_rationale": "This is a relevant medication-utilisation snapshot showing high PBS dispensing among people with chronic conditions compared with the total population. Utilisation/demand is high and evidence is strong, but there is no demonstrated trend, material change, cost data, or direct private-health impact, so it remains informative context rather than a priority development."
+    },
+    {
+      "insight_id": "INSIGHT_007",
+      "insight_type": "clinical",
+      "finding": "People in Tasmania were more likely to have at least one chronic condition (58.4%) than any other state or territory.",
+      "evidence": "People in Tasmania were more likely to have at least one chronic condition (58.4%) than any other state or territory",
+      "evidence_location": "State and territory findings",
+      "target_population": "people in Tasmania",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "Unclear",
+        "population_affected": "Unclear",
+        "magnitude_of_change": "Unclear",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "Moderate"
+      },
+      "priority": "Informational",
+      "priority_rationale": "This is relevant as a regional chronic-disease burden signal, with Tasmania having the highest state/territory prevalence of at least one chronic condition at 58.4%. However, it is a single cross-sectional comparison without a demonstrated trend, quantified difference, utilisation, cost, or direct private-health impact, so it provides useful contextual information rather than a material current development."
+    }
+  ],
+  "section_index": {
+    "clinical": [
+      "INSIGHT_001",
+      "INSIGHT_004",
+      "INSIGHT_007"
+    ],
+    "pharmaceutical": [
+      "INSIGHT_002"
+    ],
+    "medical_technology": [],
+    "watchlist": []
+  }
+}

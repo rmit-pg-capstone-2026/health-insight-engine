@@ -1,0 +1,270 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "run": 1,
+  "meta": {
+    "model_returned": "deepseek/deepseek-v4-flash-0731",
+    "provider": "DeepInfra",
+    "prompt_tokens": 8221,
+    "completion_tokens": 2510,
+    "reasoning_tokens": 0,
+    "cost_usd": 0.00094506,
+    "seconds": 80.7,
+    "reasoning_setting": "off",
+    "provider_pinned": "deepinfra",
+    "error": null
+  },
+  "result": {
+    "document_scope": "in_scope",
+    "source": {
+      "publisher": "ABS",
+      "title": "National Health Survey, 2022",
+      "url": "https://www.abs.gov.au/statistics/health/health-conditions-and-risks/national-health-survey/latest-release",
+      "publication_date": null,
+      "period_covered": "2022",
+      "retrieval_date": "2026-09-26"
+    },
+    "summary": "The National Health Survey (NHS) 2022, conducted by the Australian Bureau of Statistics, is a comprehensive national survey of the health of Australians living in private dwellings. It collects data on the prevalence of long-term and chronic health conditions, health risk factors such as smoking, alcohol consumption, physical activity, and diet, as well as demographic and socioeconomic characteristics. The survey also links to Pharmaceutical Benefits Scheme (PBS) administrative data to report on prescription medications dispensed to participants, and collects self-reported use of over-the-counter pain relief. The release provides key statistics for Australia, states and territories, and modelled estimates at the Statistical Area Level 2 (SA2). It includes data tables covering a wide range of topics, from specific conditions like arthritis, asthma, cancer, and diabetes, to risk factors like BMI, waist circumference, and breastfeeding, and is structured with sections on health conditions, risk factors, medications, and state/territory findings.",
+    "insights": [
+      {
+        "insight_type": "clinical",
+        "finding": "Three-quarters (74.5%) of adults with high measured blood pressure did not report having hypertension, indicating a large pool of undiagnosed or unreported hypertension in the community.",
+        "evidence": "Three in four (74.5%) adults with high measured blood pressure did not report having hypertension.",
+        "evidence_location": "Hypertension and high measured blood pressure",
+        "target_population": "adults with high measured blood pressure",
+        "caveat": null,
+        "reasoning": "This is a significant gap between measured and self-reported hypertension, suggesting many Australians are unaware of their condition. For a health insurer, this points to potential future claims for cardiovascular events, stroke, and kidney disease among this undiagnosed group. It also highlights an opportunity for preventive health programs, such as subsidised blood pressure screening or health coaching, to identify and manage these members earlier, potentially reducing long-term costs.",
+        "insight_id": "INSIGHT_001"
+      },
+      {
+        "insight_type": "pharmaceutical",
+        "finding": "83.0% of people with one or more chronic conditions were dispensed at least one PBS medication in the six months before or after their interview, compared to 68.6% of the total population.",
+        "evidence": "Over eight in ten (83.0%) of people with one or more chronic conditions were dispensed at least one PBS medication.",
+        "evidence_location": "Pharmaceutical Benefits Scheme (PBS) medications",
+        "target_population": "people with one or more chronic conditions",
+        "caveat": null,
+        "reasoning": "This high rate of PBS medication use among people with chronic conditions is a strong signal of ongoing pharmaceutical demand. For an insurer, this indicates that members with chronic conditions are likely to be high users of prescription medicines, which has implications for pharmacy claims, medication adherence programs, and the design of health management programs. The data also suggests that a significant portion of the insured population may be managing chronic conditions with multiple medications, which could be a target for medication review services.",
+        "insight_id": "INSIGHT_002"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "More than two in three (67.9%) adults had a measured waist circumference that put them at increased risk of disease, and almost two-thirds (65.8%) were overweight or obese.",
+        "evidence": "More than two in three (67.9%) adults had measured waist circumference that put them at an increased risk of disease in 2022. Almost two thirds (65.8%) of adults were overweight or obese.",
+        "evidence_location": "Waist circumference and BMI",
+        "target_population": "adults",
+        "caveat": null,
+        "reasoning": "These high rates of obesity and increased waist circumference are major risk factors for chronic conditions like diabetes, cardiovascular disease, and certain cancers. For a health insurer, this signals a large at-risk population that will likely drive future claims for these conditions. It underscores the importance of preventive health initiatives, such as weight management programs, nutrition counselling, and physical activity incentives, to mitigate long-term health costs and improve member health outcomes.",
+        "insight_id": "INSIGHT_003"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Diabetes prevalence has slowly increased from 3.3% in 2001 to 5.3% in 2022, with 1.3 million people now living with the condition.",
+        "evidence": "Diabetes prevalence has slowly increased from 3.3% in 2001 to 5.3% in 2022.",
+        "evidence_location": "Diabetes",
+        "target_population": "people with diabetes",
+        "caveat": null,
+        "reasoning": "The steady rise in diabetes prevalence over two decades represents a growing chronic disease burden. For a health insurer, this means an increasing number of members will require ongoing management for diabetes and its complications, including medications, monitoring devices, and potential hospitalisations. This trend supports the need for robust chronic disease management programs and partnerships with providers to support this population.",
+        "insight_id": "INSIGHT_004"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "One in seven (14.4%) adults have used e-cigarette or vaping devices, while current daily smoking has declined to 10.6% in 2022 from 22.4% in 2001.",
+        "evidence": "One in seven (14.4%) adults have used e-cigarette or vaping devices. One in ten (10.6%) adults were current daily smokers in 2022, this rate has steadily declined from 22.4% in 2001.",
+        "evidence_location": "Smoking and vaping",
+        "target_population": "adults",
+        "caveat": null,
+        "reasoning": "The decline in smoking is a positive public health trend, but the significant uptake of vaping (14.4%) is a new and emerging risk factor. For a health insurer, this suggests a potential future wave of respiratory and cardiovascular conditions among younger adults who vape. It also highlights a need to monitor the health impacts of vaping and consider how to address this in member education and preventive health strategies.",
+        "insight_id": "INSIGHT_005"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "More than one in four (26.8%) adults exceeded the Australian Adult Alcohol Guideline in 2022, with males (35.8%) more likely than females (18.1%) to exceed it.",
+        "evidence": "More than one in four (26.8%) adults exceeded the Australian Adult Alcohol Guideline in 2022. Males were more likely than females to exceed the guideline (35.8% compared to 18.1%).",
+        "evidence_location": "Alcohol consumption",
+        "target_population": "adults",
+        "caveat": null,
+        "reasoning": "A quarter of adults drinking above guidelines is a significant risk factor for liver disease, certain cancers, and injuries. For a health insurer, this indicates a substantial population at risk of alcohol-related health issues, which could lead to claims for treatment. It also points to a need for targeted health promotion and potentially for coverage of alcohol misuse programs.",
+        "insight_id": "INSIGHT_006"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "People in Tasmania were more likely to have at least one chronic condition (58.4%) than any other state or territory.",
+        "evidence": "People in Tasmania were more likely to have at least one chronic condition (58.4%) than any other state or territory",
+        "evidence_location": "State and territory findings",
+        "target_population": "people in Tasmania",
+        "caveat": null,
+        "reasoning": "This geographic disparity in chronic condition prevalence is notable. For a health insurer, it suggests that members in Tasmania may have higher healthcare needs and utilisation, potentially affecting claims patterns and the need for region-specific health management programs. It also raises questions about underlying factors such as socioeconomic status, access to care, and lifestyle that could be explored for targeted interventions.",
+        "insight_id": "INSIGHT_007"
+      },
+      {
+        "insight_type": "pharmaceutical",
+        "finding": "People with one or more chronic conditions were more likely to have used paracetamol (52.6% compared to 34.5%) and ibuprofen (25.3% compared to 16.1%) in the last two weeks than those without a chronic condition.",
+        "evidence": "People with one or more chronic conditions were more likely to have used paracetamol than people with no chronic condition (52.6% compared to 34.5%). People with one or more chronic conditions were more likely to have used ibuprofen than people with no chronic condition (25.3% compared to 16.1%).",
+        "evidence_location": "Over-the-counter (OTC) medications",
+        "target_population": "people with one or more chronic conditions",
+        "caveat": null,
+        "reasoning": "The higher use of OTC pain relievers among those with chronic conditions indicates a greater burden of pain and symptom management in this group. For a health insurer, this suggests that members with chronic conditions may have higher out-of-pocket costs for OTC medications, which could be a point of member dissatisfaction. It also highlights a potential area for member education on safe OTC use and the importance of managing chronic pain effectively to reduce reliance on these medications.",
+        "insight_id": "INSIGHT_008"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Almost one in three (32.1%) people with asthma had a written action plan, and one in three (33.9%) used asthma medication daily.",
+        "evidence": "Almost one in three (32.1%) people with asthma had a written action plan. One in three (33.9%) people with asthma used asthma medication daily.",
+        "evidence_location": "Asthma",
+        "target_population": "people with asthma",
+        "caveat": null,
+        "reasoning": "The low rate of written action plans (32.1%) among people with asthma is a concern, as these plans are a key component of asthma management and can reduce hospitalisations. For a health insurer, this suggests an opportunity to improve asthma care through member education and support programs that encourage the development and use of action plans. The daily medication use rate also indicates a significant ongoing need for asthma medications, which is relevant for pharmacy claims.",
+        "insight_id": "INSIGHT_009"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Almost one in four (23.9%) people aged 15 years and over met the physical activity guidelines, and nearly half (46.9%) of employed adults aged 18–64 years described their day at work as mostly sitting.",
+        "evidence": "Almost one in four (23.9%) people aged 15 years and over met the physical activity guidelines. Nearly half (46.9%) of employed adults aged 18–64 years described their day at work as mostly sitting.",
+        "evidence_location": "Physical activity",
+        "target_population": "people aged 15 years and over; employed adults aged 18–64 years",
+        "caveat": null,
+        "reasoning": "Low physical activity levels and high sedentary behaviour are major risk factors for chronic diseases. For a health insurer, this indicates a large population at risk of developing conditions like obesity, diabetes, and cardiovascular disease. It supports the case for promoting physical activity through member wellness programs, gym memberships, or workplace health initiatives, which could help prevent future claims and improve member health.",
+        "insight_id": "INSIGHT_010"
+      }
+    ],
+    "no_insights_reason": null
+  },
+  "schema_errors": [],
+  "quote_checks": [
+    {
+      "index": 0,
+      "finding": "Three-quarters (74.5%) of adults with high measured blood pressure did not report having hypertension, indicating a large pool of undiagnosed or unreported hypertension in the community.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Three in four (74.5%) adults with high measured blood pressure did not report having hypertension."
+    },
+    {
+      "index": 1,
+      "finding": "83.0% of people with one or more chronic conditions were dispensed at least one PBS medication in the six months before or after their interview, compared to 68.6% of the total population.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Over eight in ten (83.0%) of people with one or more chronic conditions were dispensed at least one PBS medication."
+    },
+    {
+      "index": 2,
+      "finding": "More than two in three (67.9%) adults had a measured waist circumference that put them at increased risk of disease, and almost two-thirds (65.8%) were overweight or obese.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "More than two in three (67.9%) adults had measured waist circumference that put them at an increased risk of disease in 2022."
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "More than two in three (67.9%) adults had measured waist circumference that put them at an increased risk of disease in 2022. Almost two thirds (65.8%) of adults were overweight or obese."
+    },
+    {
+      "index": 3,
+      "finding": "Diabetes prevalence has slowly increased from 3.3% in 2001 to 5.3% in 2022, with 1.3 million people now living with the condition.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Diabetes prevalence has slowly increased from 3.3% in 2001 to 5.3% in 2022."
+    },
+    {
+      "index": 4,
+      "finding": "One in seven (14.4%) adults have used e-cigarette or vaping devices, while current daily smoking has declined to 10.6% in 2022 from 22.4% in 2001.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "One in ten (10.6%) adults were current daily smokers in 2022, this rate has steadily declined from 22.4% in 2001."
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "One in seven (14.4%) adults have used e-cigarette or vaping devices. One in ten (10.6%) adults were current daily smokers in 2022, this rate has steadily declined from 22.4% in 2001."
+    },
+    {
+      "index": 5,
+      "finding": "More than one in four (26.8%) adults exceeded the Australian Adult Alcohol Guideline in 2022, with males (35.8%) more likely than females (18.1%) to exceed it.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "More than one in four (26.8%) adults exceeded the Australian Adult Alcohol Guideline in 2022.",
+        "Males were more likely than females to exceed the guideline (35.8% compared to 18.1%)."
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "More than one in four (26.8%) adults exceeded the Australian Adult Alcohol Guideline in 2022. Males were more likely than females to exceed the guideline (35.8% compared to 18.1%)."
+    },
+    {
+      "index": 6,
+      "finding": "People in Tasmania were more likely to have at least one chronic condition (58.4%) than any other state or territory.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "People in Tasmania were more likely to have at least one chronic condition (58.4%) than any other state or territory"
+    },
+    {
+      "index": 7,
+      "finding": "People with one or more chronic conditions were more likely to have used paracetamol (52.6% compared to 34.5%) and ibuprofen (25.3% compared to 16.1%) in the last two weeks than those without a chronic condition.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "People with one or more chronic conditions were more likely to have used paracetamol than people with no chronic condition (52.6% compared to 34.5%)."
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "People with one or more chronic conditions were more likely to have used paracetamol than people with no chronic condition (52.6% compared to 34.5%). People with one or more chronic conditions were more likely to have used ibuprofen than people with no chronic condition (25.3% compared to 16.1%)."
+    },
+    {
+      "index": 8,
+      "finding": "Almost one in three (32.1%) people with asthma had a written action plan, and one in three (33.9%) used asthma medication daily.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "Almost one in three (32.1%) people with asthma had a written action plan."
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Almost one in three (32.1%) people with asthma had a written action plan. One in three (33.9%) people with asthma used asthma medication daily."
+    },
+    {
+      "index": 9,
+      "finding": "Almost one in four (23.9%) people aged 15 years and over met the physical activity guidelines, and nearly half (46.9%) of employed adults aged 18–64 years described their day at work as mostly sitting.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "Almost one in four (23.9%) people aged 15 years and over met the physical activity guidelines."
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Almost one in four (23.9%) people aged 15 years and over met the physical activity guidelines. Nearly half (46.9%) of employed adults aged 18–64 years described their day at work as mostly sitting."
+    }
+  ],
+  "lazy_reasoning": [],
+  "reversed_conditionals": [],
+  "scope_problems": []
+}
