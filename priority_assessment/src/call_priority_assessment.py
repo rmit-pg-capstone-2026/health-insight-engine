@@ -1,4 +1,5 @@
 import argparse
+import copy
 import json
 import os
 from pathlib import Path
@@ -39,17 +40,48 @@ def parse_model_json(text: str) -> Dict[str, Any]:
     return parsed
 
 
+def _bedrock_compatible_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
+    """Return an in-memory Bedrock-compatible copy of the article schema.
+
+    The repo schema remains the source of truth and is still used unchanged for
+    local Draft 2020-12 validation. Bedrock structured outputs support a subset
+    of Draft 2020-12 and reject string/numeric constraints such as minLength.
+    """
+    unsupported_keywords = {
+        "minLength",
+        "maxLength",
+        "minimum",
+        "maximum",
+        "multipleOf",
+    }
+
+    def clean(value):
+        if isinstance(value, dict):
+            return {
+                key: clean(item)
+                for key, item in value.items()
+                if key not in unsupported_keywords
+            }
+        if isinstance(value, list):
+            return [clean(item) for item in value]
+        return value
+
+    return clean(copy.deepcopy(schema))
+
+
 def build_request_payload(
     model: str,
     prompt_text: str,
     article_input: Dict[str, Any],
     json_mode: bool = True,
+    response_schema: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     user_message = (
         "Execute Priority Assessment v0.3 article mode on the supplied article insights.\n"
         "Return only JSON matching the required article-mode output.\n\n"
         + json.dumps(article_input, ensure_ascii=False, indent=2)
     )
+
     payload: Dict[str, Any] = {
         "model": model,
         "messages": [
@@ -57,8 +89,19 @@ def build_request_payload(
             {"role": "user", "content": user_message},
         ],
     }
+
     if json_mode:
-        payload["response_format"] = {"type": "json_object"}
+        if response_schema is not None:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "priority_assessment_article",
+                    "schema": response_schema,
+                },
+            }
+        else:
+            payload["response_format"] = {"type": "json_object"}
+
     return payload
 
 
@@ -71,14 +114,18 @@ def call_openai_compatible_chat(
     *,
     timeout_seconds: int = 180,
     json_mode: bool = True,
+    response_schema: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Call an OpenAI-compatible /chat/completions endpoint.
-
-    The provider is intentionally configurable for Week 9. The pipeline owns the
-    handoff/validation contract, not the provider choice.
-    """
-    payload = build_request_payload(model, prompt_text, article_input, json_mode)
+    """Call an OpenAI-compatible /chat/completions endpoint."""
+    payload = build_request_payload(
+        model,
+        prompt_text,
+        article_input,
+        json_mode=json_mode,
+        response_schema=response_schema,
+    )
     body = json.dumps(payload).encode("utf-8")
+
     req = request.Request(
         api_url,
         data=body,
@@ -105,11 +152,13 @@ def call_openai_compatible_chat(
         content = envelope["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError(
-            "Unexpected OpenAI-compatible response shape; missing choices[0].message.content"
+            "Unexpected OpenAI-compatible response shape; "
+            "missing choices[0].message.content"
         ) from exc
 
     if not isinstance(content, str):
         raise RuntimeError("Priority Assessment response content is not a string")
+
     return parse_model_json(content)
 
 
@@ -123,6 +172,7 @@ def run_call(
     model: Optional[str] = None,
     json_mode: bool = True,
     timeout_seconds: int = 180,
+    schema_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     api_url = api_url or os.getenv("PROMPT2_API_URL")
     api_key = api_key or os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY")
@@ -143,6 +193,16 @@ def run_call(
     article_input = _load_json(input_path)
     prompt_text = prompt_path.read_text(encoding="utf-8")
 
+    response_schema = None
+    if json_mode and schema_path is not None:
+        response_schema = _load_json(schema_path)
+
+        # AWS Bedrock structured outputs use a supported subset of JSON Schema
+        # Draft 2020-12. Keep the full schema on disk for local validation, but
+        # remove unsupported constraints only from the API request copy.
+        if "bedrock-runtime." in api_url.lower():
+            response_schema = _bedrock_compatible_schema(response_schema)
+
     results = call_openai_compatible_chat(
         api_url=api_url,
         api_key=api_key,
@@ -151,20 +211,37 @@ def run_call(
         article_input=article_input,
         timeout_seconds=timeout_seconds,
         json_mode=json_mode,
+        response_schema=response_schema,
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
-        json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps(results, ensure_ascii=False, indent=2),
+        encoding="utf-8",
     )
     return results
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Call Priority Assessment in article mode.")
+    parser = argparse.ArgumentParser(
+        description="Call Priority Assessment in article mode."
+    )
     parser.add_argument("input_json", type=Path)
     parser.add_argument("--prompt", type=Path, required=True)
-    parser.add_argument("--output", type=Path, default=Path("assessment_results.json"))
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("assessment_results.json"),
+    )
+    parser.add_argument(
+        "--schema",
+        type=Path,
+        help=(
+            "Article-mode JSON schema used for structured output. "
+            "For Bedrock, unsupported constraints are removed only from "
+            "the in-memory API copy."
+        ),
+    )
     parser.add_argument("--api-url")
     parser.add_argument("--api-key")
     parser.add_argument("--model")
@@ -172,7 +249,7 @@ def main() -> None:
     parser.add_argument(
         "--plain-json",
         action="store_true",
-        help="Do not send response_format=json_object (for providers that do not support it).",
+        help="Do not send response_format (for providers that do not support it).",
     )
     args = parser.parse_args()
 
@@ -185,6 +262,7 @@ def main() -> None:
         model=args.model,
         json_mode=not args.plain_json,
         timeout_seconds=args.timeout,
+        schema_path=args.schema,
     )
     print(f"Saved: {args.output}")
 
