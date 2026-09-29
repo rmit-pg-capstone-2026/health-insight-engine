@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Optional
 
 from aggregate_assessed_insights import aggregate_assessed_insights
 from call_priority_assessment import run_call
@@ -58,12 +59,18 @@ def _validate_results(
     )
 
 
-def process_one(input_path: Path, args, output_dir: Path) -> dict:
+def process_one(
+    input_path: Path,
+    args,
+    output_dir: Path,
+    work_dir: Optional[Path] = None,
+) -> dict:
     """Run the Week 9 pipeline for one Prompt 1 file."""
-    raw_dir = ROOT / "data" / "raw"
-    processed_dir = ROOT / "data" / "processed"
-    assessments_dir = ROOT / "data" / "assessments"
-    handoff_dir = ROOT / "data" / "handoff"
+    work_dir = work_dir or ROOT / "data"
+    raw_dir = work_dir / "raw"
+    processed_dir = work_dir / "processed"
+    assessments_dir = work_dir / "assessments"
+    handoff_dir = work_dir / "handoff"
 
     for d in (raw_dir, processed_dir, assessments_dir, handoff_dir):
         d.mkdir(parents=True, exist_ok=True)
