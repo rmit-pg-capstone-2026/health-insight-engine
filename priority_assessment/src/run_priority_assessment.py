@@ -122,11 +122,18 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
         print(f"      using existing assessment file: {args.assessment_file}")
 
     else:
-        if not (args.api_url and args.api_key and args.model):
+        # if not (args.api_url and args.api_key and args.model):
+        #     raise RuntimeError(
+        #         "Priority Assessment API configuration is missing. "
+        #         "Set PROMPT2_API_URL, PROMPT2_API_KEY and PROMPT2_MODEL "
+        #         "in the repo-root .env, or pass --assessment-file."
+        #     )
+        if not (args.api_url and args.model):
             raise RuntimeError(
                 "Priority Assessment API configuration is missing. "
-                "Set PROMPT2_API_URL, PROMPT2_API_KEY and PROMPT2_MODEL "
-                "in the repo-root .env, or pass --assessment-file."
+                "Set PROMPT2_API_URL and PROMPT2_MODEL in the repo-root .env, "
+                "and use either PROMPT2_API_KEY or AWS credentials/SSO, "
+                "or pass --assessment-file."
             )
 
         # Structured output should normally satisfy the article schema on the

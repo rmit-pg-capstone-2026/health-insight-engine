@@ -6,6 +6,15 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib import error, request
 
+try:
+    import boto3
+    from botocore.auth import SigV4Auth
+    from botocore.awsrequest import AWSRequest
+except ImportError:
+    boto3 = None
+    SigV4Auth = None
+    AWSRequest = None
+
 # When run on its own, read PROMPT2_* from the repo-root .env. Anything already
 # exported in the shell still wins.
 try:
@@ -107,7 +116,7 @@ def build_request_payload(
 
 def call_openai_compatible_chat(
     api_url: str,
-    api_key: str,
+    api_key: Optional[str],
     model: str,
     prompt_text: str,
     article_input: Dict[str, Any],
@@ -126,14 +135,59 @@ def call_openai_compatible_chat(
     )
     body = json.dumps(payload).encode("utf-8")
 
+    headers = {"Content-Type": "application/json"}
+
+    if api_key:
+        # Backward-compatible bearer-key authentication.
+        headers["Authorization"] = f"Bearer {api_key}"
+    elif "bedrock-runtime." in api_url.lower():
+        # Use the standard AWS credential chain (for example AWS SSO locally
+        # or an IAM execution role after deployment) and sign the request
+        # with AWS Signature Version 4.
+        if boto3 is None or SigV4Auth is None or AWSRequest is None:
+            raise RuntimeError(
+                "boto3/botocore are required for Bedrock SigV4 authentication. "
+                "Install them with: pip install boto3"
+            )
+
+        region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION")
+        profile = os.getenv("AWS_PROFILE")
+        session = boto3.Session(profile_name=profile, region_name=region)
+        region = session.region_name
+        if not region:
+            raise RuntimeError(
+                "AWS region is not configured. Set AWS_REGION (for example "
+                "ap-southeast-2) or configure a default region in your AWS profile."
+            )
+
+        credentials = session.get_credentials()
+        if credentials is None:
+            raise RuntimeError(
+                "No AWS credentials found. For local use, log in with your configured "
+                "AWS SSO profile, for example: aws sso login --profile rmit-medibank"
+            )
+
+        aws_request = AWSRequest(
+            method="POST",
+            url=api_url,
+            data=body,
+            headers=headers,
+        )
+        SigV4Auth(credentials.get_frozen_credentials(), "bedrock", region).add_auth(
+            aws_request
+        )
+        headers = dict(aws_request.headers.items())
+    else:
+        raise RuntimeError(
+            "No API key was supplied and the endpoint is not an AWS Bedrock Runtime "
+            "endpoint that can use SigV4 authentication."
+        )
+
     req = request.Request(
         api_url,
         data=body,
         method="POST",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        headers=headers,
     )
 
     try:
@@ -182,7 +236,6 @@ def run_call(
         name
         for name, value in (
             ("PROMPT2_API_URL / --api-url", api_url),
-            ("PROMPT2_API_KEY / --api-key", api_key),
             ("PROMPT2_MODEL / --model", model),
         )
         if not value
