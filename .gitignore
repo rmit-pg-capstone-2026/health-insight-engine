@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# DS Store
+.DS_Store
+
+
+# Pipeline data - generated at runtime, keep the folder structure only
+priority_assessment/data/*/*

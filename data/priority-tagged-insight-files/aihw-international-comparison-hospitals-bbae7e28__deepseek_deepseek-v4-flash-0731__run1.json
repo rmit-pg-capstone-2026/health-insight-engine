@@ -1,0 +1,121 @@
+{
+  "source": {
+    "publisher": "AIHW",
+    "title": "International comparison - Hospitals",
+    "url": "https://www.aihw.gov.au/hospitals/topics/admitted-patient-care/international-comparison",
+    "publication_date": "2026-05-18",
+    "retrieval_date": "2026-09-26"
+  },
+  "summary": "This AIHW web page compares Australia's performance on selected surgical indicators against the OECD average, using data from the National Hospital Morbidity database. It covers same-day surgery rates for cataract and tonsillectomy procedures, caesarean section rates, hip and knee replacement rates, and the proportion of cholecystectomies, appendicectomies, and inguinal herniorrhaphies performed laparoscopically. The page notes that international comparability may be affected by differences in definitions, collection periods, and admission practices.",
+  "priority_assessment_version": "v0.3_article",
+  "consolidation_version": "v0.1",
+  "insights": [
+    {
+      "insight_id": "INSIGHT_001",
+      "insight_type": "clinical",
+      "finding": "Australia's caesarean section rate in 2024-25 was 42.7 per 100 live births, well above the OECD average of 30.5, a gap of over 12 percentage points.",
+      "evidence": "In 2024–25, Australia’s rate of caesarean sections per 100 live births (42.7) was higher than the OECD average (30.5).",
+      "evidence_location": "Number of caesarean sections per 100 live births",
+      "target_population": "Women giving birth in Australia",
+      "caveat": "The data reported by the OECD may be based on different reporting periods.",
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "High",
+        "population_affected": "Large",
+        "magnitude_of_change": "Large",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "Moderate",
+        "actionability": "Moderate"
+      },
+      "priority": "Medium Priority",
+      "priority_rationale": "Relevant because caesarean section is a major hospital maternity procedure, and Australia's rate is markedly above the OECD average (42.7 vs 30.5 per 100 live births), indicating substantial surgical utilisation and a broad affected population. The absence of trend or cost data and the OECD reporting-period caveat limit this to a meaningful current benchmark signal rather than a higher-priority development."
+    },
+    {
+      "insight_id": "INSIGHT_002",
+      "insight_type": "clinical",
+      "finding": "Australia's knee replacement rate in 2024-25 was 216.9 per 100,000 population, 48% above the OECD average of 146.1, while hip replacement was below the OECD average (176.9 vs 196.1).",
+      "evidence": "Australia’s rate of knee replacement surgery was above the OECD average (216.9 and 146.1 per 100,000 population, respectively).",
+      "evidence_location": "Number of hip and knee replacement surgeries per 100,000 population",
+      "target_population": "Australian population",
+      "caveat": "The data reported by the OECD may be based on different reporting periods.",
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "High",
+        "population_affected": "Large",
+        "magnitude_of_change": "Large",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "Moderate",
+        "actionability": "Moderate"
+      },
+      "priority": "Medium Priority",
+      "priority_rationale": "Relevant because knee replacement is a major surgical procedure, and Australia's rate is 48% above the OECD average, providing a substantial current benchmark and utilisation signal with a large affected population. No demonstrated trend, cost evidence, or direct private-insurance impact is supplied, and the OECD reporting-period caveat qualifies the comparison, so the finding is a Medium-priority comparator issue."
+    },
+    {
+      "insight_id": "INSIGHT_003",
+      "insight_type": "clinical",
+      "finding": "In 2024-25, only 25% of tonsillectomies in Australia were performed as same-day procedures, compared with the OECD average of 39%, while 98% of cataract surgeries were same-day, well above the OECD average of 76%.",
+      "evidence": "the proportion of tonsillectomies that were performed on a same-day basis in Australia (25%) was lower than the OECD average (39%).",
+      "evidence_location": "Proportion of surgeries performed on a same-day basis",
+      "target_population": "Patients undergoing tonsillectomy in Australia",
+      "caveat": "The data reported by the OECD may be based on different reporting periods.",
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Low",
+        "utilisation_demand": "Moderate",
+        "population_affected": "Moderate",
+        "magnitude_of_change": "Moderate",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "Moderate",
+        "actionability": "Moderate"
+      },
+      "priority": "Informational",
+      "priority_rationale": "Relevant because same-day surgery patterns affect hospital care and potential resource use, with Australia's tonsillectomy same-day rate below the OECD average (25% vs 39%). The finding is a moderate benchmark signal, but without trend, clinical outcome, or cost evidence and with a smaller affected population, it does not establish a sufficiently material current development."
+    },
+    {
+      "insight_id": "INSIGHT_004",
+      "insight_type": "clinical",
+      "finding": "In 2024-25, Australia performed 95% of appendicectomies laparoscopically, compared with the OECD average of 79%, and 53% of inguinal herniorrhaphies laparoscopically, compared with 35%.",
+      "evidence": "95% of appendicectomies in Australia were performed laparoscopically, compared with the OECD average (79%)",
+      "evidence_location": "Proportion of selected surgical procedures that were performed laparoscopically",
+      "target_population": "Patients undergoing appendicectomy or inguinal herniorrhaphy in Australia",
+      "caveat": "The data reported by the OECD may be based on different reporting periods.",
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Low",
+        "utilisation_demand": "Moderate",
+        "population_affected": "Moderate",
+        "magnitude_of_change": "Moderate",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "Moderate",
+        "actionability": "Low"
+      },
+      "priority": "Informational",
+      "priority_rationale": "Relevant because laparoscopic surgical rates concern hospital procedure pathways and private hospital care, and Australia is above OECD averages for both reported procedures. There is no evidence of an adverse clinical, cost, or utilisation development or direct private-insurance impact, and the international comparability caveat limits the finding to useful contextual benchmark information."
+    }
+  ],
+  "section_index": {
+    "clinical": [
+      "INSIGHT_001",
+      "INSIGHT_002",
+      "INSIGHT_003",
+      "INSIGHT_004"
+    ],
+    "pharmaceutical": [],
+    "medical_technology": [],
+    "watchlist": []
+  }
+}

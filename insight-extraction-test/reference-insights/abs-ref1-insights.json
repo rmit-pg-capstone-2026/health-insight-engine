@@ -1,0 +1,36 @@
+{
+  "source": "abs-ref1.md — ABS, Children's physical activity, screen time and sleep (released 30 June 2026, data from National Nutrition and Physical Activity Survey 2023)",
+  "insights": [
+    {
+      "finding": "Only 7.2% of children aged 5–17 met all measured recommendations of the 24-Hour Movement Guidelines, and only 18.1% of 2–5 year olds.",
+      "evidence": "In 2023, 18.1% of toddlers and preschool-aged children (2–5 years) and 7.2% of children and young people (5–17 years) met all measured recommendations of the guidelines for their age group.",
+      "reasoning": "The single summary figure for the whole report. Over 90% of school-age children fail the national movement guidelines, which is the population-level risk backdrop for obesity, type 2 diabetes and musculoskeletal problems that become claims two or three decades later. It is a long-horizon signal rather than anything that moves next year's claims, but it is the number that frames everything else in the document."
+    },
+    {
+      "finding": "Adherence to the physical activity recommendation falls sharply with age, from 30.8% of 5–8 year olds to 7.6% of 15–17 year olds.",
+      "evidence": "The proportion of children who met the physical activity recommendation decreased with age, from 30.8% of 5–8 year olds to 7.6% of 15–17 year olds.",
+      "reasoning": "The age gradient matters more than the headline rate because it identifies where an intervention would have to land. Adolescence, not early childhood, is where activity collapses — relevant to how preventive health programs and youth-targeted extras benefits are designed, and to which age band is worth partnering on."
+    },
+    {
+      "finding": "Average daily physical activity among 5–17 year olds fell from 1h 31min in 2011–12 to 1h 25min in 2023, with weekend activity falling further — from 1h 42min to 1h 27min.",
+      "evidence": "The time children spent being physically active on weekends decreased from 1h 42min in 2011–12 to 1h 27min in 2023.",
+      "reasoning": "A measured decline across an eleven-year gap between comparable surveys, which is what distinguishes an ongoing trend from a one-off reading — one of the factors Amy asked to be weighed. Note the decline is concentrated on weekends while weekdays barely moved, which points at discretionary and family time rather than school PE."
+    },
+    {
+      "finding": "Children aged 15–17 average 4h 9min of sedentary screen time per day, more than two hours above 5–8 year olds.",
+      "evidence": "On average, children aged 15–17 years did over 2 hours more sedentary screen activity per day than children aged 5–8 years (4h 9min compared to 1h 51min).",
+      "reasoning": "Screen time is the mirror of the activity decline and the more tractable target of the two for a digital health program. Included because it is specific, age-resolved, and connects to musculoskeletal and sleep pathways rather than being a general wellbeing statement."
+    },
+    {
+      "finding": "60% of children aged 5–17 used screen-based devices in the hour before bed, and 82.9% of 15–17 year olds have a smart phone or watch in their bedroom.",
+      "evidence": "Smart phones or smart watches were the most common devices in the bedroom for children aged 12–14 years (54.9%) and 15–17 years (82.9%).",
+      "reasoning": "Pre-sleep screen use is one of the few behaviours in this report with a direct, evidenced link to a clinical outcome — sleep duration — and it pairs with the finding that only 78% of 14–17 year olds meet their sleep recommendation. Actionable as content for an existing wellbeing program rather than as a coverage decision."
+    },
+    {
+      "finding": "84.3% of children aged 5–17 met the muscle and bone strengthening recommendation — the one guideline most children do meet.",
+      "evidence": "In 2023, 84.3% of children aged 5–17 years met the muscle and bone strengthening recommendation.",
+      "reasoning": "Included deliberately as a counterweight. A briefing that reports only deficits gives a distorted picture, and this is the component where behaviour is broadly compliant. Useful for anyone deciding where a prevention program would add value versus where the problem is already largely solved."
+    }
+  ],
+  "summary": "Children's physical activity, screen time and sleep is an Australian Bureau of Statistics article reporting results from the National Nutrition and Physical Activity Survey, which ran from January 2023 to March 2024 and collected data for the 2023 reference period. It measures children aged 2 to 17 against the 24-Hour Movement Guidelines for Australians, which set separate recommendations for toddlers and preschool-aged children (2-5 years) and for children and young people (5-17 years). Children were asked about their activity and screen use across all seven days of the week before interview, and about their sleep on the day before. The article is organised by guideline component: physical activity, including average daily minutes and the split between indoor, outdoor and active transport; muscle and bone strengthening activities; sedentary screen time, including average daily hours, weekday and weekend patterns, and the types of devices used; secured sitting for the youngest age group; and sleep duration, including daytime napping and the presence of screen devices in bedrooms. Results are reported by age group and sex throughout, with an overall figure for how many children met every measured recommendation for their age. Where equivalent measures exist, 2023 results are compared with the previous collection in 2011-12."
+}

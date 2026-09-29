@@ -1,0 +1,278 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "run": 1,
+  "meta": {
+    "model_returned": "deepseek/deepseek-v4-flash-0731",
+    "provider": "DeepInfra",
+    "prompt_tokens": 81823,
+    "completion_tokens": 3241,
+    "reasoning_tokens": 0,
+    "cost_usd": 0.00536604,
+    "seconds": 114.2,
+    "reasoning_setting": "off",
+    "provider_pinned": "deepinfra",
+    "error": null
+  },
+  "result": {
+    "document_scope": "in_scope",
+    "source": {
+      "publisher": "AIHW",
+      "title": "Diabetes: Australian facts",
+      "url": "https://www.aihw.gov.au/reports/diabetes/diabetes/contents/summary",
+      "publication_date": "2026-05-13",
+      "period_covered": "2000-2024-25",
+      "retrieval_date": "2026-09-26"
+    },
+    "summary": "This AIHW web report provides a comprehensive overview of diabetes in Australia, covering prevalence, incidence, risk factors, treatment, and impact. It draws on multiple national data sources including the National Health Measures Survey, the National Diabetes Services Scheme, hospital morbidity data, PBS prescription data, and mortality records. The report covers all major diabetes types (type 1, type 2, gestational, and other) and includes analysis by age, sex, Indigenous status, remoteness, and socioeconomic area. Key sections detail the burden of disease, health system expenditure, hospitalisations, emergency department presentations, medicine use, and complications. The data span from 2000 to 2024-25, with the most recent prevalence estimates from 2022-24 and hospitalisation data from 2023-24.",
+    "insights": [
+      {
+        "insight_type": "pharmaceutical",
+        "finding": "GLP-1 analogue prescriptions dispensed through the PBS nearly doubled in three years, rising 87% from 1.7 million in 2021-22 to 3.2 million in 2024-25, making it the fastest-growing class of diabetes medicines and making semaglutide (Ozempic) the seventh most costly PBS-subsidised medicine in 2024-25.",
+        "evidence": "The largest increase among the dispensed diabetes medicines was for glucagon-like peptide-1 (GLP-1) analogues which rose by 87% from 1.7 million in 2021–22 to 3.2 million in 2024–25.",
+        "evidence_location": "Summary - Key facts",
+        "target_population": null,
+        "caveat": null,
+        "reasoning": "This rapid growth in GLP-1 use signals a major shift in diabetes treatment patterns that directly affects pharmaceutical claims and member out-of-pocket costs. The fact that Ozempic is now among the most costly PBS medicines suggests significant government and member expenditure, and the trend may extend to off-label use for weight loss, which could drive further demand. An insurer should monitor how this affects pharmacy claims and consider formulary or policy implications.",
+        "insight_id": "INSIGHT_001"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Almost 1 in 5 women (18%) who gave birth in hospital in 2023-24 were diagnosed with gestational diabetes, a rate that has doubled since 2012-13 (from 9.3% to 18.9%), with the highest incidence (32%) among women aged 45-49.",
+        "evidence": "Almost 1 in 5 (18% or 49,800) females aged 15–49 who gave birth in hospital in 2023–24 had been diagnosed with gestational diabetes during their pregnancy, according to the National Hospital Morbidity Database (NHMD).",
+        "evidence_location": "Summary - Gestational diabetes",
+        "target_population": "females aged 15-49 who gave birth in hospital",
+        "caveat": "The rising incidence is likely driven by several factors including increasing maternal age, higher rates of maternal overweight and obesity, and a growing proportion of higher risk ethnic groups in the population. The introduction of new diagnostic guidelines across all states and territories between 2011 and 2013 is also likely to have contributed towards the increasing rates.",
+        "reasoning": "The doubling of gestational diabetes incidence over a decade represents a significant and growing clinical burden among a key demographic for private health insurers - women of childbearing age. This condition is associated with higher rates of caesarean section, induced labour, and pre-term birth, all of which drive hospital and obstetric claims. The trend warrants monitoring for its impact on maternity-related claims and potential opportunities for prevention or care coordination programs.",
+        "insight_id": "INSIGHT_002"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Diabetes is a major driver of hospital utilisation, accounting for 11% of all hospitalisations (1.3 million) in 2023-24, with 95% of these recorded as an additional diagnosis, and the number of diabetes-related hospitalisations has increased by 59% since 2012-13.",
+        "evidence": "According to the NHMD, over 1.3 million hospitalisations were associated with diabetes (11% of all hospitalisations in Australia) in 2023–24. Of these: 4.9% had diabetes recorded as the principal diagnosis; 95% had diabetes recorded as an additional diagnosis",
+        "evidence_location": "Summary - Hospitalisations and procedures",
+        "target_population": null,
+        "caveat": null,
+        "reasoning": "The fact that 95% of diabetes hospitalisations are for additional diagnoses indicates that diabetes is a common comorbidity that complicates and lengthens hospital stays for a wide range of conditions. This has direct implications for hospital claims costs and length-of-stay risk. The 59% increase in hospitalisations over a decade, even as incidence rates have stabilised, suggests a growing burden of complex, comorbid patients that insurers need to factor into pricing and care management.",
+        "insight_id": "INSIGHT_003"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Diabetes contributes to 11% of all deaths in Australia (around 20,800 deaths in 2024), with the death rate 2.4 times higher among people in the lowest socioeconomic areas compared to the highest, and 4.0 times higher for First Nations people than non-Indigenous Australians.",
+        "evidence": "Diabetes remains one of the 10 leading causes of death in Australia and was the underlying cause of around 6,000 deaths in 2024. However, it contributed to around 20,800 deaths (11% of all deaths) when associated causes are also considered (77 deaths per 100,000 population).",
+        "evidence_location": "Summary - Deaths",
+        "target_population": null,
+        "caveat": "The increase between 2021 and 2022 should be interpreted in the context of higher overall mortality in 2022, with two-thirds of excess deaths being associated with COVID-19 (ABS 2023a).",
+        "reasoning": "Diabetes is a leading contributor to mortality, and the pronounced disparities by socioeconomic status and Indigenous status highlight significant equity gaps. For an insurer, this signals higher risk and potentially higher claims among disadvantaged and First Nations members, and underscores the importance of targeted prevention and chronic disease management programs to reduce mortality and associated hospital costs.",
+        "insight_id": "INSIGHT_004"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Among adults with diabetes, 88% are living with overweight or obesity, 81% have dyslipidaemia, and 71% have impaired fasting glucose, with 32% having three or more of four key risk factors, indicating a high burden of comorbidity that complicates diabetes management.",
+        "evidence": "After adjusting for differences in the age structure of the populations, in 2022–24, an estimated (Figure 1): 81% of adults with diabetes had dyslipidaemia, 1.4 times as high as those with without diabetes; 71% of adults with diabetes had impaired fasting glucose, 25 times as high as those without diabetes; 92% of adults with diabetes had a waist circumference that indicates an increased or substantially increased risk of metabolic complications, 1.4 times as high as that for adults without diabetes; 88% of adults with diabetes were living with overweight or obesity, 1.3 times as high as those without diabetes.",
+        "evidence_location": "Risk factors for diabetes - Figure 1",
+        "target_population": "adults with diabetes",
+        "caveat": null,
+        "reasoning": "The high prevalence of multiple cardiovascular risk factors among people with diabetes indicates that diabetes management is rarely just about glycaemic control. This has implications for the complexity and cost of care, including the need for multidisciplinary management of hypertension, dyslipidaemia, and obesity. Insurers should consider how to support comprehensive risk factor management to prevent downstream complications like cardiovascular disease and kidney failure, which are major drivers of hospital claims.",
+        "insight_id": "INSIGHT_005"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, there were 7,000 lower limb amputations and 3,300 weight loss procedures among people with type 2 diabetes, with amputation rates 3.9 times higher in males and obesity surgery rates twice as high in females.",
+        "evidence": "In 2023–24, there were 3,300 weight loss procedures and 7,000 lower limb amputations undertaken for people with type 2 diabetes.",
+        "evidence_location": "Summary - Hospitalisations and procedures",
+        "target_population": "people with type 2 diabetes",
+        "caveat": null,
+        "reasoning": "These procedures represent significant, high-cost events for the health system. The high number of lower limb amputations, which are largely preventable with good foot care, points to gaps in preventive care that could be addressed through better care coordination. The volume of weight loss surgery among people with type 2 diabetes also signals a growing area of surgical demand that insurers need to understand for claims forecasting and network planning.",
+        "insight_id": "INSIGHT_006"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Diabetes accounts for 2.4% of total health expenditure ($4.4 billion) in 2023-24, with public hospital admitted patients and PBS medications each accounting for 31% of this spending, while private hospital admitted patient care represents only 1.8% ($78.5 million).",
+        "evidence": "In 2023–24, an estimated $4.4 billion of expenditure in the Australian health system was attributed to diabetes, representing 2.4% of total disease expenditure. The breakdown in expenditure by diabetes type was: type 2 diabetes: $3.1 billion (72%); type 1 diabetes: $453.4 million (10%); gestational diabetes: $78.9 million (1.8%); other and unspecified diabetes: $691.1 million (16%) (AIHW 2025).",
+        "evidence_location": "Summary - Expenditure",
+        "target_population": null,
+        "caveat": "Due to the high expenditure for ‘other/unspecified’ diabetes, caution should be used when interpreting data by diabetes type.",
+        "reasoning": "The dominance of public hospital and PBS spending, with private hospitals accounting for a very small share, suggests that most diabetes-related acute care is delivered in the public system. For a private insurer, this may indicate that diabetes-related claims are more concentrated in out-of-hospital services like pharmaceuticals and allied health, rather than private hospital admissions. Understanding this expenditure split can inform product design and network contracting.",
+        "insight_id": "INSIGHT_007"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "First Nations adults are 3.2 times as likely to be living with diabetes as non-Indigenous Australians, with 16% of First Nations adults affected, and they have 3.5 times the hospitalisation rate and 4.0 times the death rate for diabetes.",
+        "evidence": "Around 92,000 First Nations adults (16%) were living with diabetes in 2022–24 (ABS 2025b). First Nations adults were 3.2 times as likely as non–Indigenous adults to have diabetes, after adjusting for age (ABS 2025a; ABS 2025b).",
+        "evidence_location": "Summary - Variation by priority population groups",
+        "target_population": "First Nations adults",
+        "caveat": null,
+        "reasoning": "The stark disparity in diabetes prevalence, hospitalisation, and mortality for First Nations people represents a significant health equity issue and a potential area for targeted intervention. For an insurer, this may indicate higher risk among First Nations members and the need for culturally appropriate care management programs. It also highlights the importance of considering social determinants of health in risk assessment and product design.",
+        "insight_id": "INSIGHT_008"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "Only 30% of people with diabetes attending services for diabetes care in 2024 met the target HbA1c of ≤7%, with median HbA1c at 7.9% (7.7% for type 1 and 8.0% for type 2), indicating suboptimal glycaemic control in the majority of patients.",
+        "evidence": "According to data from the Australian Diabetes Clinical Quality Registry, in 2024, glycaemic control targets were inadequately met, with the median HbA1c for both type 1 diabetes (7.7%) and type 2 diabetes (8.0%) being above target. Similar proportions of people with type 1 diabetes (31%) and type 2 diabetes (29%) met the target HbA1c of ≤7% (or ≤53 mmol/mol).",
+        "evidence_location": "Pathology - Page highlights",
+        "target_population": "people with diabetes attending services for diabetes care",
+        "caveat": "Data are from the Australian Diabetes Clinical Quality Registry, which may not be representative of all people with diabetes in Australia.",
+        "reasoning": "Suboptimal glycaemic control in the majority of patients is a strong predictor of future complications, including kidney disease, eye disease, and cardiovascular events, which are major drivers of hospital costs. This finding suggests a significant opportunity for improved care management and patient education. For an insurer, it underscores the potential value of programs that support better glucose control to reduce long-term claims.",
+        "insight_id": "INSIGHT_009"
+      },
+      {
+        "insight_type": "clinical",
+        "finding": "In 2023-24, women with pre-existing diabetes had a caesarean section rate of 70.8% and a pre-term birth rate of 26.3%, compared to 42.0% and 7.4% respectively for women without diabetes, indicating substantially higher obstetric intervention and risk.",
+        "evidence": "In 2023–24, compared to mothers without diabetes, mothers living with pre-existing diabetes (and to a lesser extent, gestational diabetes), were more prone to complications during pregnancy and intervention in childbirth. After adjusting for differences in the age structure of the populations, such complications and interventions include caesarean section, induced labour, preterm birth, maternal care for excessive foetal growth and pre-eclampsia (Figure 1).",
+        "evidence_location": "Diabetes-related complications - Short-term outcomes",
+        "target_population": "women with pre-existing diabetes giving birth",
+        "caveat": null,
+        "reasoning": "The high rates of caesarean section and pre-term birth among women with pre-existing diabetes represent significant maternity claim costs and health risks for both mother and baby. This highlights the need for specialised care pathways for pregnant women with diabetes to manage these risks. For an insurer, this may inform maternity benefit design and the importance of pre-conception care programs for women with diabetes.",
+        "insight_id": "INSIGHT_010"
+      }
+    ],
+    "no_insights_reason": null
+  },
+  "schema_errors": [],
+  "quote_checks": [
+    {
+      "index": 0,
+      "finding": "GLP-1 analogue prescriptions dispensed through the PBS nearly doubled in three years, rising 87% from 1.7 million in 2021-22 to 3.2 million in 2024-25, making it the fastest-growing class of diabetes medicines and making semaglutide (Ozempic) the seventh most costly PBS-subsidised medicine in 2024-25.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "The largest increase among the dispensed diabetes medicines was for glucagon-like peptide-1 (GLP-1) analogues which rose by 87% from 1.7 million in 2021–22 to 3.2 million in 2024–25."
+    },
+    {
+      "index": 1,
+      "finding": "Almost 1 in 5 women (18%) who gave birth in hospital in 2023-24 were diagnosed with gestational diabetes, a rate that has doubled since 2012-13 (from 9.3% to 18.9%), with the highest incidence (32%) among women aged 45-49.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Almost 1 in 5 (18% or 49,800) females aged 15–49 who gave birth in hospital in 2023–24 had been diagnosed with gestational diabetes during their pregnancy, according to the National Hospital Morbidity Database (NHMD)."
+    },
+    {
+      "index": 2,
+      "finding": "Diabetes is a major driver of hospital utilisation, accounting for 11% of all hospitalisations (1.3 million) in 2023-24, with 95% of these recorded as an additional diagnosis, and the number of diabetes-related hospitalisations has increased by 59% since 2012-13.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "Of these: 4.9% had diabetes recorded as the principal diagnosis; 95% had diabetes recorded as an additional diagnosis"
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "According to the NHMD, over 1.3 million hospitalisations were associated with diabetes (11% of all hospitalisations in Australia) in 2023–24. Of these: 4.9% had diabetes recorded as the principal diagnosis; 95% had diabetes recorded as an additional diagnosis"
+    },
+    {
+      "index": 3,
+      "finding": "Diabetes contributes to 11% of all deaths in Australia (around 20,800 deaths in 2024), with the death rate 2.4 times higher among people in the lowest socioeconomic areas compared to the highest, and 4.0 times higher for First Nations people than non-Indigenous Australians.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Diabetes remains one of the 10 leading causes of death in Australia and was the underlying cause of around 6,000 deaths in 2024. However, it contributed to around 20,800 deaths (11% of all deaths) when associated causes are also considered (77 deaths per 100,000 population)."
+    },
+    {
+      "index": 4,
+      "finding": "Among adults with diabetes, 88% are living with overweight or obesity, 81% have dyslipidaemia, and 71% have impaired fasting glucose, with 32% having three or more of four key risk factors, indicating a high burden of comorbidity that complicates diabetes management.",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [
+        "After adjusting for differences in the age structure of the populations, in 2022–24, an estimated (Figure 1): 81% of adults with diabetes had dyslipidaemia, 1.4 times as high as those with without dia"
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "After adjusting for differences in the age structure of the populations, in 2022–24, an estimated (Figure 1): 81% of adults with diabetes had dyslipidaemia, 1.4 times as high as those with without diabetes; 71% of adults with diabetes had impaired fasting glucose, 25 times as high as those without diabetes; 92% of adults with diabetes had a waist circumference that indicates an increased or substantially increased risk of metabolic complications, 1.4 times as high as that for adults without diabetes; 88% of adults with diabetes were living with overweight or obesity, 1.3 times as high as those without diabetes."
+    },
+    {
+      "index": 5,
+      "finding": "In 2023-24, there were 7,000 lower limb amputations and 3,300 weight loss procedures among people with type 2 diabetes, with amputation rates 3.9 times higher in males and obesity surgery rates twice as high in females.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 1,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2023–24, there were 3,300 weight loss procedures and 7,000 lower limb amputations undertaken for people with type 2 diabetes."
+    },
+    {
+      "index": 6,
+      "finding": "Diabetes accounts for 2.4% of total health expenditure ($4.4 billion) in 2023-24, with public hospital admitted patients and PBS medications each accounting for 31% of this spending, while private hospital admitted patient care represents only 1.8% ($78.5 million).",
+      "found_in_source": false,
+      "contiguous_in_source": false,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [
+        "The breakdown in expenditure by diabetes type was: type 2 diabetes: $3.1 billion (72%); type 1 diabetes: $453.4 million (10%); gestational diabetes: $78.9 million (1.8%); other and unspecified diabete"
+      ],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2023–24, an estimated $4.4 billion of expenditure in the Australian health system was attributed to diabetes, representing 2.4% of total disease expenditure. The breakdown in expenditure by diabetes type was: type 2 diabetes: $3.1 billion (72%); type 1 diabetes: $453.4 million (10%); gestational diabetes: $78.9 million (1.8%); other and unspecified diabetes: $691.1 million (16%) (AIHW 2025)."
+    },
+    {
+      "index": 7,
+      "finding": "First Nations adults are 3.2 times as likely to be living with diabetes as non-Indigenous Australians, with 16% of First Nations adults affected, and they have 3.5 times the hospitalisation rate and 4.0 times the death rate for diabetes.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "Around 92,000 First Nations adults (16%) were living with diabetes in 2022–24 (ABS 2025b). First Nations adults were 3.2 times as likely as non–Indigenous adults to have diabetes, after adjusting for age (ABS 2025a; ABS 2025b)."
+    },
+    {
+      "index": 8,
+      "finding": "Only 30% of people with diabetes attending services for diabetes care in 2024 met the target HbA1c of ≤7%, with median HbA1c at 7.9% (7.7% for type 1 and 8.0% for type 2), indicating suboptimal glycaemic control in the majority of patients.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "According to data from the Australian Diabetes Clinical Quality Registry, in 2024, glycaemic control targets were inadequately met, with the median HbA1c for both type 1 diabetes (7.7%) and type 2 diabetes (8.0%) being above target. Similar proportions of people with type 1 diabetes (31%) and type 2 diabetes (29%) met the target HbA1c of ≤7% (or ≤53 mmol/mol)."
+    },
+    {
+      "index": 9,
+      "finding": "In 2023-24, women with pre-existing diabetes had a caesarean section rate of 70.8% and a pre-term birth rate of 26.3%, compared to 42.0% and 7.4% respectively for women without diabetes, indicating substantially higher obstetric intervention and risk.",
+      "found_in_source": true,
+      "contiguous_in_source": true,
+      "stitched": false,
+      "fragments": 2,
+      "fragments_missing": [],
+      "is_ellipsis_joined": false,
+      "finding_is_copied": false,
+      "evidence": "In 2023–24, compared to mothers without diabetes, mothers living with pre-existing diabetes (and to a lesser extent, gestational diabetes), were more prone to complications during pregnancy and intervention in childbirth. After adjusting for differences in the age structure of the populations, such complications and interventions include caesarean section, induced labour, preterm birth, maternal care for excessive foetal growth and pre-eclampsia (Figure 1)."
+    }
+  ],
+  "lazy_reasoning": [
+    {
+      "index": 0,
+      "phrases": [
+        "could drive"
+      ],
+      "finding": "GLP-1 analogue prescriptions dispensed through the PBS nearly doubled in three y"
+    },
+    {
+      "index": 1,
+      "phrases": [
+        "is associated with"
+      ],
+      "finding": "Almost 1 in 5 women (18%) who gave birth in hospital in 2023-24 were diagnosed w"
+    }
+  ],
+  "reversed_conditionals": [],
+  "scope_problems": []
+}

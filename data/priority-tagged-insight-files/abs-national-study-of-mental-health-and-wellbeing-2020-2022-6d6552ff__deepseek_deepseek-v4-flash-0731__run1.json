@@ -1,0 +1,273 @@
+{
+  "source": {
+    "publisher": "ABS",
+    "title": "National Study of Mental Health and Wellbeing, 2020-2022",
+    "url": "https://www.abs.gov.au/statistics/health/mental-health/national-study-mental-health-and-wellbeing/latest-release",
+    "publication_date": "2024-07-26",
+    "retrieval_date": "2026-09-26"
+  },
+  "summary": "This ABS release presents findings from the 2020–2022 National Study of Mental Health and Wellbeing (NSMHW), a national survey of Australians aged 16–85 years. It measures the prevalence of lifetime and 12-month mental disorders (Anxiety, Affective, and Substance Use disorders) using the WHO Composite International Diagnostic Interview (CIDI 3.0). The report covers prevalence by age, sex, and various population characteristics; comorbidity with physical conditions; use of health services including consultations and digital services; PBS-subsidised mental health-related medication dispensing; and lived experience of suicidal thoughts, behaviours, and self-harm. It also provides state and territory estimates and modelled estimates for Primary Health Networks and Statistical Areas Level 2. Data were collected in two cohorts between December 2020 and October 2022, during the COVID-19 pandemic, and medications data were sourced from the Pharmaceutical Benefits Scheme via data linkage.",
+  "priority_assessment_version": "v0.3_article",
+  "consolidation_version": "v0.1",
+  "insights": [
+    {
+      "insight_id": "INSIGHT_003",
+      "insight_type": "clinical",
+      "finding": "Young women aged 16-24 have the highest prevalence of 12-month mental disorders of any age-sex group, at 45.5%, driven largely by anxiety disorders (40.4%), and they also have the highest rates of self-harm in the last 12 months (8.7%).",
+      "evidence": "Almost half of females (45.5%) aged 16–24 years and a third of males (32.4%) aged 16–24 years had a 12-month mental disorder.",
+      "evidence_location": "Prevalence of 12-month mental disorders - Prevalence of 12-month mental disorders by age and sex",
+      "target_population": "Females aged 16-24 years",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "High",
+        "utilisation_demand": "Unclear",
+        "population_affected": "Moderate",
+        "magnitude_of_change": "Large",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "High"
+      },
+      "priority": "High Priority",
+      "priority_rationale": "Relevant through high mental-disorder burden and self-harm in young women; 45.5% prevalence and 8.7% self-harm are material current clinical/safety impacts. Clinical significance and actionability drive High, although utilisation, cost and trend data are not supplied."
+    },
+    {
+      "insight_id": "INSIGHT_005",
+      "insight_type": "clinical",
+      "finding": "Of the 644,600 Australians who had suicidal thoughts or behaviours in the last 12 months, 74.9% had a 12-month mental disorder, indicating that a quarter of people with recent suicidality do not meet criteria for the surveyed mental disorders.",
+      "evidence": "Of the 644,600 people who reported any suicidal thoughts or behaviours in the last 12 months, three in four (74.9%) had a 12-month mental disorder.",
+      "evidence_location": "Lived experience of suicide",
+      "target_population": "Australians aged 16-85 years with suicidal thoughts or behaviours in the last 12 months",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "High",
+        "utilisation_demand": "Unclear",
+        "population_affected": "Large",
+        "magnitude_of_change": "Moderate",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "High"
+      },
+      "priority": "High Priority",
+      "priority_rationale": "Relevant because recent suicidal thoughts or behaviours affect a large population and represent a severe clinical/safety signal. Clinical significance, affected population and actionability drive High, although service use, cost and trend evidence are not supplied."
+    },
+    {
+      "insight_id": "INSIGHT_001",
+      "insight_type": "clinical",
+      "finding": "Only 45.1% of Australians with a 12-month mental disorder saw a health professional for their mental health in 2020-2022, leaving a majority (54.9%) without any professional consultation, with the gap most pronounced among males (36.4% consulted) and older adults aged 65-85 (35.1% consulted).",
+      "evidence": "There were 4.3 million Australians aged 16–85 years with a 12-month mental disorder. Of these, 1.9 million (45.1%) saw a health professional for their mental health in 2020–2022:",
+      "evidence_location": "Use of services - Consultations with health professionals for mental health",
+      "target_population": "Australians aged 16-85 years with a 12-month mental disorder",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "High",
+        "utilisation_demand": "High",
+        "population_affected": "Large",
+        "magnitude_of_change": "Large",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "Moderate"
+      },
+      "priority": "Medium Priority",
+      "priority_rationale": "Supplied evidence connects to large mental-health burden and service use, with a majority of affected Australians not consulting a health professional. Clinical significance, utilisation/demand and affected population drive the assessment, but the insight is a cross-sectional snapshot without cost or trend data, so Medium Priority is appropriate."
+    },
+    {
+      "insight_id": "INSIGHT_002",
+      "insight_type": "pharmaceutical",
+      "finding": "Among Australians with a 12-month mental disorder, only 33.3% were dispensed a PBS-subsidised mental health-related medication, and this proportion rises sharply with age: 25.1% for those aged 16-34, 39.3% for 35-64, and 51.0% for those aged 65-85.",
+      "evidence": "There were 4.3 million Australians aged 16–85 years with a 12-month mental disorder. Of these, 1.4 million (33.3%) were dispensed at least one PBS subsidised mental health-related medication in the 12 months prior to interview:",
+      "evidence_location": "Mental health-related medications - Mental health-related medications dispensed to people with a 12-month mental disorder",
+      "target_population": "Australians aged 16-85 years with a 12-month mental disorder",
+      "caveat": "PBS data cannot determine what condition a medication was prescribed for and only shows that a medication has been dispensed.",
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "High",
+        "population_affected": "Large",
+        "magnitude_of_change": "Large",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "Moderate",
+        "actionability": "Moderate"
+      },
+      "priority": "Medium Priority",
+      "priority_rationale": "Relevant through mental-health-related medication use in a large affected population; the age gradient from 25.1% to 51.0% is a notable comparator. Utilisation/demand and affected population drive Medium, but the PBS caveat prevents attribution to diagnosed conditions and no cost or trend data are supplied."
+    },
+    {
+      "insight_id": "INSIGHT_004",
+      "insight_type": "clinical",
+      "finding": "People who identify as Gay, Lesbian, Bisexual, or use a different term have a 12-month mental disorder prevalence of 58.7%, nearly three times the rate of heterosexual people (19.9%), with anxiety disorders affecting half (50.3%) of this group.",
+      "evidence": "People who described their sexual orientation as Gay or Lesbian, Bisexual or who used a different term had higher rates of 12-month mental disorders (58.7%) than people who described their sexual orientation as heterosexual (19.9%)",
+      "evidence_location": "Prevalence of 12-month mental disorders - Prevalence of 12-month mental disorders by different populations",
+      "target_population": "People aged 16-85 years who identify as Gay, Lesbian, Bisexual, or use a different term",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "High",
+        "utilisation_demand": "Unclear",
+        "population_affected": "Moderate",
+        "magnitude_of_change": "Large",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "Moderate"
+      },
+      "priority": "Medium Priority",
+      "priority_rationale": "Relevant due very high mental-disorder prevalence in LGB+ respondents and a nearly three-fold disparity relative to heterosexual respondents. Clinical significance and magnitude of difference support Medium, but no utilisation, cost, trend or direct private-health evidence is supplied."
+    },
+    {
+      "insight_id": "INSIGHT_006",
+      "insight_type": "pharmaceutical",
+      "finding": "A substantial proportion of people dispensed mental health-related medications have no lifetime mental disorder: 34.9% of all those dispensed any such medication, and 56.1% of those dispensed hypnotics and sedatives.",
+      "evidence": "Of the 3.5 million people aged 16–85 years who were dispensed at least one PBS subsidised mental health-related medication in the 12 months prior to interview, 40.7% had a 12-month mental disorder, 24.2% had a lifetime disorder with no 12-month symptoms, and the remainder (34.9%) had no lifetime disorder.",
+      "evidence_location": "Mental health-related medications - People who were dispensed a mental health-related medication",
+      "target_population": "Australians aged 16-85 years dispensed PBS mental health-related medications",
+      "caveat": "PBS data cannot determine what condition a medication was prescribed for and only shows that a medication has been dispensed.",
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "High",
+        "population_affected": "Large",
+        "magnitude_of_change": "Moderate",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "Moderate",
+        "actionability": "Moderate"
+      },
+      "priority": "Medium Priority",
+      "priority_rationale": "Relevant through widespread mental-health-related medication use and the notable proportion of dispensing among people without a lifetime disorder, particularly hypnotics and sedatives. Utilisation and affected population drive Medium, but the PBS caveat and absence of cost or trend data reduce certainty."
+    },
+    {
+      "insight_id": "INSIGHT_010",
+      "insight_type": "clinical",
+      "finding": "In 2020-2022, 4.8% of Australians (945,000) used digital technologies to access mental health services other than consultations, with usage highest among younger people (8.2% of 16-34 year olds) and females (6.0%).",
+      "evidence": "Nearly 945,000 Australians (4.8%) aged 16–85 years used these methods to access other services for their mental health in the 12 months prior to interview:",
+      "evidence_location": "Other services for mental health accessed using digital technologies",
+      "target_population": "Australians aged 16-85 years",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "Moderate",
+        "population_affected": "Moderate",
+        "magnitude_of_change": "Moderate",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "Unclear",
+        "evidence_strength": "High",
+        "actionability": "Moderate"
+      },
+      "priority": "Watchlist",
+      "priority_rationale": "Relevant through digital mental-health service access, with higher use among younger people and females. It is a plausible emerging service channel, but no trend, cost, direct private-health or clear emergence evidence is supplied, so it is best placed on the Watchlist."
+    },
+    {
+      "insight_id": "INSIGHT_007",
+      "insight_type": "clinical",
+      "finding": "In 2020-2022, 8.4% of Australians (1.7 million) had both a 12-month mental disorder and a selected physical condition, and this comorbidity is more common in females (10.5%) than males (6.3%).",
+      "evidence": "1.7 million people (8.4%) had both a 12-month mental disorder and a physical condition",
+      "evidence_location": "Comorbidity of mental disorders and physical conditions",
+      "target_population": "Australians aged 16-85 years",
+      "caveat": "Comorbidity data presented in this figure does not incorporate hierarchy rules which give precedence to diagnosis of one mental disorder over another.",
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "Unclear",
+        "population_affected": "Large",
+        "magnitude_of_change": "Moderate",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "Moderate",
+        "actionability": "Low"
+      },
+      "priority": "Informational",
+      "priority_rationale": "Relevant as a population-level mental–physical comorbidity snapshot, but it is static cross-sectional data without service use, cost or trend evidence. The sex difference is contextual, so no material current development is established and the priority is Informational."
+    },
+    {
+      "insight_id": "INSIGHT_008",
+      "insight_type": "clinical",
+      "finding": "The prevalence of 12-month mental disorders is highest in the Northern Territory (28.8%) and lowest in New South Wales (19.5%), but the wide confidence intervals for smaller states mean these differences are not statistically significant.",
+      "evidence": "| NT | 28.8 | 15.2 | 42.4 |",
+      "evidence_location": "Interpreting sampling error: 12-month mental disorders by state/territory",
+      "target_population": "Residents of each state and territory aged 16-85 years",
+      "caveat": "The NSMHW sample was designed to provide reliable national-level estimates. While estimates are available for each state and territory, the sample size does not allow for detailed analysis and care should be taken if comparing states and territories.",
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "Unclear",
+        "population_affected": "Large",
+        "magnitude_of_change": "Unclear",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Low",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "Low",
+        "actionability": "Low"
+      },
+      "priority": "Informational",
+      "priority_rationale": "Relevant through national mental-health prevalence, but the state/territory differences are not statistically significant and the sample is not designed for detailed state comparison. Low evidence strength and actionability, along with no trend or cost data, make this Informational."
+    },
+    {
+      "insight_id": "INSIGHT_009",
+      "insight_type": "clinical",
+      "finding": "In 2020-2022, 17.4% of Australians (3.4 million) saw a health professional for their mental health, but only 12.4% saw a GP and 7.8% saw a psychologist, indicating that GPs are the most common point of contact for mental health care.",
+      "evidence": "12.4% of people saw a general practitioner for their mental health and 7.8% saw a psychologist.",
+      "evidence_location": "Use of services - Consultations with health professionals for mental health",
+      "target_population": "Australians aged 16-85 years",
+      "caveat": null,
+      "relevance": "Relevant",
+      "criteria": {
+        "clinical_significance": "Moderate",
+        "utilisation_demand": "High",
+        "population_affected": "Large",
+        "magnitude_of_change": "Moderate",
+        "cost_implications": "Unclear",
+        "private_health_relevance": "Moderate",
+        "trend_continuity": "Unclear",
+        "emerging_treatment_or_technology": "No",
+        "evidence_strength": "High",
+        "actionability": "Moderate"
+      },
+      "priority": "Informational",
+      "priority_rationale": "Relevant due substantial mental-health service utilisation and GP/psychologist care patterns. However, this is a static cross-sectional utilisation snapshot without trend, cost or private-specific evidence; absolute utilisation alone does not establish a material current development, so the priority is Informational."
+    }
+  ],
+  "section_index": {
+    "clinical": [
+      "INSIGHT_003",
+      "INSIGHT_005",
+      "INSIGHT_001",
+      "INSIGHT_004",
+      "INSIGHT_007",
+      "INSIGHT_008",
+      "INSIGHT_009"
+    ],
+    "pharmaceutical": [
+      "INSIGHT_002",
+      "INSIGHT_006"
+    ],
+    "medical_technology": [],
+    "watchlist": [
+      "INSIGHT_010"
+    ]
+  }
+}
