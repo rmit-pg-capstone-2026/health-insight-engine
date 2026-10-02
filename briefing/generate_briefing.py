@@ -327,13 +327,20 @@ def footer(canvas, doc):
 # ---------------------------------------------------------------------------
 
 def generate(json_paths, pdf_path: Path) -> tuple[int, int]:
+    """Build the PDF from briefing JSON files on disk."""
+    briefings = [data for data in (load_briefing_json(p) for p in json_paths)
+                 if data is not None]
+    return build_pdf(briefings, pdf_path)
+
+
+def build_pdf(briefings, pdf_path: Path) -> tuple[int, int]:
+    """Build the PDF from briefing dicts already in memory (one per source
+    document, same shape as the JSON files). The database pipeline calls this
+    directly. Returns (source count, insight count)."""
     sources = []
     cards = []   # (priority rank, file order, insight order, insight, label, source)
 
-    for file_no, path in enumerate(json_paths):
-        data = load_briefing_json(path)
-        if data is None:
-            continue
+    for file_no, data in enumerate(briefings):
         source = data.get("source") or {}
         sources.append(source)
         # section_index is looked up per file, so repeated IDs such as

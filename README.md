@@ -79,6 +79,35 @@ python briefing/generate_briefing.py
 
 The PDF is written to `data/briefing-paper/briefing_report.pdf`, replacing the previous one.
 
+## Automated pipeline (database)
+
+`pipeline/` runs the same four layers without prompts. A SQLite database (`data/pipeline.db`, gitignored) sits between the stages: each stage reads its work from it and writes its results back.
+
+| File | What it is |
+|---|---|
+| `pipeline/sources.json` | The pages to watch. Add or remove URLs here. |
+| `pipeline/stages.py` | The four stages as plain functions: a dict in, a dict out. No database code. |
+| `pipeline/run.py` | Reads each stage's input from the database, calls the stage, saves the output. |
+| `pipeline/db.py` | The database tables. Run it to see what is in the database. |
+
+```bash
+python pipeline/run.py                    # collect -> extract -> assess
+python pipeline/run.py extract            # one stage only (collect | extract | assess | brief)
+python pipeline/run.py brief --preview    # make the PDF, mark nothing (safe to repeat)
+python pipeline/run.py brief              # make the PDF and mark its insights as briefed
+python pipeline/db.py                     # status: documents, insights, briefings, cost
+```
+
+How it behaves:
+
+- Only a page whose content changed becomes a new document. Each version is saved as its own file in `data/source-extracted-files/versions/` (never overwritten); the database stores just its path.
+- New insights are compared with those already stored for earlier versions of the same page. Any whose evidence quote matches is dropped, so only new insights are assessed and briefed.
+- Insights whose evidence quote is not in the document are held back, same as layer 3.
+- A document that fails is retried on the next run, and marked `failed` after 3 tries.
+- PDFs go to `data/briefing-paper/briefing_<date>.pdf` and are never overwritten.
+
+To start from scratch, delete `data/pipeline.db`. To retry a failed document: `sqlite3 data/pipeline.db "UPDATE documents SET status='new', attempts=0 WHERE id=<id>"` (use `status='extracted'` if it failed at the assess stage).
+
 ## Useful options
 
 ```bash

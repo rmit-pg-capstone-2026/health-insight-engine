@@ -1046,7 +1046,8 @@ def fetch_and_extract(url: str, *, html: str | None = None, final_url: str | Non
     return ExtractResult(report_title or url, body, fetched, last_updated, data_links, final_url, page_details)
 
 
-def save_markdown(source_label: str, url: str, result: ExtractResult, content_hash: str, extracted_at: str) -> Path:
+def save_markdown(source_label: str, url: str, result: ExtractResult, content_hash: str, extracted_at: str,
+                  *, dest_dir: Path | None = None, versioned: bool = False) -> Path:
     """Write one .md file with YAML frontmatter and return its path.
 
     The filename is the slugified title plus an 8-character hash of the
@@ -1055,11 +1056,17 @@ def save_markdown(source_label: str, url: str, result: ExtractResult, content_ha
     reports share generic titles like "Summary"), which would otherwise let
     one silently overwrite the other's file. It's stable across runs for the
     same URL, so re-fetching a report always rewrites the same file.
+
+    versioned=True adds the first 8 characters of the content hash as well,
+    so every version of a page gets its own file and none is ever
+    overwritten - the automated pipeline (pipeline/) uses this.
     """
-    dest_dir = OUTPUT_ROOT
+    dest_dir = dest_dir or OUTPUT_ROOT
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     url_suffix = hashlib.sha256(url.encode("utf-8")).hexdigest()[:8]
+    if versioned:
+        url_suffix += f"-{content_hash[:8]}"
     # Flat folder shared by both agencies: the lowercase source prefix
     # (aihw-/abs-) is what tells them apart.
     filename = f"{source_label.lower()}-{slugify(result.title)}-{url_suffix}.md"
