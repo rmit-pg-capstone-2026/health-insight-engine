@@ -9,10 +9,9 @@ Flow (matches the sketch):
 3. Repeat the same prompt loop for ABS.
 4. Once all URLs are collected, fetch each page, extract the main content as
    Markdown (trafilatura), attach YAML frontmatter, and save one .md file per
-   URL into the shared pipeline folder, flat, with the source as a filename
-   prefix so both agencies sit side by side:
-       <repo root>/data/source-extracted-files/aihw-<title>-<hash>.md
-       <repo root>/data/source-extracted-files/abs-<title>-<hash>.md
+   URL into:
+       source-extracted-files/AIHW/
+       source-extracted-files/ABS/
 
    AIHW publishes long reports as many pages under a shared
    ".../contents/<section>" path (a sidebar table of contents), rather than
@@ -44,8 +43,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import logging
 import re
+import shutil
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
@@ -56,11 +58,32 @@ import requests
 import trafilatura
 from bs4 import BeautifulSoup, Tag
 
-# Resolved from this file's location, not the current directory, so the output
-# lands in the same place no matter where the script is run from.
-REPO_ROOT = Path(__file__).resolve().parents[1]
-OUTPUT_ROOT = REPO_ROOT / "data" / "source-extracted-files"
+# Same format as discover_and_run.py's own basicConfig call, so console
+# output looks identical regardless of which of the two entry points
+# (python discover_and_run.py vs python collect_and_extract.py) started the
+# process - whichever module is imported/run first sets this; the other's
+# own call to basicConfig() is then a harmless no-op (logging only honors
+# the first call).
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+
+# trafilatura logs its own WARNING ("discarding data: ...", "discarding
+# duplicate document: ...", etc.) every time one of its internal per-call
+# extraction attempts comes back empty/invalid - too short, a duplicate, or
+# the wrong language. This pipeline deliberately calls trafilatura.extract()
+# many times per page (once per widget/leaf/block in the AIHW/ABS
+# decomposition logic below), and this code already has its own handling
+# for an empty result (e.g. "if not section_md: continue") - so a high rate
+# of these warnings is routine, expected noise from how extraction works
+# here, not a sign anything is actually wrong. Silenced down to ERROR so it
+# doesn't drown out this pipeline's own progress output; trafilatura's own
+# genuine ERROR-level problems (a malformed HTML tree, a real lxml parse
+# failure) still come through.
+logging.getLogger("trafilatura").setLevel(logging.ERROR)
+
+OUTPUT_ROOT = Path("source-extracted-files")
 MANIFEST_PATH = OUTPUT_ROOT / "manifest.json"
+CURRENT_ROOT = OUTPUT_ROOT / "Current"
 REQUEST_TIMEOUT = 20
 USER_AGENT = "MedibankCapstoneBot/0.1 (RMIT WIL project; contact: team)"
 CONTENTS_MARKER = "/contents/"
@@ -109,6 +132,11 @@ class ExtractResult(NamedTuple):
     {"content_hash", "last_updated"} - used for per-section change tracking
     in the manifest. `canonical_url` is the post-redirect URL, used as the
     stable manifest key regardless of which entry-point URL was given.
+    `missing_pages` lists any page that was discovered but never made it
+    into `body`, even after retrying - a non-empty list means this result
+    is an incomplete capture, not a true reflection of the report's full
+    content (see `process_source()`, which refuses to let an incomplete
+    capture supersede a previously-saved complete one).
     """
 
     title: str
@@ -118,6 +146,7 @@ class ExtractResult(NamedTuple):
     data_links: list[str]
     canonical_url: str
     page_details: dict[str, dict]
+    missing_pages: list[str]
 
 
 class FetchError(Exception):
@@ -249,6 +278,66 @@ def discover_methodology_page(html: str, final_url: str, *, tree=None) -> list[s
     return found
 
 
+HUB_CARD_CLASS = "c-link-box"
+
+
+def discover_hub_card_pages(html: str, final_url: str, *, tree=None) -> list[str]:
+    """Find every card's link target on an AIHW "microsite" hub/landing page
+    (e.g. "Hospitals", "Mental health" - see `extract_markdown()`'s
+    `<main>`-wide widget path for the same template).
+
+    Confirmed on a real hub page: each `<div class="c-link-box">` card (a
+    `widget c-link-boxes` grid, 2-6 cards seen so far) is a short teaser for
+    a real destination - "Australia's hospitals at a glance" linked out to
+    a full 43-heading, 7-figure report that was otherwise invisible to this
+    pipeline entirely, since nothing about the hub page's own URL or
+    `/contents/` shape would ever surface it. Rather than hand-picking which
+    cards look like "real reports" (fragile - different hub pages use
+    different button wording, e.g. "Read the report" vs "Explore the
+    dashboard" vs "Find your hospital", and there's no reliable way to tell
+    a thin destination from a rich one without just fetching it), every
+    card's link is followed and merged into the same combined document via
+    `fetch_and_extract()`'s existing multi-page machinery - a destination
+    that turns out thin (e.g. "Dashboards", itself just a short index of
+    further non-extractable live Tableau tools) simply contributes a short
+    section, the same as any other thin page already does, with no special
+    casing needed either way.
+
+    `c-link-box` is confirmed absent from every other AIHW page shape this
+    pipeline already handles (checked directly: 0 occurrences each on a
+    `#page-content` report, an `l-web-article`, and a plain accordion
+    page) - only real microsite hub pages have it, so this never fires
+    where it shouldn't. Only same-host links are followed, so a card
+    happening to link off aihw.gov.au doesn't pull in unrelated content.
+
+    Every link inside a card is followed, not just its own "read more"
+    button - confirmed on a real page that a card can itself be a short
+    list of separately-linked items ("Latest updates": one card, 4 distinct
+    topic links), not always a single-link teaser. Taking only the first
+    link found per card silently missed the other 3 here.
+    """
+    if tree is None:
+        try:
+            tree = lxml.html.fromstring(html)
+        except lxml.etree.LxmlError:
+            return []
+
+    cards = tree.xpath(f'//div[contains(concat(" ", normalize-space(@class), " "), " {HUB_CARD_CLASS} ")]')
+    if not cards:
+        return []
+
+    final_host = urlparse(final_url).netloc
+    found: list[str] = []
+    for card in cards:
+        for link in card.xpath(".//a[@href]"):
+            absolute = urljoin(final_url, link.get("href")).split("#")[0]
+            if urlparse(absolute).netloc != final_host or absolute == final_url:
+                continue
+            if absolute not in found:
+                found.append(absolute)
+    return found
+
+
 def _time_tag_attrs(html: str) -> list[dict[str, str]]:
     """Return {attr: value} dicts for every <time ...> tag, attribute order agnostic."""
     tags = re.findall(r"<time\b[^>]*>", html, flags=re.I)
@@ -329,8 +418,121 @@ def extract_last_updated(html: str, *, tree=None) -> str | None:
         return match.group(1)
 
 
-def extract_data_links(html: str, page_url: str) -> list[str]:
-    """Collect absolute links to downloadable data files (not downloaded, just noted)."""
+AIHW_RESOURCES_API = "https://www.aihw.gov.au/api/search/all-downloadable-resources"
+AIHW_RESOURCES_WIDGET_CLASS = "s-downloadable-resources"
+
+# Same Cloudflare-bypass reasoning as discover_aihw.py's _HEADERS: a default
+# requests User-Agent gets blocked on AIHW's API endpoints.
+_AIHW_RESOURCES_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json; charset=utf-8",
+    "Origin": "https://www.aihw.gov.au",
+}
+
+
+def _attr_bool(element, name: str, default: bool = False) -> bool:
+    """One of a widget's `data-*` boolean attributes, as a real bool."""
+    value = element.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() == "true"
+
+
+def _fetch_aihw_resource_links(widget, page_url: str) -> list[str]:
+    """Call AIHW's downloadable-resources API for one widget and return its
+    data-file URLs (absolute, filtered to DATA_FILE_EXTENSIONS).
+
+    AIHW's "Data" tab (`<div class="s-downloadable-resources" ...>`) never
+    has its real file links in the fetched HTML at all - confirmed directly:
+    searching a real report's raw HTML for the literal strings ".xlsx",
+    ".xls", ".csv", ".zip" found zero occurrences anywhere on the page. The
+    tab's own JS (`dataOrResource.js`, traced from the page's own `<script
+    src="...">` tags) populates it after load via
+    `POST /api/search/all-downloadable-resources`, with a request payload
+    built entirely from this exact widget's own `data-*` attributes
+    (`data-report-node-guid`, `data-current-node-id`,
+    `data-filter-by-children-of-selected-node`, etc.) - already present in
+    the HTML we already fetch, so no extra page load or JS execution is
+    needed, just replaying the same request the tab's own JS makes.
+    Verified live on two different real reports (returned genuine
+    `aihw-phe-...xlsx` file links in both).
+
+    A page can have more than one such widget for different purposes -
+    confirmed on a real page, one for the report's own data tables and a
+    separate one (`id="related-material"`) for links to other report pages,
+    not files. Filtering results to DATA_FILE_EXTENSIONS handles both
+    uniformly: the data-table widget's results pass, the related-material
+    widget's (plain report URLs, no file extension) don't.
+
+    Returns [] - never raises - on any request/parsing failure, same as
+    this pipeline's other optional, best-effort lookups; a page's main
+    content is never held hostage by this one extra call failing.
+    """
+    attrs = widget.attrib
+    payload = {
+        "enableTagFilter": _attr_bool(widget, "data-enable-tag-filter"),
+        "keywords": [],
+        "itemsPerPage": int(attrs.get("data-items-per-page") or 20),
+        "filterByCurrentReport": _attr_bool(widget, "data-filter-by-current-report"),
+        "filterByCurrentTopic": _attr_bool(widget, "data-filter-by-current-topic"),
+        "filterByContentType": _attr_bool(widget, "data-filter-by-content-type"),
+        "contentType": attrs.get("data-content-type") or "",
+        "filterByChildrenOfCurrentNode": _attr_bool(widget, "data-filter-by-children-of-current-node"),
+        "filterByChildrenOfSelectedNode": attrs.get("data-filter-by-children-of-selected-node") or "",
+        "orderByColumn": attrs.get("data-order-by-column") or "",
+        "includeArchived": None,
+        "searchTerm": None,
+        "dateFrom": None,
+        "dateTo": None,
+        "topic": None,
+        "subtopics": None,
+        "resourceTypes": [],
+        "filterByItemNodeGUIDs": attrs.get("data-ignored-resource-guids") or "",
+        "reportNodeGuid": attrs.get("data-report-node-guid") or "",
+        "currentNodeId": int(attrs.get("data-current-node-id") or 0),
+        "showDescription": _attr_bool(widget, "data-show-description"),
+        "showReportLink": _attr_bool(widget, "data-show-report-link"),
+        "showTopicsAndTags": _attr_bool(widget, "data-show-topics-and-tags"),
+        "showDate": _attr_bool(widget, "data-show-date"),
+        "page": 1,
+    }
+
+    try:
+        response = requests.post(
+            AIHW_RESOURCES_API,
+            json=payload,
+            headers={**_AIHW_RESOURCES_HEADERS, "Referer": page_url},
+            timeout=REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
+        return []
+
+    file_extensions = tuple(f".{ext}" for ext in DATA_FILE_EXTENSIONS)
+    links = []
+    for item in data.get("results", []):
+        result_url = item.get("resultUrl") or ""
+        if result_url.split("?")[0].lower().endswith(file_extensions):
+            links.append(urljoin(page_url, result_url))
+    return links
+
+
+def extract_data_links(html: str, page_url: str, *, tree=None) -> list[str]:
+    """Collect absolute links to downloadable data files (not downloaded, just noted).
+
+    A plain regex over the raw HTML catches links that are genuinely
+    server-rendered - confirmed reliable on ABS pages, which put real
+    `<a href="....xlsx">` links straight in their HTML. AIHW pages don't
+    (see `_fetch_aihw_resource_links()`'s docstring), so for any AIHW URL,
+    every `s-downloadable-resources` widget found on the page is also
+    queried directly via the same internal API its own "Data" tab calls,
+    merged into the same deduped list.
+    """
     extensions = "|".join(DATA_FILE_EXTENSIONS)
     pattern = re.compile(rf'href="([^"?#]+\.(?:{extensions}))"', flags=re.I)
     seen: list[str] = []
@@ -338,6 +540,24 @@ def extract_data_links(html: str, page_url: str) -> list[str]:
         link = urljoin(page_url, match.group(1))
         if link not in seen:
             seen.append(link)
+
+    if page_url and is_valid_domain(page_url, "AIHW"):
+        if tree is None:
+            try:
+                tree = lxml.html.fromstring(html)
+            except lxml.etree.LxmlError:
+                tree = None
+        if tree is not None:
+            widget_xpath = (
+                f'//*[contains(concat(" ", normalize-space(@class), " "), " {AIHW_RESOURCES_WIDGET_CLASS} ")]'
+            )
+            for i, widget in enumerate(tree.xpath(widget_xpath)):
+                if i > 0:
+                    time.sleep(REQUEST_DELAY)
+                for link in _fetch_aihw_resource_links(widget, page_url):
+                    if link not in seen:
+                        seen.append(link)
+
     return seen
 
 
@@ -349,6 +569,22 @@ BOILERPLATE_LINE_PATTERNS = [
     re.compile(r"^\*\*On this page:?\*\*$"),
     re.compile(r"^#{1,6}\s*On this page(\s+In this section)?\s*$", re.I),
     re.compile(r"^#{1,6}\s*In this section\s*$", re.I),
+    # Trailing button labels confirmed on a real AIHW "microsite" page
+    # (whole-line only, same reasoning as the others above - "Feedback" as
+    # a sentence word elsewhere must survive untouched).
+    re.compile(r"^Go back to top$", re.I),
+    re.compile(r"^Feedback$", re.I),
+    # The one line of trafilatura's auto-generated citation that actually
+    # varies run to run (our own extraction date, not source content - see
+    # `REFERENCE_SECTION_TITLES`'s "citation" entry). That entry catches the
+    # common case, where the citation sits under its own "### Citation"
+    # heading - confirmed on a real page (a thin "Appendix" sub-page) that
+    # it can also appear as a bare paragraph with no heading at all, which
+    # a heading-driven strip can never catch. Matched narrowly (the exact
+    # "accessed <day> <Month> <year>." shape) so a real sentence that
+    # happens to use the word "accessed" - confirmed on real ABS footnotes,
+    # a different date format entirely - is never at risk.
+    re.compile(r"^accessed \d{1,2} \w+ \d{4}\.$", re.I),
 ]
 
 
@@ -358,13 +594,13 @@ def strip_boilerplate(markdown: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "\n".join(kept))
 
 
-REFERENCE_SECTION_TITLES = {"references", "bibliography"}
+REFERENCE_SECTION_TITLES = {"references", "bibliography", "citation"}
 _MARKDOWN_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 
 
 def strip_reference_sections(markdown: str) -> str:
-    """Drop a "References"/"Bibliography" heading and everything under it, up
-    to the next heading of the same or shallower level.
+    """Drop a "References"/"Bibliography"/"Citation" heading and everything
+    under it, up to the next heading of the same or shallower level.
 
     Confirmed on real AIHW pages: a "References" section is a long list of
     bibliographic citations (author, year, title, accessed date) - low value
@@ -373,6 +609,21 @@ def strip_reference_sections(markdown: str) -> str:
     directly (e.g. on a report's "technical-notes" pages) as well as ones
     `_convert_aihw_accordions()` created from an accordion trigger, since
     both look identical by the time extraction reaches markdown.
+
+    "Citation" (singular) is a different thing from "References" - it's a
+    single auto-generated line trafilatura itself adds under its own
+    "### Citation" heading (e.g. "AIHW (...) (2026) <title>, AIHW,
+    Australian Government, accessed 3 October 2026."), not anything the
+    source page actually published. The "accessed <date>" in it is *our own
+    extraction date*, not source content - confirmed as the cause of a real
+    problem: re-running extraction on a different day changes that one
+    line, which looked exactly like the report's real content had changed
+    when re-hashed for version tracking, on 37 of 63 reports flagged
+    "changed" in one migration run. A real footnote that happens to mention
+    "accessed <date>" for some unrelated external source (confirmed on real
+    ABS pages, under "## Footnotes", never "### Citation") is a different
+    heading entirely and is left untouched - this only ever matches the
+    specific "Citation" heading trafilatura generates for the page itself.
     """
     lines = markdown.split("\n")
     kept: list[str] = []
@@ -447,6 +698,46 @@ def _strip_chart_controls(tree) -> None:
                 parent.remove(el)
 
 
+def _strip_nav_elements(tree) -> None:
+    """Remove every <nav> element in place.
+
+    Confirmed on a real AIHW "microsite" landing page (topic hubs like
+    "Hospitals", a fourth AIHW page template with none of
+    "#page-content"/"l-web-article__content"/the accordion-report
+    structure, decomposed via a plain `<main>`-wide widget search instead -
+    see `extract_markdown()`): a `<nav class="c-microsite-section-nav">`
+    held the site's entire mobile mega-menu (7.5KB of "Toggle subnav" link
+    labels) as a sibling of the page's real card-grid content, with no
+    widget boundary of its own to exclude it. `<nav>` is a semantic HTML
+    landmark reserved for navigation - safe to strip unconditionally,
+    wherever it appears, rather than pattern-matching its contents.
+    """
+    for el in tree.xpath("//nav"):
+        parent = el.getparent()
+        if parent is not None:
+            parent.remove(el)
+
+
+def _strip_downloadable_resources(tree) -> None:
+    """Remove an AIHW "web article" page's downloadable-data-tables tab in
+    place (`<div class="s-downloadable-resources" id="datatables">`).
+
+    Confirmed on a real page: this sits as a sibling of the article's real
+    `widget widget--*` content blocks, not inside any of them, so
+    `_outermost_widgets()` correctly never treats it as one - but its lone
+    `<h2>Data</h2>` (the tab's own label, no other content) was still being
+    picked up by `_own_heading()` as the whole container's "own heading",
+    producing a bare, contentless "## Data" heading at the very top of the
+    output. Same fix approach as `_strip_chart_controls()`: remove the UI
+    chrome from the tree before block/widget detection runs, rather than
+    teaching every downstream heading-picker about one more thing to ignore.
+    """
+    for el in tree.xpath('//*[contains(concat(" ", normalize-space(@class), " "), " s-downloadable-resources ")]'):
+        parent = el.getparent()
+        if parent is not None:
+            parent.remove(el)
+
+
 AIHW_ACCORDION_SKIP_TITLES = {"references", "bibliography"}
 
 
@@ -483,6 +774,17 @@ def _convert_aihw_accordions(tree) -> None:
         if _normalise_heading_text(text) in AIHW_ACCORDION_SKIP_TITLES:
             panel_id = trigger.get("aria-controls")
             panel = tree.xpath(f'//*[@id="{panel_id}"]') if panel_id else []
+            if not panel:
+                # The trigger below still gets removed, but its content panel
+                # doesn't - meaning the References/Bibliography text stays in
+                # the tree with no heading in front of it, silently blending
+                # into whatever section follows. Only a warning, not a raise,
+                # since trafilatura/extraction still proceeds either way.
+                logger.warning(
+                    "  accordion trigger %r matched AIHW_ACCORDION_SKIP_TITLES but its panel "
+                    "(aria-controls=%r) could not be found - its content was not removed",
+                    text, panel_id,
+                )
             for el in [trigger, *panel]:
                 parent = el.getparent()
                 if parent is not None:
@@ -610,6 +912,206 @@ def _flatten_field_items(root) -> list:
     blocks = []
     for child in root:
         blocks.extend(_expand_block(child))
+    return blocks
+
+
+AIHW_WEB_ARTICLE_CONTAINER_CLASS = "l-web-article__content"
+
+
+def _has_widget_class(element) -> bool:
+    """Whether an element's class marks it as an AIHW "web article" widget,
+    under either class-naming scheme actually seen on real pages:
+    - "widget widget--TYPE" (two space-separated tokens - one-col-text,
+      concertina, datachart, ...)
+    - "widget-viz-tableau" (one hyphenated token, no bare "widget" token at
+      all - a live Tableau chart embed). Confirmed on a real page (a
+      musculoskeletal-conditions report): this is exactly where a chart's
+      own `<h4 class="figure-heading">` title and
+      `<div class="sr-only"><p>...</p></div>` alt-text description live -
+      the same heading/alt-text the "no extractable Tableau chart data"
+      limitation already promises to keep even when the numbers can't be.
+      Checking only the "widget widget--*" shape missed this second scheme
+      entirely: `_outermost_widgets()` recursed straight past it looking
+      for a nested widget that was never going to be there, so the whole
+      chart - heading, alt-text and all - fell out of the decomposition
+      with nothing capturing it, not even as a leaf.
+    """
+    classes = (element.get("class") or "").split()
+    return "widget" in classes or any(c.startswith("widget-") for c in classes)
+
+
+def _outermost_widgets(element) -> list:
+    """Find the outermost widget elements (see `_has_widget_class()`)
+    inside `element`, without descending past one once found - mirrors
+    `_outermost_field_items()` above for AIHW's "web article" page template
+    (`l-web-article__content`, used by short single-topic AIHW pages like
+    "Illicit tobacco in the NDSHS", distinct from both the accordion-based
+    long-report template and the "#page-content"/field__item template).
+    Nesting happens the same way ABS's field__items do: an accordion
+    widget's content panel can itself wrap a further
+    <div class="widget widget--one-col-text"> as a nested child - confirmed
+    on a real page, so this walks actual DOM children rather than a
+    fixed-depth XPath, same reasoning as `_outermost_field_items()`.
+    """
+    found = []
+    for child in element:
+        if not isinstance(child.tag, str):
+            continue  # skip comments/processing instructions
+        if child.tag == "div" and _has_widget_class(child):
+            found.append(child)
+        else:
+            found.extend(_outermost_widgets(child))
+    return found
+
+
+def _lowest_common_ancestor(elements: list):
+    """The deepest element that is an ancestor-or-self of every element in
+    `elements`. Walks `elements[0]`'s own ancestor chain root-to-self,
+    keeping the deepest one that still contains every other element -
+    ancestors only get more specific going deeper, so the first one that
+    fails to contain everyone means none of its descendants will either.
+    """
+    chain = []
+    node = elements[0]
+    while node is not None:
+        chain.append(node)
+        node = node.getparent()
+    chain.reverse()  # root first, elements[0] last
+
+    def contains(ancestor, el) -> bool:
+        node = el
+        while node is not None:
+            if node is ancestor:
+                return True
+            node = node.getparent()
+        return False
+
+    lca = chain[0]
+    for candidate in chain:
+        if all(contains(candidate, el) for el in elements):
+            lca = candidate
+        else:
+            break
+    return lca
+
+
+def _split_by_headings(element) -> list:
+    """Split a widget with no further nested widget of its own into one
+    segment per heading it contains, or `[element]` unchanged if it has
+    fewer than 2 headings.
+
+    A widget this gets called on (via `_expand_widget()`, when
+    `_outermost_widgets()` finds nothing inside it) can still itself be a
+    multi-section container in more than one real shape:
+    - A flat run of heading+content siblings (confirmed on "Digital health":
+      a single `widget widget--one-col-text` widget, a rich-text field with
+      13 headings and their prose/list siblings as direct children of one
+      shared `editable-text` div).
+    - A grid of card-like siblings, each with its *own* nested heading
+      (confirmed on "Hospitals": `widget c-link-boxes` containing 6
+      `c-link-box` cards under a shared `c-link-boxes__inner`, each card's
+      `<h2>` one level deeper than the card itself).
+
+    Both failed the same way when handed whole to trafilatura: real
+    sections/cards silently dropped while others survived - confirmed on
+    each page respectively (two `<h2>` sections on "Digital health"; 5 of 6
+    cards' headings and content on "Hospitals", keeping only a handful of
+    unlabelled description fragments).
+
+    Both shapes are one and the same rule applied to the lowest common
+    ancestor (LCA) of every heading found: walk its direct children in
+    order, and start a new segment whenever a child either *is* a heading
+    itself (the flat-run shape) or *contains* one among its own descendants
+    (the card-grid shape, and also a callout nested one level deeper on the
+    flat-run page, e.g. a "Case study" box - which this intentionally does
+    split out as its own leaf now, giving it back its own heading, rather
+    than silently folding it into whichever section happened to contain it).
+    A non-heading, non-heading-containing child (plain prose between two
+    headings) joins whichever segment is currently open.
+
+    If the LCA ends up being `element` itself with only one resulting
+    segment (nothing to split - e.g. two headings that are each other's
+    only descendant), returns `[element]` unchanged rather than a
+    no-op "split" that just re-wraps the same content once.
+    """
+    headings = element.xpath(".//h1 | .//h2 | .//h3 | .//h4")
+    if len(headings) < 2:
+        return [element]
+
+    lca = _lowest_common_ancestor(headings)
+
+    def contains_heading(child) -> bool:
+        if child.tag in {"h1", "h2", "h3", "h4"}:
+            return True
+        return bool(child.xpath(".//h1 | .//h2 | .//h3 | .//h4"))
+
+    groups: list[list] = []
+    current: list = []
+    for child in lca:
+        if not isinstance(child.tag, str):
+            continue
+        if contains_heading(child):
+            if current:
+                groups.append(current)
+            current = [child]
+        else:
+            current.append(child)
+    if current:
+        groups.append(current)
+
+    if len(groups) < 2:
+        return [element]
+
+    segments = []
+    for group in groups:
+        wrapper = lxml.html.fromstring("<div></div>")
+        for el in group:
+            wrapper.append(copy.deepcopy(el))
+        segments.append(wrapper)
+    return segments
+
+
+def _expand_widget(element) -> list:
+    """Recursively expand one element into its genuine leaf widget blocks.
+
+    Same "picks one region, drops the rest" trafilatura failure as ABS's
+    field__item nesting, on a differently-shaped AIHW template: confirmed on
+    a real page ("Illicit tobacco in the NDSHS") that handing the whole
+    `l-web-article__content` container to a single trafilatura pass kept
+    only a citation block and a sibling-article nav list, silently dropping
+    every one of the page's 40+ real findings paragraphs - even though a
+    near-identical sibling page (same report, same template) extracted
+    correctly, meaning trafilatura's per-page scoring is making an
+    inconsistent, page-specific call between widgets rather than reliably
+    failing. Expanding down to genuine per-widget leaves and extracting each
+    one on its own (via `_extract_block()`, same as ABS's leaves) removes
+    that scoring decision entirely, the same fix as `_expand_block()` for
+    the same class of problem.
+
+    Unlike `_expand_block()`, there's no ABS-specific "grid of section
+    cards" fallback shape here - not seen on this template so far, so a
+    widget with no further nested widget of its own is simply a leaf.
+    """
+    widgets = _outermost_widgets(element)
+    if not widgets:
+        return _split_by_headings(element)
+
+    expanded = []
+    own_heading = _own_heading(element, widgets)
+    if own_heading is not None:
+        expanded.append(_wrap_heading(own_heading))
+    for widget in widgets:
+        expanded.extend(_expand_widget(widget))
+    return expanded
+
+
+def _flatten_widgets(root) -> list:
+    """Direct children of `root`, each recursively expanded into leaf widget
+    blocks. Mirrors `_flatten_field_items()` above for the web-article
+    template."""
+    blocks = []
+    for child in root:
+        blocks.extend(_expand_widget(child))
     return blocks
 
 
@@ -850,6 +1352,25 @@ def extract_abs_article_markdown(html: str, page_url: str) -> str | None:
     return "\n\n".join(parts) if parts else None
 
 
+def _list_to_markdown(list_el) -> str | None:
+    """Render one <ul>/<ol> to markdown directly, without trafilatura.
+
+    Direct <li> children only - a nested sub-list's own items are picked up
+    later as part of the outer <li>'s own `_extract_block()` call when they
+    have their own leaf, or simply ride along inside the outer item's text
+    via `text_content()` otherwise. Not attempting real nested-list
+    rendering here, matching `_table_to_markdown()`'s similar choice not to
+    handle rowspan/colspan - the common case (a flat list) is what actually
+    needed fixing.
+    """
+    items = [" ".join(li.text_content().split()) for li in list_el.xpath("./li")]
+    items = [i for i in items if i]
+    if not items:
+        return None
+    ordered = list_el.tag == "ol"
+    return "\n".join(f"{i}. {item}" if ordered else f"- {item}" for i, item in enumerate(items, start=1))
+
+
 def _extract_block(element) -> str:
     """Render one content block to markdown, preserving its own heading.
 
@@ -872,6 +1393,18 @@ def _extract_block(element) -> str:
     paragraph when a block is just a caption immediately followed by a large
     table with no other prose around it to signal that the caption is real
     content.
+
+    Every top-level <ul>/<ol> is extracted independently too, the same
+    reasoning extended to a third element type: confirmed on a real AIHW
+    "web article" widget (a small standalone block: one intro sentence, a
+    4-item bullet list of key prevalence stats, one footnote sentence) that
+    trafilatura kept both sentences but silently dropped the entire list
+    between them - the actual numbers the block existed to report. Any
+    <table> in the block is already stripped out above by the time this
+    runs, so a list that was inside a table cell goes with it; a list
+    nested inside another list's <li> is left alone rather than pulled out
+    a second time, since it's already folded into that item's own
+    `text_content()`.
     """
     element = copy.deepcopy(element)
     headings = element.xpath(".//h1 | .//h2 | .//h3 | .//h4")
@@ -895,6 +1428,15 @@ def _extract_block(element) -> str:
             tables_md.append(table_md.strip())
         table.getparent().remove(table)
 
+    lists_md = []
+    for lst in element.xpath(".//ul | .//ol"):
+        if lst.xpath("ancestor::li"):
+            continue  # nested list - already folded into its parent <li>'s own text_content()
+        list_md = _list_to_markdown(lst)
+        if list_md:
+            lists_md.append(list_md)
+        lst.getparent().remove(lst)
+
     fragment_html = lxml.html.tostring(element, encoding="unicode")
     wrapped = f"<html><head><title>x</title></head><body>{fragment_html}</body></html>"
     body_md = trafilatura.extract(wrapped, output_format="markdown", include_tables=True) or ""
@@ -906,7 +1448,7 @@ def _extract_block(element) -> str:
     leftover_captions = captions_md[len(tables_md):]
     leftover_tables = tables_md[len(captions_md):]
 
-    parts = [prefix + body_md, *paired, *leftover_captions, *leftover_tables]
+    parts = [prefix + body_md, *lists_md, *paired, *leftover_captions, *leftover_tables]
     return "\n\n".join(p.strip() for p in parts if p.strip())
 
 
@@ -930,6 +1472,31 @@ def extract_markdown(html: str, page_url: str = "", *, tree=None) -> str | None:
     "picks one region, drops the rest" risk - every block found is extracted
     and combined separately instead of trusting a single whole-page pass.
 
+    A third AIHW page template ("web article" pages like "Illicit tobacco in
+    the NDSHS") has no "#page-content" either, but does have its own
+    fragmented structure - a `l-web-article__content` container of
+    `<div class="widget widget--*">` blocks (prose, an accordion, a chart)
+    laid out the same nested way ABS's field__items are. When found, this is
+    expanded into per-widget leaves the same way as the field__item path
+    above, for the same reason: confirmed on a real page that a single
+    trafilatura pass over this container kept only a citation block and a
+    sibling-article nav list, dropping 40+ real findings paragraphs, while a
+    near-identical sibling page (same report, same template) extracted
+    correctly - trafilatura's per-widget scoring call is inconsistent here,
+    not reliably wrong, so it's removed the same way rather than patched
+    around.
+
+    A fourth, plainer AIHW page template (topic hub pages like "Hospitals")
+    has none of the three structures above, so no blocks are found and this
+    falls back to a single trafilatura pass same as any other site.
+    Confirmed on a real page: handing trafilatura the *entire* raw HTML
+    (header/nav/footer included) made it pick a feedback-widget footer
+    snippet ("We'd love to know any feedback...") instead of the page's real
+    content, which sat untouched a few tags away inside "<main>". Scoping
+    that fallback pass to "<main>" when one exists (still the whole,
+    unscoped page otherwise) fixed it on that page without touching any page
+    that already goes through one of the structured paths above.
+
     Accepts an already-parsed `tree` to avoid re-parsing the same HTML that
     other extraction steps already parsed. Note this function still mutates
     it in place (chart-data <pre> tags are stripped from it) - harmless for
@@ -950,16 +1517,59 @@ def extract_markdown(html: str, page_url: str = "", *, tree=None) -> str | None:
     if tree is not None:
         _strip_chart_data(tree)
         _strip_chart_controls(tree)
+        _strip_downloadable_resources(tree)
+        _strip_nav_elements(tree)
         _convert_aihw_accordions(tree)
         nodes = tree.xpath('//*[@id="page-content"]')
-        blocks = _flatten_field_items(nodes[0]) if nodes else []
+        if nodes:
+            blocks = _flatten_field_items(nodes[0])
+        else:
+            web_article_nodes = tree.xpath(
+                f'//*[contains(concat(" ", normalize-space(@class), " "), " {AIHW_WEB_ARTICLE_CONTAINER_CLASS} ")]'
+            )
+            if web_article_nodes:
+                blocks = _flatten_widgets(web_article_nodes[0])
+            else:
+                main_nodes = tree.xpath("//main")
+                if main_nodes and _outermost_widgets(main_nodes[0]):
+                    blocks = _flatten_widgets(main_nodes[0])
 
     if not blocks:
-        cleaned_html = lxml.html.tostring(tree, encoding="unicode") if tree is not None else html
+        fallback_root = tree
+        if tree is not None:
+            main_nodes = tree.xpath("//main")
+            if main_nodes:
+                fallback_root = main_nodes[0]
+        cleaned_html = lxml.html.tostring(fallback_root, encoding="unicode") if fallback_root is not None else html
         return trafilatura.extract(cleaned_html, output_format="markdown", include_tables=True)
 
     parts = [part for part in (_extract_block(b) for b in blocks) if part]
     return "\n\n".join(parts) if parts else None
+
+
+def _fetch_page_with_retry(page_url: str, attempts: int = 3) -> str | None:
+    """Fetch one sub-page's HTML, retrying transient failures. Returns None
+    (never raises) once every attempt has failed.
+
+    Found via a real, reproducible flaky page: a multi-page/hub report's
+    sub-page fetch can fail on one run and succeed on the very next, with
+    nothing else changing - a bare try/except that gave up on the first
+    failure turned an ordinary transient blip into a permanently incomplete
+    capture (confirmed on a real hub page: successive runs reported
+    "Combined 9/10" and "Combined 7/10" report sections for the exact same
+    URL, seconds apart, with no code change in between). A short retry
+    costs little and fixes the common case outright; `missing_pages` (see
+    `ExtractResult`) is what protects against the rarer case where even
+    retrying doesn't help.
+    """
+    for attempt in range(attempts):
+        if attempt > 0:
+            time.sleep(REQUEST_DELAY * 2)
+        try:
+            return fetch_html(page_url)[0]
+        except FetchError:
+            continue
+    return None
 
 
 def fetch_and_extract(url: str, *, html: str | None = None, final_url: str | None = None) -> ExtractResult:
@@ -986,12 +1596,15 @@ def fetch_and_extract(url: str, *, html: str | None = None, final_url: str | Non
         entry_tree = None
 
     page_urls = discover_report_pages(html, final_url) or [
-        final_url, *discover_methodology_page(html, final_url, tree=entry_tree)
+        final_url,
+        *discover_methodology_page(html, final_url, tree=entry_tree),
+        *discover_hub_card_pages(html, final_url, tree=entry_tree),
     ]
     multi_page = len(page_urls) > 1
 
     sections: list[str] = []
     fetched: list[str] = []
+    missing_pages: list[str] = []
     report_title: str | None = None
     last_updated: str | None = None
     data_links: list[str] = []
@@ -1001,15 +1614,23 @@ def fetch_and_extract(url: str, *, html: str | None = None, final_url: str | Non
         if page_url == final_url:
             page_html, tree = html, entry_tree
         else:
-            try:
-                page_html = fetch_html(page_url)[0]
-            except FetchError:
+            page_html = _fetch_page_with_retry(page_url)
+            if page_html is None:
+                missing_pages.append(page_url)
                 continue
             time.sleep(REQUEST_DELAY)
             try:
                 tree = lxml.html.fromstring(page_html)
             except lxml.etree.LxmlError:
                 tree = None
+
+        # Collected before extract_markdown() runs: it mutates `tree` in
+        # place and specifically removes the AIHW resources widget
+        # extract_data_links() looks for (_strip_downloadable_resources()),
+        # so calling it after would always find nothing on an AIHW page.
+        for link in extract_data_links(page_html, page_url, tree=tree):
+            if link not in data_links:
+                data_links.append(link)
 
         section_md = extract_markdown(page_html, page_url, tree=tree)
         if not section_md:
@@ -1025,9 +1646,6 @@ def fetch_and_extract(url: str, *, html: str | None = None, final_url: str | Non
             report_title = re.sub(r"\s*[,-]\s*(About|Summary)\s*$", "", section_title, flags=re.I)
         if last_updated is None:
             last_updated = page_date
-        for link in extract_data_links(page_html, page_url):
-            if link not in data_links:
-                data_links.append(link)
 
         page_details[page_url] = {
             "content_hash": hashlib.sha256(section_md.encode("utf-8")).hexdigest(),
@@ -1040,29 +1658,38 @@ def fetch_and_extract(url: str, *, html: str | None = None, final_url: str | Non
         raise FetchError(f"No extractable content found at {url}")
 
     if multi_page:
-        print(f"    Combined {len(fetched)}/{len(page_urls)} report sections")
+        logger.info("    Combined %d/%d report sections", len(fetched), len(page_urls))
+        if missing_pages:
+            logger.warning("    %d page(s) still unreachable after retrying", len(missing_pages))
 
     body = "\n\n---\n\n".join(sections)
-    return ExtractResult(report_title or url, body, fetched, last_updated, data_links, final_url, page_details)
+    return ExtractResult(
+        report_title or url, body, fetched, last_updated, data_links, final_url, page_details, missing_pages
+    )
 
 
 def save_markdown(source_label: str, url: str, result: ExtractResult, content_hash: str, extracted_at: str) -> Path:
     """Write one .md file with YAML frontmatter and return its path.
 
-    The filename is the slugified title plus an 8-character hash of the
-    canonical URL. The URL suffix is what actually guarantees uniqueness -
-    two different reports can easily produce the same slug (many government
-    reports share generic titles like "Summary"), which would otherwise let
-    one silently overwrite the other's file. It's stable across runs for the
-    same URL, so re-fetching a report always rewrites the same file.
+    The filename is the slugified title, an 8-character hash of the
+    canonical URL, and an 8-character hash of the body content. The URL
+    suffix guarantees uniqueness across different reports that happen to
+    share a generic title (e.g. "Summary") - without it one could silently
+    overwrite the other's file. The content-hash suffix is what makes every
+    distinct version of the *same* report its own file instead of the
+    newest version overwriting the last: when a report's content genuinely
+    changes, its content hash changes, so it gets a brand new filename
+    rather than replacing the old one - the old version's file is left
+    exactly as it was. Re-fetching a report whose content hasn't changed
+    reuses the exact same filename (same content hash), so repeat runs on
+    unchanged content don't pile up redundant copies.
     """
-    dest_dir = OUTPUT_ROOT
+    dest_dir = OUTPUT_ROOT / source_label
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     url_suffix = hashlib.sha256(url.encode("utf-8")).hexdigest()[:8]
-    # Flat folder shared by both agencies: the lowercase source prefix
-    # (aihw-/abs-) is what tells them apart.
-    filename = f"{source_label.lower()}-{slugify(result.title)}-{url_suffix}.md"
+    content_suffix = content_hash[:8]
+    filename = f"{slugify(result.title)}-{url_suffix}-{content_suffix}.md"
     dest_path = dest_dir / filename
 
     page_lines = "".join(
@@ -1087,7 +1714,66 @@ def save_markdown(source_label: str, url: str, result: ExtractResult, content_ha
         "---\n\n"
     )
 
-    dest_path.write_text(frontmatter + result.body, encoding="utf-8")
+    # newline="" disables Python's own newline translation on write - without
+    # it, a bare "\n" in the extracted text (the vast majority) gets written
+    # as the platform's native line ending, which on Windows is "\r\n". Found
+    # via a real mismatch: some AIHW card-link text carries a literal "\r"
+    # straight from its source HTML (e.g. "...Updated 23 Sep 2026" button
+    # labels), and translating every "\n" around it while leaving pre-existing
+    # "\r" characters alone round-trips inconsistently - re-reading the exact
+    # same content Python just wrote produced a different hash than hashing
+    # it before it ever touched disk. Writing bytes exactly as given removes
+    # the inconsistency outright, rather than trying to special-case it.
+    with dest_path.open("w", encoding="utf-8", newline="") as f:
+        f.write(frontmatter + result.body)
+    return dest_path
+
+
+def save_current_copy(source_label: str, url: str, title: str, src_path: Path) -> Path:
+    """Mirror a version file into `CURRENT_ROOT/<source_label>/` under a
+    stable name (no content-hash suffix), overwriting whatever was there.
+
+    `source-extracted-files/<AIHW|ABS>/` (via `save_markdown()`) is the
+    permanent, append-only historical record of every report this pipeline
+    has ever extracted, new, changed, or not. `CURRENT_ROOT` is deliberately
+    a *narrower* thing: only reports worth a second look this run - the
+    caller (`process_source()`) calls this on a `"changed"` or `"new"`
+    status, never on `"unchanged"`. A brand-new report belongs here just as
+    much as an updated one does - for the quarterly-insights use case this
+    exists for, "AIHW published something we've never seen before" is
+    exactly as actionable as "AIHW updated something we already had", and
+    excluding new reports would mean someone checking this folder for
+    "what's new this run" silently misses every one of them.
+
+    What's deliberately still excluded is anything that *only* changed
+    because of this pipeline's own extraction code, not the source. This
+    distinction was tightened after a real false signal: an early version
+    called this unconditionally on every save, so when two extraction bugs
+    (citation-date noise, then a hashing bug) got fixed and rolled out
+    across the whole dataset, 103 of 104 reports looked like they'd just
+    received a genuine update, when AIHW/ABS had actually changed exactly
+    one of them - the other 103 only differed because *our own* extraction
+    code had. A reader using this folder as "what's new since last time"
+    would have been misled into thinking 103 real updates had landed.
+    `record_content()`'s `"changed"` status is a real signal precisely
+    because a hash mismatch alone was what caused that false positive in
+    the first place - every status this function is now called with has
+    been confirmed (by diffing rendered output, not just comparing hashes)
+    to reflect a real, source-side difference, not an artifact of our own
+    code changing underneath it.
+
+    Keeping this as a fresh copy made from the already-saved version file -
+    rather than *moving* a file here when it becomes current - means this
+    can never end up half-done: a copy either completes or it doesn't,
+    there's no in-between state where a report is briefly missing from both
+    places at once the way a move-then-delete could leave it if interrupted
+    midway.
+    """
+    dest_dir = CURRENT_ROOT / source_label
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    url_suffix = hashlib.sha256(url.encode("utf-8")).hexdigest()[:8]
+    dest_path = dest_dir / f"{slugify(title)}-{url_suffix}.md"
+    shutil.copyfile(src_path, dest_path)
     return dest_path
 
 
@@ -1103,7 +1789,7 @@ def load_manifest() -> dict:
     try:
         return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
-        print(f"Warning: {MANIFEST_PATH} is corrupted ({e}) - starting with an empty manifest.\n")
+        logger.warning("%s is corrupted (%s) - starting with an empty manifest.", MANIFEST_PATH, e)
         return {}
 
 
@@ -1111,12 +1797,89 @@ def save_manifest(manifest: dict) -> None:
     """Persist the manifest back to disk, pretty-printed for easy diffing."""
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    logger.info("[OK] Manifest saved: %s", MANIFEST_PATH)
+
+
+def _current_version(entry: dict) -> dict | None:
+    """The current version's {content_hash, path, created_at} from a
+    manifest entry, reading either schema.
+
+    Handles a manifest entry saved before versioning existed (a flat
+    `content_hash`/`path` at the entry's own top level, no history kept) as
+    well as the current `versions` list - so a manifest that hasn't been
+    touched since the versioning fix shipped still works everywhere this is
+    read, without forcing every entry through a separate migration pass
+    before it can be used.
+    """
+    versions = entry.get("versions")
+    if versions:
+        for v in versions:
+            if v.get("status") == "current":
+                return v
+        return versions[-1]
+    if entry.get("path"):
+        return {"content_hash": entry.get("content_hash", ""), "path": entry["path"], "created_at": entry.get("first_seen_at", "")}
+    return None
+
+
+def _hash_saved_body(path: Path) -> str | None:
+    """Re-read a saved .md file's own body and hash it directly, rather
+    than trusting whatever hash the manifest claims it has.
+
+    Guards against a manifest/disk gap that's otherwise invisible: a run
+    killed mid-way can leave a file correctly rewritten with new content on
+    disk while the manifest's record of its hash never gets persisted
+    (`save_manifest()` only runs at controlled points, separately from each
+    individual file write - confirmed on a real interrupted run: a page's
+    `.md` file already had its latest content, but the manifest still
+    remembered an old hash from before that run even started). Trusting the
+    manifest's stored hash in that situation treats a file that's actually
+    unchanged since it was last written as a brand new version, creating a
+    spurious duplicate under "keep every version" for no real reason. The
+    file's own current content is the one source of truth that can't go
+    stale this way - same frontmatter-stripping approach used elsewhere to
+    read a saved file's body back out.
+
+    Reads with `newline=""` to match `save_markdown()`'s own write mode -
+    without it, re-reading a file that contains a stray literal "\r" (seen
+    on real AIHW card-link text) can itself introduce a different hash than
+    the one computed on the same text before it was ever written, which
+    would otherwise look exactly like a real content change when it's not.
+
+    Strips only the one leading "\n" that `save_markdown()`'s own
+    frontmatter always ends with (`"---\n\n"` - the first "\n" is consumed
+    by the `end + 5` slice below, this removes the second), never a
+    trailing `.strip()`. The content hash being compared against
+    (`hashlib.sha256(result.body.encode())`) is computed on `result.body`
+    exactly as extraction produced it, untouched - confirmed on a real
+    81-page report that its last section's own text ends with two
+    whitespace characters that survive into that hash. A trailing
+    `.strip()` here silently dropped them on every re-read, so this never
+    matched that hash, not because anything had changed, but because the
+    comparison was repeatedly comparing a stripped reconstruction of the
+    body against an unstripped original - reproduced on four consecutive
+    identical runs before being traced to this.
+    """
+    try:
+        with path.open("r", encoding="utf-8", newline="") as f:
+            text = f.read()
+    except OSError:
+        return None
+    if not text.startswith("---\n"):
+        return None
+    end = text.find("\n---\n", 4)
+    if end == -1:
+        return None
+    body = text[end + 5:]
+    if body.startswith("\n"):
+        body = body[1:]
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
 def record_content(
     manifest: dict, key: str, content_hash: str, title: str, path: Path, page_details: dict[str, dict]
-) -> tuple[str, list[str]]:
-    """Update the manifest entry for `key`; return (status, changed_pages).
+) -> tuple[str, list[str], Path | None]:
+    """Update the manifest entry for `key`; return (status, changed_pages, superseded_path).
 
     status is "new" (first time seeing this report), "changed" (the combined
     content_hash differs from last run), or "unchanged". changed_pages lists
@@ -1130,6 +1893,34 @@ def record_content(
     or the report title/filename, so two different entry points into the
     same report (e.g. with or without a trailing "/contents/about") share
     one manifest entry instead of fragmenting into two.
+
+    Every distinct content hash keeps its own file (see `save_markdown()`)
+    rather than overwriting the previous version - this is what actually
+    makes that possible on the bookkeeping side: `versions` is a list of
+    every version ever seen for this URL, each tagged "current" or
+    "superseded", so an old version's file is never deleted and nothing
+    about it is lost (needed to trace an insight back to the exact text it
+    came from, and to see exactly what changed between two versions).
+
+    A manifest entry written before this existed (plain `content_hash`/
+    `path`, no history) is migrated to a one-entry `versions` list the
+    first time it's touched here, regardless of whether the content turns
+    out changed or unchanged - otherwise an entry that happens to be
+    unchanged forever would never pick up the new schema. `superseded_path`
+    is returned only in that specific migration case, when the file that
+    used to be found at the pre-versioning filename is about to be replaced
+    by the same content under the new, content-hash-suffixed filename - the
+    caller deletes it, since it's a same-content duplicate left behind by
+    the filename scheme changing, not a genuine extra version.
+
+    Also stamps `last_revalidated_at` to now, unconditionally (new, changed,
+    or unchanged alike) - this is what `discover_and_run.py`'s revalidation
+    batch (Fix 1) sorts by to pick the least-recently-checked URLs. Every
+    call to this function represents an actual fetch/hash/compare having
+    just happened for `key`, regardless of what triggered it (discovery
+    finding it "new", or revalidation picking it because it hadn't been
+    personally re-checked in a while) - so every call is, by definition,
+    a fresh revalidation of that URL.
     """
     now = datetime.now(timezone.utc).isoformat()
     entry = manifest.get(key)
@@ -1151,27 +1942,78 @@ def record_content(
     if entry is None:
         manifest[key] = {
             "title": title,
-            "content_hash": content_hash,
-            "path": str(path),
             "first_seen_at": now,
             "last_seen_at": now,
             "last_changed_at": now,
+            "last_revalidated_at": now,
+            "versions": [{"content_hash": content_hash, "path": str(path), "created_at": now, "status": "current"}],
             "pages": pages,
         }
-        return "new", []
+        return "new", [], None
 
-    report_changed = entry.get("content_hash") != content_hash
+    was_migrated = "versions" not in entry
+    if was_migrated:
+        old_path = entry.pop("path", None)
+        old_hash = entry.pop("content_hash", None)
+        entry["versions"] = [{
+            "content_hash": old_hash or "",
+            "path": old_path or "",
+            "created_at": entry.get("first_seen_at", now),
+            "status": "current",
+        }]
+
+    versions = entry["versions"]
+    current = next((v for v in versions if v.get("status") == "current"), versions[-1])
+
+    # The manifest's own record of the current version's hash can go stale
+    # relative to the file itself - see `_hash_saved_body()`'s docstring -
+    # so when the file is still readable, its actual content is trusted
+    # over whatever hash the manifest claims, both for the comparison below
+    # and to correct the stored record if it had drifted.
+    actual_hash = _hash_saved_body(Path(current["path"])) if current.get("path") else None
+    if actual_hash is not None:
+        current["content_hash"] = actual_hash
+    report_changed = current.get("content_hash") != content_hash
+
+    superseded_path: Path | None = None
+    if was_migrated and not report_changed and current.get("path") and current["path"] != str(path):
+        # Same content, new filename scheme - a rename, not a new version,
+        # so the pre-versioning file is a redundant duplicate under the old
+        # naming convention, not history worth keeping.
+        superseded_path = Path(current["path"])
+
     entry["title"] = title
-    entry["content_hash"] = content_hash
-    entry["path"] = str(path)
     entry["last_seen_at"] = now
+    entry["last_revalidated_at"] = now
     entry["pages"] = pages
+
     if report_changed:
+        current["status"] = "superseded"
+        versions.append({"content_hash": content_hash, "path": str(path), "created_at": now, "status": "current"})
         entry["last_changed_at"] = now
-    return ("changed" if report_changed else "unchanged"), changed_pages
+
+    return ("changed" if report_changed else "unchanged"), changed_pages, superseded_path
 
 
-def process_source(source_label: str, urls: list[str], manifest: dict, force_refresh: bool) -> None:
+class BatchResult(NamedTuple):
+    """What one process_source() call did, for its caller to report on.
+
+    `counts` tallies outcomes ("new", "changed", "unchanged", "cached",
+    "failed") for the end-of-run summary's numbers. `notable` is a short
+    human-readable line per "new" or "changed" URL specifically - the
+    summary's counts alone can say "1 changed" without saying *which* one,
+    leaving a reader to scroll back through a whole batch's worth of
+    per-URL lines to find it; this is what lets the summary name it
+    directly instead.
+    """
+    counts: Counter
+    notable: list[str]
+
+
+def process_source(
+    source_label: str, urls: list[str], manifest: dict, force_refresh: bool,
+    *, phase: str = "", quiet: bool = False,
+) -> BatchResult:
     """Fetch, extract, save, and record every URL for one source (AIHW/ABS).
 
     Skips a URL entirely (after one cheap request to resolve its canonical
@@ -1179,8 +2021,34 @@ def process_source(source_label: str, urls: list[str], manifest: dict, force_ref
     and force_refresh is False - that's what keeps repeat runs fast. A
     failed or empty fetch is skipped with a message, not fatal to the batch,
     and neither is a disk-write failure when saving the result.
+
+    `phase` is purely a console-output label (e.g. "revalidation") so a run
+    that calls this twice for the same source - once for newly-discovered
+    URLs, once for a revalidation batch - doesn't print the exact same
+    "Extracting AIHW URLs..." banner for both and leave a reader unable to
+    tell which pass they're looking at.
+
+    `quiet` suppresses the per-URL line for the two outcomes that mean
+    "nothing worth reading happened to this URL": a cache-hit skip, and a
+    freshly re-fetched URL whose content turned out unchanged. The latter
+    matters specifically for revalidation batches, which always pass
+    force_refresh=True and so never take the cheap cache-hit path at all -
+    on a mostly-unchanged batch, every single URL would otherwise print a
+    full "Saved: ... [unchanged, ...]" line. Anything else (new, changed, or
+    any warning/failure) is never suppressed, quiet or not - those are
+    exactly the outcomes worth reading about.
+
+    Returns a BatchResult - callers that make several of these calls in one
+    run (see discover_and_run.py) sum the counts and concatenate the
+    notable lines together into one end-of-run summary, instead of
+    requiring a human to scroll back and read individual per-URL lines
+    themselves.
     """
-    print(f"\nExtracting {source_label} URLs...")
+    phase_note = f" ({phase})" if phase else ""
+    logger.info("Extracting %s URLs%s...", source_label, phase_note)
+    counts: Counter = Counter()
+    notable: list[str] = []
+    total = len(urls)
     for i, url in enumerate(urls):
         if i > 0:
             time.sleep(REQUEST_DELAY)
@@ -1188,19 +2056,49 @@ def process_source(source_label: str, urls: list[str], manifest: dict, force_ref
         try:
             html, final_url = fetch_html(url)
         except FetchError as e:
-            print(f"  Skipped ({e})")
+            logger.warning("  [SKIP] (%d/%d) %s", i + 1, total, e)
+            counts["failed"] += 1
             continue
 
         cached = manifest.get(final_url)
-        if cached and not force_refresh and Path(cached.get("path", "")).exists():
+        cached_version = _current_version(cached) if cached else None
+        if cached_version and not force_refresh and Path(cached_version["path"]).exists():
+            # Deliberately does not touch Current/ here - nothing was even
+            # checked for a real change on this run, so there's nothing to
+            # report as "genuinely updated" (see save_current_copy()).
             checked = cached["last_seen_at"][:10]
-            print(f"  Already have: {cached['path']} (last checked {checked}) - skipping re-fetch")
+            if not quiet:
+                logger.info(
+                    "  [SKIP] (%d/%d) Already have: %s (last checked %s) - skipping re-fetch",
+                    i + 1, total, cached_version["path"], checked,
+                )
+            counts["cached"] += 1
             continue
 
         try:
             result = fetch_and_extract(url, html=html, final_url=final_url)
         except FetchError as e:
-            print(f"  Skipped ({e})")
+            logger.warning("  [SKIP] (%d/%d) %s", i + 1, total, e)
+            counts["failed"] += 1
+            continue
+
+        if result.missing_pages and cached_version is not None:
+            # An incomplete capture must never supersede a previously-saved
+            # complete one - confirmed on a real page that this exact
+            # situation produces a result indistinguishable from a genuine
+            # content change once hashed, permanently archiving truncated
+            # content as if it were a real new version. Leaving the
+            # existing version alone and skipping this run for this URL is
+            # safe either way: if the live page is genuinely fine, the next
+            # run (hopefully without the transient failure) saves the real
+            # update; if it's having a bad day, nothing was lost or
+            # corrupted by waiting.
+            logger.warning(
+                "  [SKIP] (%d/%d) incomplete capture: %d page(s) unreachable even after retrying "
+                "- keeping existing version rather than risk saving a truncated one",
+                i + 1, total, len(result.missing_pages),
+            )
+            counts["failed"] += 1
             continue
 
         content_hash = hashlib.sha256(result.body.encode("utf-8")).hexdigest()
@@ -1208,27 +2106,63 @@ def process_source(source_label: str, urls: list[str], manifest: dict, force_ref
         try:
             path = save_markdown(source_label, result.canonical_url, result, content_hash, extracted_at)
         except OSError as e:
-            print(f"  Skipped (could not save to disk: {e})")
+            logger.warning("  [SKIP] (%d/%d) could not save to disk: %s", i + 1, total, e)
+            counts["failed"] += 1
             continue
 
-        status, changed_pages = record_content(
+        status, changed_pages, superseded_path = record_content(
             manifest, result.canonical_url, content_hash, result.title, path, result.page_details
         )
+        counts[status] += 1  # "new", "changed", or "unchanged"
+
+        if superseded_path is not None:
+            try:
+                superseded_path.unlink()
+            except OSError:
+                pass  # pre-versioning duplicate left behind - harmless if it can't be removed
+
+        if status in ("changed", "new"):
+            # "new" and "changed" both belong here - a brand-new report is
+            # just as much "something to look at since last run" as an
+            # updated one, for the quarterly-insights use case this exists
+            # for. Only "unchanged" is excluded, so Current/ never holds
+            # every report this pipeline has ever touched, just the ones
+            # worth a second look this run (see save_current_copy()'s
+            # docstring for the false-signal this was tightened against).
+            try:
+                save_current_copy(source_label, result.canonical_url, result.title, path)
+            except OSError:
+                pass  # Current/ is a convenience view - not worth failing the whole save over
+
+            section_note = (
+                f" ({len(changed_pages)}/{len(result.pages)} sections changed)"
+                if status == "changed" and len(result.pages) > 1 else ""
+            )
+            notable.append(f"{status.upper()} {path.name}{section_note}")
 
         label = status.upper() if status != "unchanged" else status
         page_note = ""
         if status == "changed" and len(result.pages) > 1:
             page_note = f" ({len(changed_pages)}/{len(result.pages)} sections changed)"
+        if status == "changed":
+            page_note += " - previous version kept"
         updated_note = f", last updated {result.last_updated}" if result.last_updated else ""
-        print(f"  Saved: {path} [{label}{page_note}{updated_note}, {len(result.data_links)} data file(s)]")
+        incomplete_note = f" - INCOMPLETE: {len(result.missing_pages)} page(s) never reachable" if result.missing_pages else ""
+        if not quiet or status != "unchanged":
+            logger.info(
+                "  [OK] (%d/%d) Saved: %s [%s%s%s, %d data file(s)]%s",
+                i + 1, total, path, label, page_note, updated_note, len(result.data_links), incomplete_note,
+            )
+
+    return BatchResult(counts, notable)
 
 
 def main() -> None:
     """Entry point: collect all URLs first, then fetch/extract/save each source."""
-    print("=== Step 1: AIHW URLs ===")
+    print("--- Step 1: AIHW URLs ---")
     aihw_urls = collect_urls("AIHW")
 
-    print("=== Step 2: ABS URLs ===")
+    print("--- Step 2: ABS URLs ---")
     abs_urls = collect_urls("ABS")
 
     force_refresh = input(
@@ -1236,18 +2170,41 @@ def main() -> None:
         "This re-fetches everything and is slower. (y/n): "
     ).strip().lower() == "y"
 
+    run_started_at = datetime.now(timezone.utc)
     manifest = load_manifest()
-    process_source("AIHW", aihw_urls, manifest, force_refresh)
-    process_source("ABS", abs_urls, manifest, force_refresh)
+    tracked = sum(1 for key in manifest if key != "_discovery")
+    logger.info("Loaded manifest: %d URL(s) already tracked", tracked)
+
+    counts: Counter = Counter()
+    notable: list[str] = []
+    for result in (
+        process_source("AIHW", aihw_urls, manifest, force_refresh),
+        process_source("ABS", abs_urls, manifest, force_refresh),
+    ):
+        counts += result.counts
+        notable += result.notable
+
     try:
         save_manifest(manifest)
     except OSError as e:
-        print(
-            f"\nWarning: could not save {MANIFEST_PATH} ({e}). Your .md files were "
-            "saved successfully, but change-detection state for this run was not persisted."
+        logger.warning(
+            "could not save %s (%s). Your .md files were saved successfully, "
+            "but change-detection state for this run was not persisted.",
+            MANIFEST_PATH, e,
         )
 
-    print("\nDone. Files saved under:", OUTPUT_ROOT.resolve())
+    elapsed = (datetime.now(timezone.utc) - run_started_at).total_seconds()
+    logger.info("--- Run summary ---")
+    print(
+        f"  new: {counts['new']}, changed: {counts['changed']}, unchanged: {counts['unchanged']}, "
+        f"cached: {counts['cached']}, failed: {counts['failed']}"
+    )
+    if notable:
+        print("  Changed/new this run:")
+        for line in notable:
+            print(f"    {line}")
+    print(f"  Elapsed: {elapsed:.1f}s")
+    logger.info("Done. Files saved under: %s", OUTPUT_ROOT.resolve())
 
 
 if __name__ == "__main__":
