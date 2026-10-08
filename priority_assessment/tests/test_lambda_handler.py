@@ -113,14 +113,16 @@ class LambdaHandlerTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            result["output_key"],
-            "data/priority-tagged-insight-files/monthly report é.json",
+            result,
+            {
+                "input_bucket": "poc-bucket",
+                "input_key": "data/insight-generated-files/monthly report é.json",
+                "output_key": "data/priority-tagged-insight-files/monthly report é.json",
+                "review_key": "data/priority-assessment-review/"
+                "monthly report é__assessment_review_required.json",
+            },
         )
-        self.assertEqual(
-            result["review_key"],
-            "data/priority-assessment-review/"
-            "monthly report é__assessment_review_required.json",
-        )
+        self.assertNotIn("result", result)
 
     def test_empty_review_is_not_uploaded(self):
         client = FakeS3Client()
@@ -184,6 +186,7 @@ class LambdaHandlerTests(unittest.TestCase):
             [],
         )
         self.assertIsNone(result["review_key"])
+        json.dumps(result)
 
     def test_review_is_persisted_before_processing_failure_is_propagated(self):
         client = FakeS3Client()

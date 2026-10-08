@@ -1,0 +1,25 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.1",
+      "eventSource": "aws:s3",
+      "awsRegion": "<AWS_REGION>",
+      "eventTime": "2026-09-29T00:00:00.000Z",
+      "eventName": "ObjectCreated:Put",
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "priority-assessment-object-created",
+        "bucket": {
+          "name": "<S3_BUCKET_NAME>",
+          "arn": "arn:aws:s3:::<S3_BUCKET_NAME>"
+        },
+        "object": {
+          "key": "data/insight-generated-files/<TEST_FILE>.json",
+          "size": 123,
+          "eTag": "0123456789abcdef0123456789abcdef",
+          "sequencer": "0065F94A2D2E123456"
+        }
+      }
+    }
+  ]
+}

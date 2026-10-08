@@ -127,7 +127,7 @@ def lambda_handler(event, context, *, s3_client=None):
         s3_client.download_file(bucket, input_key, str(input_path))
 
         try:
-            result = process_one(
+            process_one(
                 input_path,
                 _pipeline_args(),
                 output_dir,
@@ -151,5 +151,4 @@ def lambda_handler(event, context, *, s3_client=None):
             "input_key": input_key,
             "output_key": output_key,
             "review_key": review_key,
-            "result": result,
         }

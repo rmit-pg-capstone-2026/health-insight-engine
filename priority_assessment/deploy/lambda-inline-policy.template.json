@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadPromptOneInputs",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::<S3_BUCKET_NAME>/data/insight-generated-files/*"
+    },
+    {
+      "Sid": "WritePriorityAssessmentOutputs",
+      "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::<S3_BUCKET_NAME>/data/priority-tagged-insight-files/*",
+        "arn:aws:s3:::<S3_BUCKET_NAME>/data/priority-assessment-review/*"
+      ]
+    },
+    {
+      "Sid": "InvokeKimiK25",
+      "Effect": "Allow",
+      "Action": "bedrock:InvokeModel",
+      "Resource": "arn:aws:bedrock:<AWS_REGION>::foundation-model/moonshotai.kimi-k2.5"
+    }
+  ]
+}
