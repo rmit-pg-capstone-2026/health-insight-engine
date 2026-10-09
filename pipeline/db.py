@@ -20,14 +20,16 @@ Run this file directly to see what is in the database:
 """
 
 import json
-import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DB_PATH = Path(os.environ.get("PIPELINE_DB", REPO_ROOT / "data" / "pipeline.db"))
+import storage
+
+DB_FILE = "pipeline.db"                 # relative to the data folder, and its S3 key
+DB_PATH = storage.local(DB_FILE)
 MAX_ATTEMPTS = 3
+SCHEMA_VERSION = 3                      # bump when the tables or stored paths change
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sources (
@@ -45,7 +47,7 @@ CREATE TABLE IF NOT EXISTS documents (
     content_hash     TEXT NOT NULL,
     fetched_at       TEXT NOT NULL,
     title            TEXT,
-    markdown_path    TEXT NOT NULL,             -- this version's file, relative to the repo root
+    markdown_path    TEXT NOT NULL,             -- this version's file, relative to the data folder
     -- filled in by stage 2
     publisher        TEXT,
     publication_date TEXT,
@@ -63,7 +65,7 @@ CREATE TABLE IF NOT EXISTS documents (
 CREATE TABLE IF NOT EXISTS briefings (
     id            INTEGER PRIMARY KEY,
     created_at    TEXT NOT NULL,
-    pdf_path      TEXT NOT NULL,
+    pdf_path      TEXT NOT NULL,                -- relative to the data folder
     source_count  INTEGER NOT NULL,
     insight_count INTEGER NOT NULL,
     sent_at       TEXT                          -- set once emailing exists
@@ -120,12 +122,30 @@ def connect(path: Path = DB_PATH) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.executescript(SCHEMA)
-    columns = {r["name"] for r in conn.execute("PRAGMA table_info(documents)")}
-    if "content" in columns or "duplicates_dropped" not in columns:
+    existing = conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'documents'").fetchone()
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
+    if existing and version != SCHEMA_VERSION:
         raise SystemExit(f"{path} was made by an older version of the pipeline. "
                          "Delete it and run again.")
+    conn.executescript(SCHEMA)
+    conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
     return conn
+
+
+def open_db() -> sqlite3.Connection:
+    """Open the latest database. With an S3 bucket set, the copy in S3 is
+    downloaded first; if S3 has none yet, start from an empty one rather
+    than from whatever an earlier run left in the local folder."""
+    if storage.BUCKET and not storage.download(DB_FILE):
+        DB_PATH.unlink(missing_ok=True)
+    return connect()
+
+
+def checkpoint(conn: sqlite3.Connection) -> None:
+    """Commit, and push the database to S3 (when a bucket is set). Called
+    after every document, so a run that dies halfway keeps what it finished."""
+    conn.commit()
+    storage.upload(DB_FILE)
 
 
 def sync_sources(conn: sqlite3.Connection, entries: list[dict]) -> None:
@@ -220,4 +240,4 @@ def print_status(conn: sqlite3.Connection) -> None:
 
 
 if __name__ == "__main__":
-    print_status(connect())
+    print_status(open_db())

@@ -106,6 +106,16 @@ How it behaves:
 - A document that fails is retried on the next run, and marked `failed` after 3 tries.
 - PDFs go to `data/briefing-paper/briefing_<date>.pdf` and are never overwritten.
 
+### Running it on AWS Lambda
+
+`pipeline/lambda_handler.py` has one entry point per stage (`pipeline.lambda_handler.collect`, `.extract`, `.assess`, `.brief`). All four functions use the same zip:
+
+```bash
+bash build_lambda.sh        # -> dist/lambda.zip (Linux packages for Python 3.12, x86_64)
+```
+
+On Lambda, files live in `/tmp/data` and are synced with the S3 bucket in `PIPELINE_S3_BUCKET`: each call downloads `pipeline.db`, and uploads it again after every document. Run the stages one at a time. Test events: `{"limit": 1}` for extract/assess, `{"preview": true}` for brief.
+
 To start from scratch, delete `data/pipeline.db`. To retry a failed document: `sqlite3 data/pipeline.db "UPDATE documents SET status='new', attempts=0 WHERE id=<id>"` (use `status='extracted'` if it failed at the assess stage).
 
 ## Useful options

@@ -32,10 +32,12 @@ from generate_briefing import build_pdf  # noqa: E402
 from run_priority_assessment import DEFAULT_PROMPT, DEFAULT_SCHEMA  # noqa: E402
 from validate_priority_assessment import load_json, validate_priority_assessment_results  # noqa: E402
 
+import storage  # noqa: E402
+
 # One file per page version. A subfolder, so the stage 2 script's batch mode
 # (which only reads the top level of source-extracted-files/) never picks
 # these up alongside the files the stage 1 script writes.
-DOCUMENTS_DIR = REPO_ROOT / "data" / "source-extracted-files" / "versions"
+DOCUMENTS_DIR = storage.DATA_DIR / "source-extracted-files" / "versions"
 
 EXTRACT_MODEL = os.environ.get("EXTRACT_MODEL", "deepseek/deepseek-v4-flash-0731")
 EXTRACT_PROVIDER = os.environ.get("EXTRACT_PROVIDER", "deepinfra") or None
@@ -50,7 +52,10 @@ def collect(source: dict) -> dict:
     Out: {"changed": False, "content_hash": "490084b2..."}                when nothing changed
          {"changed": True, "content_hash": "a91c3e2b...", "title": "...",
           "fetched_at": "2026-10-02T03:10:00+00:00",
-          "markdown_path": "data/source-extracted-files/versions/abs-...-ec4e2569-a91c3e2b.md"}
+          "markdown_path": "source-extracted-files/versions/abs-...-ec4e2569-a91c3e2b.md"}
+
+    markdown_path is relative to the data folder (see storage.py), so it is
+    also the file's key in S3.
 
     Each version gets its own file (URL hash + content hash in the name), so
     a file is never overwritten and always matches the version that points
@@ -71,7 +76,7 @@ def collect(source: dict) -> dict:
         "content_hash": content_hash,
         "title": result.title,
         "fetched_at": fetched_at,
-        "markdown_path": str(path.relative_to(REPO_ROOT)),
+        "markdown_path": storage.relative(path),
     }
 
 
@@ -80,7 +85,7 @@ def collect(source: dict) -> dict:
 def extract(document: dict) -> dict:
     """Run the insight extraction prompt on one document.
 
-    In:  {"markdown_path": "data/source-extracted-files/versions/abs-....md",
+    In:  {"markdown_path": "source-extracted-files/versions/abs-....md",
           "retrieval_date": "2026-10-02"}
     Out: {"document": {"publisher", "title", "publication_date", "period_covered",
                        "summary", "document_scope"},
@@ -99,7 +104,7 @@ def extract(document: dict) -> dict:
         raise RuntimeError("Set OPENROUTER_API_KEY in the repo-root .env")
 
     prompt = stage2.PROMPT_PATH.read_text(encoding="utf-8")
-    path = REPO_ROOT / document["markdown_path"]
+    path = storage.local(document["markdown_path"])
     if not path.exists():
         raise FileNotFoundError(f"document file is missing: {document['markdown_path']}")
     text = stage2.load_article(path)
