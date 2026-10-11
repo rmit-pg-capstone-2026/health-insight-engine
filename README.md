@@ -85,7 +85,9 @@ The PDF is written to `data/briefing-paper/briefing_report.pdf`, replacing the p
 
 | File | What it is |
 |---|---|
-| `pipeline/sources.json` | The pages to watch. Add or remove URLs here. |
+| `pipeline/collect_settings.json` | How far back the finders look (`discovery_days`), whether to skip AIHW hub pages, and the AIHW topics to skip. |
+| `pipeline/sources.json` | Manual list: older or extra pages to track. Checked every run. |
+| `pipeline/discover.py` | Runs the three finders in `collect_and_extract/` and applies the settings above. |
 | `pipeline/stages.py` | The four stages as plain functions: a dict in, a dict out. No database code. |
 | `pipeline/run.py` | Reads each stage's input from the database, calls the stage, saves the output. |
 | `pipeline/db.py` | The database tables. Run it to see what is in the database. |
@@ -98,7 +100,14 @@ python pipeline/run.py brief              # make the PDF and mark its insights a
 python pipeline/db.py                     # status: documents, insights, briefings, cost
 ```
 
-How it behaves:
+How collect finds pages, every run:
+
+- The finders (AIHW reports, ABS health articles, ABS health statistics releases) return everything dated in the last `discovery_days` (default 14 - wider than the weekly gap, so one missed run loses nothing).
+- AIHW hub pages (one level deep, e.g. `/mental-health`) and topics in `aihw_skip_topics` are skipped. ABS finders are already health-only.
+- Each found page, plus every page in `sources.json`, is fetched. A page never seen before becomes a new document; a known page becomes a new document only if its content changed. Older discovered pages are not re-checked unless the agency dates them again.
+- If a finder fails, the others still run and the summary says so. If some sub-pages of a known report fail to load, the existing version is kept and the page is retried next run.
+
+How it behaves after that:
 
 - Only a page whose content changed becomes a new document. Each version is saved as its own file in `data/source-extracted-files/versions/` (never overwritten); the database stores just its path.
 - New insights are compared with those already stored for earlier versions of the same page. Any whose evidence quote matches is dropped, so only new insights are assessed and briefed.
@@ -113,6 +122,8 @@ How it behaves:
 ```bash
 bash build_lambda.sh        # -> dist/lambda.zip (Linux packages for Python 3.12, x86_64)
 ```
+
+To change `sources.json` or `collect_settings.json` on AWS without redeploying, upload the edited file to `config/<name>` in the bucket - it takes priority over the copy in the code.
 
 On Lambda, files live in `/tmp/data` and are synced with the S3 bucket in `PIPELINE_S3_BUCKET`: each call downloads `pipeline.db`, and uploads it again after every document. Run the stages one at a time. Test events: `{"limit": 1}` for extract/assess, `{"preview": true}` for brief.
 

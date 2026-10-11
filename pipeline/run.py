@@ -7,7 +7,8 @@ For each stage this script does three things, and only these three:
     2. build the stage's input and call the stage (pipeline/stages.py)
     3. save what the stage returns, and move the document to the next status
 
-    collect  every active source               -> new documents       (status: new)
+    collect  pages the finders found in the last
+             N days + the manual sources.json    -> new documents       (status: new)
     extract  documents with status 'new'       -> insights            (status: extracted)
     assess   documents with status 'extracted' -> priorities          (status: assessed)
     brief    assessed insights not yet briefed -> PDF + briefings row
@@ -35,12 +36,12 @@ from datetime import date
 from pathlib import Path
 
 import db
+import discover
 import stages
 import storage
 from consolidate_insights import consolidate_insights  # on the path via stages
 from extract import normalise  # on the path via stages
 
-SOURCES_FILE = Path(__file__).resolve().parent / "sources.json"
 STAGES = ("collect", "extract", "assess", "brief")
 
 
@@ -57,11 +58,31 @@ def fail(conn, doc_id: int, stage: str, exc: Exception) -> None:
 # ----------------------------------------------------------------- collect
 
 def run_collect(conn, limit=None) -> dict:
-    counts = {"new": 0, "unchanged": 0, "errors": 0}
-    sources = conn.execute("SELECT id, agency, url FROM sources WHERE active = 1 "
-                           "ORDER BY id").fetchall()
-    for src in sources:
-        print(f"  {src['agency']}  {src['url']}")
+    """Find recent pages, then fetch every found page plus every manual source.
+
+    A page we have never seen becomes a new document. A known page (the
+    agency updated it, or it is a manual source) is fetched again and only
+    becomes a new document if its content changed. Older discovered pages
+    are not re-checked unless they turn up again."""
+    settings = storage.read_config("collect_settings.json")
+    found = discover.find(settings)
+    print(f"  looking back to {found['since']} ({settings.get('discovery_days', 14)} days)")
+    for key, err in found["errors"].items():
+        print(f"  ! finder {key} failed, skipped this run: {err}")
+    for item in found["skipped"]:
+        print(f"  - skip ({item['reason']}): {item['url']}")
+
+    ids = [db.add_discovered(conn, item) for item in found["found"]]
+    ids += [r["id"] for r in conn.execute(
+        "SELECT id FROM sources WHERE origin = 'manual' AND active = 1 ORDER BY id")]
+    ids = list(dict.fromkeys(ids))  # keep order, drop repeats
+    db.checkpoint(conn)
+
+    counts = {"found": len(found["found"]), "skipped": len(found["skipped"]),
+              "finder_errors": len(found["errors"]), "new": 0, "changed": 0,
+              "unchanged": 0, "incomplete": 0, "errors": 0}
+    for src in [conn.execute("SELECT * FROM sources WHERE id = ?", (i,)).fetchone() for i in ids]:
+        print(f"  {src['agency']} ({src['origin']})  {src['url']}")
         known = [r["content_hash"] for r in conn.execute(
             "SELECT content_hash FROM documents WHERE source_id = ?", (src["id"],))]
         try:
@@ -72,7 +93,7 @@ def run_collect(conn, limit=None) -> dict:
             conn.execute("UPDATE sources SET last_checked_at = ?, last_error = ? WHERE id = ?",
                          (db.now(), str(exc)[:2000], src["id"]))
             db.checkpoint(conn)
-            counts["errors"] += 1
+            counts["incomplete" if isinstance(exc, stages.IncompleteCapture) else "errors"] += 1
             continue
 
         conn.execute("UPDATE sources SET last_checked_at = ?, last_error = NULL WHERE id = ?",
@@ -97,8 +118,10 @@ def run_collect(conn, limit=None) -> dict:
             (src["id"], out["content_hash"], out["fetched_at"], out["title"],
              out["markdown_path"]))
         db.checkpoint(conn)
-        print(f"    NEW -> document #{cur.lastrowid}: {out['title']}")
-        counts["new"] += 1
+        kind = "CHANGED" if known else "NEW"
+        partial = f" ({out['missing_pages']} sub-page(s) missing)" if out["missing_pages"] else ""
+        print(f"    {kind} -> document #{cur.lastrowid}: {out['title']}{partial}")
+        counts["changed" if known else "new"] += 1
     return counts
 
 
@@ -336,7 +359,7 @@ def run_stage(stage: str, limit=None, preview: bool = False) -> dict:
     the work, and return a short summary. Used by main() and by Lambda."""
     conn = db.open_db()
     try:
-        db.sync_sources(conn, json.loads(SOURCES_FILE.read_text(encoding="utf-8")))
+        db.sync_sources(conn, storage.read_config("sources.json"))
         db.checkpoint(conn)
         print(f"\n== {stage} ==")
         if stage == "collect":

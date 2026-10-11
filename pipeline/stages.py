@@ -60,12 +60,24 @@ def collect(source: dict) -> dict:
     Each version gets its own file (URL hash + content hash in the name), so
     a file is never overwritten and always matches the version that points
     to it. The database stores only the path.
+
+    If some sub-pages of a multi-page report never loaded (even after the
+    retries in fetch_and_extract), the capture is incomplete. When we already
+    have a version, that raises IncompleteCapture rather than saving a
+    truncated copy that would look like a real change; the next run tries
+    again. A page we have never seen is saved anyway - partial beats nothing
+    - and "missing_pages" says how many were lost.
     """
     html, final_url = stage1.fetch_html(source["url"])
     result = stage1.fetch_and_extract(source["url"], html=html, final_url=final_url)
     content_hash = hashlib.sha256(result.body.encode("utf-8")).hexdigest()
-    if content_hash in source.get("known_hashes", []):
+    known = source.get("known_hashes", [])
+    if content_hash in known:
         return {"changed": False, "content_hash": content_hash}
+    if result.missing_pages and known:
+        raise IncompleteCapture(
+            f"{len(result.missing_pages)} of {len(result.pages) + len(result.missing_pages)} "
+            "page(s) did not load - kept the existing version, will retry next run")
 
     fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     path = stage1.save_markdown(source["agency"], result.canonical_url, result,
@@ -77,6 +89,7 @@ def collect(source: dict) -> dict:
         "title": result.title,
         "fetched_at": fetched_at,
         "markdown_path": storage.relative(path),
+        "missing_pages": len(result.missing_pages),
     }
 
 
@@ -222,6 +235,10 @@ def brief(briefings: list, pdf_path: Path) -> dict:
     source_count, insight_count = build_pdf(briefings, pdf_path)
     return {"pdf_path": str(pdf_path), "source_count": source_count,
             "insight_count": insight_count}
+
+
+class IncompleteCapture(RuntimeError):
+    """Some sub-pages of a report never loaded; nothing was saved."""
 
 
 class StageError(RuntimeError):

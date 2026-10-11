@@ -11,8 +11,13 @@ which of the two it is running against.
     PIPELINE_S3_BUCKET  when set, files are also downloaded from / uploaded to
                         this bucket. When not set (running locally), every
                         function here is a no-op and only the local folder is used.
+
+Settings files (sources.json, collect_settings.json) are read from
+config/<name> in the bucket when it is there, so they can be changed on AWS
+without redeploying, and from pipeline/<name> in the code otherwise.
 """
 
+import json
 import os
 from pathlib import Path
 
@@ -82,3 +87,11 @@ def exists(rel_path: str) -> bool:
         if _missing(exc):
             return False
         raise
+
+
+def read_config(name: str):
+    """A JSON settings file: config/<name> from S3 when a bucket is set and the
+    file is there, otherwise the copy shipped in pipeline/<name>."""
+    if BUCKET and download(f"config/{name}"):
+        return json.loads(local(f"config/{name}").read_text(encoding="utf-8"))
+    return json.loads((Path(__file__).resolve().parent / name).read_text(encoding="utf-8"))

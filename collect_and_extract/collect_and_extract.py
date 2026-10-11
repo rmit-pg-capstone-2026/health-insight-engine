@@ -2106,7 +2106,10 @@ def process_source(
         content_hash = hashlib.sha256(result.body.encode("utf-8")).hexdigest()
         extracted_at = datetime.now(timezone.utc).isoformat()
         try:
-            path = save_markdown(source_label, result.canonical_url, result, content_hash, extracted_at)
+            # One file per version, in a per-agency folder - what record_content()'s
+            # version history assumes (lost in the merge that made versioning optional).
+            path = save_markdown(source_label, result.canonical_url, result, content_hash, extracted_at,
+                                 dest_dir=OUTPUT_ROOT / source_label, versioned=True)
         except OSError as e:
             logger.warning("  [SKIP] (%d/%d) could not save to disk: %s", i + 1, total, e)
             counts["failed"] += 1

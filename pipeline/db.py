@@ -1,7 +1,8 @@
 """
 The pipeline's state database (SQLite): data/pipeline.db.
 
-    sources     the pages we watch (synced from pipeline/sources.json)
+    sources     the pages we track: manual ones (sources.json) and ones the
+                finders discovered (discover.py)
     documents   one row per version of a page; points at its markdown file
     insights    one row per new insight found in a document
     briefings   one row per PDF produced
@@ -29,14 +30,19 @@ import storage
 DB_FILE = "pipeline.db"                 # relative to the data folder, and its S3 key
 DB_PATH = storage.local(DB_FILE)
 MAX_ATTEMPTS = 3
-SCHEMA_VERSION = 3                      # bump when the tables or stored paths change
+SCHEMA_VERSION = 4                      # bump when the tables or stored paths change
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sources (
     id              INTEGER PRIMARY KEY,
     url             TEXT NOT NULL UNIQUE,
     agency          TEXT NOT NULL,              -- AIHW or ABS
-    active          INTEGER NOT NULL DEFAULT 1, -- 0 once removed from sources.json
+    origin          TEXT NOT NULL,              -- manual (sources.json) or discovered
+    topic           TEXT,                       -- from the address, e.g. dementia
+    title           TEXT,                       -- as listed by the finder
+    release_date    TEXT,                       -- latest date the finder saw for it
+    active          INTEGER NOT NULL DEFAULT 1, -- 0 once a manual URL leaves sources.json
+    first_seen_at   TEXT,
     last_checked_at TEXT,
     last_error      TEXT
 );
@@ -149,20 +155,36 @@ def checkpoint(conn: sqlite3.Connection) -> None:
 
 
 def sync_sources(conn: sqlite3.Connection, entries: list[dict]) -> None:
-    """Make the sources table match sources.json: add new URLs, reactivate
-    ones that came back, and deactivate ones that were removed. Rows are never
-    deleted, because documents still point at them."""
+    """Make the manual sources match sources.json: add new URLs, reactivate
+    ones that came back, and switch off manual ones that were removed.
+    Discovered sources are never touched here. Rows are never deleted,
+    because documents still point at them."""
     listed = {e["url"]: e["agency"].upper() for e in entries}
     for url, agency in listed.items():
         conn.execute(
-            "INSERT INTO sources (url, agency) VALUES (?, ?) "
-            "ON CONFLICT(url) DO UPDATE SET agency = excluded.agency, active = 1",
-            (url, agency),
+            "INSERT INTO sources (url, agency, origin, first_seen_at) VALUES (?, ?, 'manual', ?) "
+            "ON CONFLICT(url) DO UPDATE SET agency = excluded.agency, origin = 'manual', active = 1",
+            (url, agency, now()),
         )
-    for row in conn.execute("SELECT id, url FROM sources WHERE active = 1").fetchall():
+    for row in conn.execute("SELECT id, url FROM sources WHERE active = 1 "
+                            "AND origin = 'manual'").fetchall():
         if row["url"] not in listed:
             conn.execute("UPDATE sources SET active = 0 WHERE id = ?", (row["id"],))
     conn.commit()
+
+
+def add_discovered(conn: sqlite3.Connection, item: dict) -> int:
+    """Record a page a finder returned and return its source id. A URL that is
+    already tracked (manual or discovered) keeps its origin; only the finder's
+    title and date are refreshed."""
+    conn.execute(
+        "INSERT INTO sources (url, agency, origin, topic, title, release_date, first_seen_at) "
+        "VALUES (?, ?, 'discovered', ?, ?, ?, ?) "
+        "ON CONFLICT(url) DO UPDATE SET title = excluded.title, "
+        "release_date = excluded.release_date, topic = COALESCE(sources.topic, excluded.topic)",
+        (item["url"], item["agency"], item["topic"], item["title"], item["release_date"], now()),
+    )
+    return conn.execute("SELECT id FROM sources WHERE url = ?", (item["url"],)).fetchone()[0]
 
 
 def record_failure(conn: sqlite3.Connection, doc_id: int, error: str) -> str:
