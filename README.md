@@ -115,9 +115,20 @@ How it behaves after that:
 - A document that fails is retried on the next run, and marked `failed` after 3 tries.
 - PDFs go to `data/briefing-paper/briefing_<date>.pdf` and are never overwritten.
 
-### Running it on AWS Lambda
+### Running it on AWS (Lambda + Step Functions)
 
-`pipeline/lambda_handler.py` has one entry point per stage (`pipeline.lambda_handler.collect`, `.extract`, `.assess`, `.brief`). All four functions use the same zip:
+One Lambda function, `health-insight-pipeline` (handler `pipeline.lambda_handler.handler`), runs every stage; the event says which:
+
+```json
+{"stage": "collect"}
+{"stage": "extract", "limit": 3}
+{"stage": "assess", "limit": 1}
+{"stage": "brief", "preview": true}
+```
+
+The Step Functions workflow in `stepfunctions/weekly.asl.json` calls it in order: collect once, then extract and assess in small batches, calling again while the result's `still_waiting` is above 0. So no single call comes near Lambda's 15-minute limit. Brief runs separately.
+
+Build the zip once and upload it to the one function:
 
 ```bash
 bash build_lambda.sh        # -> dist/lambda.zip (Linux packages for Python 3.12, x86_64)
@@ -125,7 +136,7 @@ bash build_lambda.sh        # -> dist/lambda.zip (Linux packages for Python 3.12
 
 To change `sources.json` or `collect_settings.json` on AWS without redeploying, upload the edited file to `config/<name>` in the bucket - it takes priority over the copy in the code.
 
-On Lambda, files live in `/tmp/data` and are synced with the S3 bucket in `PIPELINE_S3_BUCKET`: each call downloads `pipeline.db`, and uploads it again after every document. Run the stages one at a time. Test events: `{"limit": 1}` for extract/assess, `{"preview": true}` for brief.
+On Lambda, files live in `/tmp/data` and are synced with the S3 bucket in `PIPELINE_S3_BUCKET`: each call downloads `pipeline.db`, and uploads it again after every document. Only one call should run at a time.
 
 To start from scratch, delete `data/pipeline.db`. To retry a failed document: `sqlite3 data/pipeline.db "UPDATE documents SET status='new', attempts=0 WHERE id=<id>"` (use `status='extracted'` if it failed at the assess stage).
 

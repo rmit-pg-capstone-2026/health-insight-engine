@@ -1,19 +1,21 @@
 """
-AWS Lambda entry points - one per stage, all in the same zip.
+AWS Lambda entry point. One function runs every stage; the event says which:
 
-Set each function's handler to one of:
-    pipeline.lambda_handler.collect
-    pipeline.lambda_handler.extract
-    pipeline.lambda_handler.assess
-    pipeline.lambda_handler.brief
+    {"stage": "collect"}
+    {"stage": "extract", "limit": 3}     limit: at most this many documents this call
+    {"stage": "assess",  "limit": 1}
+    {"stage": "brief"}
+    {"stage": "brief", "preview": true}  make the PDF without marking anything as briefed
+
+Handler setting on the function:  pipeline.lambda_handler.handler
+
+The Step Functions workflow (stepfunctions/weekly.asl.json) calls this once
+per stage, and keeps calling extract/assess until nothing is left waiting -
+each call returns "still_waiting" for exactly that.
 
 Each call downloads pipeline.db from S3, runs its stage through run.py, and
-uploads the database again after every document. Run the stages one at a
-time - two running at once would overwrite each other's database.
-
-Test event (all keys optional):
-    {"limit": 1}        extract / assess: at most this many documents this call
-    {"preview": true}   brief: make the PDF without marking anything as briefed
+uploads the database again after every document. Only one call should run at
+a time - two at once would overwrite each other's database.
 
 Required environment variables on the function:
     PIPELINE_S3_BUCKET, OPENROUTER_API_KEY,
@@ -35,22 +37,9 @@ if not os.environ.get("PIPELINE_S3_BUCKET"):
 import run  # noqa: E402
 
 
-def _run(stage, event):
+def handler(event, context):
     event = event or {}
+    stage = event.get("stage")
+    if stage not in run.STAGES:
+        raise ValueError(f'event needs "stage": one of {", ".join(run.STAGES)} (got {stage!r})')
     return run.run_stage(stage, limit=event.get("limit"), preview=bool(event.get("preview")))
-
-
-def collect(event, context):
-    return _run("collect", event)
-
-
-def extract(event, context):
-    return _run("extract", event)
-
-
-def assess(event, context):
-    return _run("assess", event)
-
-
-def brief(event, context):
-    return _run("brief", event)

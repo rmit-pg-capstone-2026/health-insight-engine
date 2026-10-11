@@ -1,0 +1,72 @@
+{
+  "Comment": "Weekly pipeline: collect, then extract and assess in small batches until nothing is waiting. Each box is one call to the health-insight-pipeline Lambda.",
+  "StartAt": "Collect",
+  "States": {
+    "Collect": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:ap-southeast-2:270546760480:function:health-insight-pipeline",
+        "Payload": { "stage": "collect" }
+      },
+      "ResultSelector": { "result.$": "$.Payload" },
+      "ResultPath": "$.collect",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 10, "MaxAttempts": 3, "BackoffRate": 2
+        }
+      ],
+      "Next": "Extract"
+    },
+    "Extract": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:ap-southeast-2:270546760480:function:health-insight-pipeline",
+        "Payload": { "stage": "extract", "limit": 3 }
+      },
+      "ResultSelector": { "result.$": "$.Payload" },
+      "ResultPath": "$.extract",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 10, "MaxAttempts": 3, "BackoffRate": 2
+        }
+      ],
+      "Next": "More to extract?"
+    },
+    "More to extract?": {
+      "Type": "Choice",
+      "Choices": [
+        { "Variable": "$.extract.result.still_waiting", "NumericGreaterThan": 0, "Next": "Extract" }
+      ],
+      "Default": "Assess"
+    },
+    "Assess": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:ap-southeast-2:270546760480:function:health-insight-pipeline",
+        "Payload": { "stage": "assess", "limit": 1 }
+      },
+      "ResultSelector": { "result.$": "$.Payload" },
+      "ResultPath": "$.assess",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 10, "MaxAttempts": 3, "BackoffRate": 2
+        }
+      ],
+      "Next": "More to assess?"
+    },
+    "More to assess?": {
+      "Type": "Choice",
+      "Choices": [
+        { "Variable": "$.assess.result.still_waiting", "NumericGreaterThan": 0, "Next": "Assess" }
+      ],
+      "Default": "Done"
+    },
+    "Done": { "Type": "Succeed" }
+  }
+}
