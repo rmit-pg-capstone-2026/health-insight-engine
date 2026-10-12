@@ -69,7 +69,28 @@ def _chat_content(body: dict) -> str:
 # ----------------------------------------------------------------- stage 1
 
 def collect(source: dict) -> dict:
-    """Fetch one watched page and save it as markdown if it changed."""
+    """Fetch one watched page and save it as markdown if it changed.
+
+    In:  {"agency": "ABS", "url": "https://...", "known_hashes": ["490084b2...", ...]}
+    Out: {"changed": False, "content_hash": "490084b2..."}                when nothing changed
+         {"changed": True, "content_hash": "a91c3e2b...", "title": "...",
+          "fetched_at": "2026-10-02T03:10:00+00:00",
+          "markdown_path": "source-extracted-files/versions/abs-...-ec4e2569-a91c3e2b.md"}
+
+    markdown_path is relative to the data folder (see storage.py), so it is
+    also the file's key in S3.
+
+    Each version gets its own file (URL hash + content hash in the name), so
+    a file is never overwritten and always matches the version that points
+    to it. The database stores only the path.
+
+    If some sub-pages of a multi-page report never loaded (even after the
+    retries in fetch_and_extract), the capture is incomplete. When we already
+    have a version, that raises IncompleteCapture rather than saving a
+    truncated copy that would look like a real change; the next run tries
+    again. A page we have never seen is saved anyway - partial beats nothing
+    - and "missing_pages" says how many were lost.
+    """
     html, final_url = stage1.fetch_html(source["url"])
     result = stage1.fetch_and_extract(source["url"], html=html, final_url=final_url)
     content_hash = hashlib.sha256(result.body.encode("utf-8")).hexdigest()
@@ -98,10 +119,21 @@ def collect(source: dict) -> dict:
 # ----------------------------------------------------------------- stage 2
 
 def extract(document: dict) -> dict:
-    """Run insight extraction through Bedrock or an API-key endpoint.
+    """Run the insight extraction prompt on one document.
 
-    All extraction prompt/schema/evidence checks stay unchanged. Only the LLM
-    transport is provider-selectable through LLM_BACKEND.
+    In:  {"markdown_path": "source-extracted-files/versions/abs-....md",
+          "retrieval_date": "2026-10-02"}
+    Out: {"document": {"publisher", "title", "publication_date", "period_covered",
+                       "summary", "document_scope"},
+          "insights": [{"position": 1, "insight_type", "finding", "evidence",
+                        "evidence_location", "target_population", "caveat",
+                        "reasoning", "evidence_found": True}, ...],
+          "llm": {"model", "provider", "prompt_tokens", "completion_tokens",
+                  "cost_usd", "seconds", "error"},
+          "record": {...the same run record extract.py writes to disk...}}
+
+    evidence_found is the verbatim-quote check: False means the quote is not
+    in the document, and the insight should not be trusted.
     """
     backend = backend_from_env()
     api_url = os.environ.get("EXTRACT_API_URL")
@@ -243,7 +275,22 @@ def extract(document: dict) -> dict:
 # ----------------------------------------------------------------- stage 3
 
 def assess(article: dict) -> dict:
-    """Run Priority Assessment through Bedrock or an API-key endpoint."""
+    """Run the priority assessment prompt on one document's insights.
+
+    In:  the article-mode handoff stage 3 has always used -
+         {"source": {"publisher", "title", "url", "publication_date", "retrieval_date"},
+          "summary": "...",
+          "insights": [{"insight_id": "INSIGHT_001", "insight_type", "finding",
+                        "evidence", "evidence_location", "target_population",
+                        "caveat"}, ...]}
+    Out: {"assessments": [{"insight_id": "INSIGHT_001", "relevance": "Relevant",
+                           "criteria": {...10 factors...}, "priority": "High Priority",
+                           "priority_rationale": "..."}, ...],
+          "llm": {"model", "seconds", "error"}}
+
+    The response is checked against the schema and must cover every input
+    insight, in order - anything else raises.
+    """
     backend = backend_from_env()
     api_url = os.environ.get("PROMPT2_API_URL")
     api_key = os.environ.get("PROMPT2_API_KEY") or os.environ.get("OPENAI_API_KEY")
@@ -303,7 +350,18 @@ def assess(article: dict) -> dict:
 # ----------------------------------------------------------------- stage 4
 
 def brief(briefings: list, pdf_path: Path) -> dict:
-    """Render the PDF."""
+    """Render the PDF.
+
+    In:  one dict per document, in the shape stage 3's script writes to
+         data/priority-tagged-insight-files/ -
+         [{"source": {...}, "summary": "...",
+           "insights": [{"insight_id", "insight_type", "finding", "evidence",
+                         "evidence_location", "caveat", "priority",
+                         "priority_rationale", ...}, ...],
+           "section_index": {"clinical": [...], "pharmaceutical": [...],
+                             "medical_technology": [...], "watchlist": [...]}}, ...]
+    Out: {"pdf_path": "...", "source_count": 3, "insight_count": 18}
+    """
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
     source_count, insight_count = build_pdf(briefings, pdf_path)
     return {"pdf_path": str(pdf_path), "source_count": source_count,
@@ -315,7 +373,8 @@ class IncompleteCapture(RuntimeError):
 
 
 class StageError(RuntimeError):
-    """A stage failure that carries model metadata/output for logging."""
+    """A stage failure that still carries what the model said, so the
+    caller can log the call before recording the failure."""
 
     def __init__(self, message, llm=None, output=None):
         super().__init__(message)
