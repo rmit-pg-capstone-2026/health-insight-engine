@@ -32,7 +32,10 @@ RETRYABLE_STATUS = {429, 500, 502, 503, 504, 529}
 
 
 def backend_from_env() -> str:
-    backend = os.environ.get("LLM_BACKEND", "bedrock").strip().lower()
+    raw = os.environ.get("LLM_BACKEND")
+    if not raw:
+        raise RuntimeError("Set LLM_BACKEND to 'bedrock' or 'api_key'")
+    backend = raw.strip().lower()
     if backend not in VALID_BACKENDS:
         raise RuntimeError(
             "LLM_BACKEND must be 'bedrock' or 'api_key' "
@@ -92,7 +95,7 @@ def _headers(
 
     if not api_key:
         raise RuntimeError(
-            "LLM_BACKEND=api_key requires LLM_API_KEY or a stage-specific API key"
+            "LLM_BACKEND=api_key requires the configured stage API key"
         )
     return {
         "Authorization": f"Bearer {api_key}",
