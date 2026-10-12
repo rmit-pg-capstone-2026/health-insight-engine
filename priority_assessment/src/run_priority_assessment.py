@@ -9,21 +9,21 @@ from aggregate_assessed_insights import aggregate_assessed_insights
 from call_priority_assessment import run_call
 from consolidate_insights import consolidate_insights
 from prepare_assessment_input import write_outputs
-from validate_priority_assessment import load_json, validate_priority_assessment_results
+from validate_priority_assessment import (
+    PriorityAssessmentValidationError,
+    load_json,
+    validate_priority_assessment_results,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parent
 DEFAULT_PROMPT = ROOT / "prompts" / "priority_assessment_v0.3_article.md"
-DEFAULT_SCHEMA = ROOT / "schemas" / "priority_assessment_schema_v0.1.json"
+DEFAULT_SCHEMA = ROOT / "schemas" / "priority_assessment_article_schema_v0.1.json"
 
-# Shared pipeline folders: stage 2 writes the first, stage 4 reads the second.
 DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "insight-generated-files"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "priority-tagged-insight-files"
 
-# Settings come from the repo-root .env. Loaded before the parser is built,
-# because the argument defaults below read PROMPT2_* from the environment.
-# Anything already exported in the shell still wins.
 try:
     from dotenv import load_dotenv
     load_dotenv(REPO_ROOT / ".env")
@@ -36,15 +36,14 @@ def _write_json(path: Path, value) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def process_one(input_path: Path, args, output_dir: Path) -> dict:
-    """Run the Week 9 pipeline for one Prompt 1 file.
+def _validate_results(assessment_results, article_input, article_schema) -> None:
+    expected_ids = [x["insight_id"] for x in article_input["insights"]]
+    validate_priority_assessment_results(
+        assessment_results, expected_ids, article_schema
+    )
 
-    Unchanged from the original single-file flow, except that:
-      - the review queue is named after the input, so every article keeps its
-        own instead of each run overwriting the last one's;
-      - the final briefing-ready JSON is also written to the shared pipeline
-        folder, under the input's own filename, for stage 4 to pick up.
-    """
+
+def process_one(input_path: Path, args, output_dir: Path) -> dict:
     raw_dir = ROOT / "data" / "raw"
     processed_dir = ROOT / "data" / "processed"
     assessments_dir = ROOT / "data" / "assessments"
@@ -71,39 +70,56 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
         input_path, assessment_input_path, review_path
     )
     print(
-        f"      ready={len(article_input['insights'])}, review_required={len(review_required)}"
+        f"      ready={len(article_input['insights'])}, "
+        f"review_required={len(review_required)}"
     )
+
+    article_schema = load_json(args.schema)
+    expected_ids = [x["insight_id"] for x in article_input["insights"]]
 
     print("[3/5] Running Priority Assessment v0.3 article mode...")
     if not article_input["insights"]:
         assessment_results = {"assessments": []}
         _write_json(results_path, assessment_results)
+        _validate_results(assessment_results, article_input, article_schema)
         print("      no clean insights; API call skipped")
     elif args.assessment_file:
         assessment_results = load_json(args.assessment_file)
         _write_json(results_path, assessment_results)
+        _validate_results(assessment_results, article_input, article_schema)
         print(f"      using existing assessment file: {args.assessment_file}")
     else:
-        if not (args.api_url and args.api_key and args.model):
+        if not (args.api_url and args.model):
             raise RuntimeError(
-                "Priority Assessment API configuration is missing. Set PROMPT2_API_URL, "
-                "PROMPT2_API_KEY and PROMPT2_MODEL in the repo-root .env, or pass "
-                "--assessment-file."
+                "Priority Assessment configuration is missing. Set PROMPT2_API_URL "
+                "and PROMPT2_MODEL; API-key mode also needs PROMPT2_API_KEY."
             )
-        assessment_results = run_call(
-            assessment_input_path,
-            args.prompt,
-            results_path,
-            api_url=args.api_url,
-            api_key=args.api_key,
-            model=args.model,
-            json_mode=not args.plain_json,
-            timeout_seconds=args.timeout,
-        )
 
-    expected_ids = [x["insight_id"] for x in article_input["insights"]]
-    item_schema = load_json(args.schema)
-    validate_priority_assessment_results(assessment_results, expected_ids, item_schema)
+        max_attempts = 2
+        for attempt in range(1, max_attempts + 1):
+            if attempt > 1:
+                print("      retrying Priority Assessment once...")
+            assessment_results = run_call(
+                assessment_input_path,
+                args.prompt,
+                results_path,
+                api_url=args.api_url,
+                api_key=args.api_key,
+                model=args.model,
+                json_mode=not args.plain_json,
+                timeout_seconds=args.timeout,
+                schema_path=None if args.plain_json else args.schema,
+                backend=args.backend,
+            )
+            try:
+                _validate_results(assessment_results, article_input, article_schema)
+                break
+            except PriorityAssessmentValidationError as exc:
+                if attempt >= max_attempts:
+                    raise
+                print("      validation failed; requesting one fresh response")
+                print(f"      {exc}")
+
     print(f"      validated {len(expected_ids)} assessments")
 
     print("[4/5] Aggregating...")
@@ -113,8 +129,6 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
     print("[5/5] Consolidating...")
     briefing_input = consolidate_insights(assessed)
     _write_json(briefing_path, briefing_input)
-    # Written from the in-memory result, never copied from the handoff file,
-    # so a failed article can never pick up the previous article's output.
     _write_json(final_path, briefing_input)
 
     print(f"Done: {final_path}")
@@ -128,8 +142,6 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
 
 
 def run_folder(input_dir: Path, args, output_dir: Path) -> int:
-    """Process every Prompt 1 JSON in a folder. One file failing does not stop
-    the rest. Returns the number of failures."""
     files = sorted(p for p in input_dir.glob("*.json") if p.is_file())
     if not files:
         raise RuntimeError(f"No .json files found in {input_dir}")
@@ -144,7 +156,7 @@ def run_folder(input_dir: Path, args, output_dir: Path) -> int:
         print("-" * 74)
         try:
             done.append((path.name, process_one(path.resolve(), args, output_dir)))
-        except Exception as exc:  # keep the batch alive
+        except Exception as exc:
             print(f"FAILED: {exc}")
             failed.append((path.name, str(exc)))
         print()
@@ -153,8 +165,10 @@ def run_folder(input_dir: Path, args, output_dir: Path) -> int:
     print("BATCH SUMMARY")
     print("=" * 74)
     for name, info in done:
-        print(f"  ok      {name}  (ready={info['ready']}, review={info['review']}, "
-              f"in briefing={info['kept']})")
+        print(
+            f"  ok      {name}  (ready={info['ready']}, review={info['review']}, "
+            f"in briefing={info['kept']})"
+        )
     for name, why in failed:
         print(f"  FAILED  {name}  {why}")
     print(f"\n{len(done)} written to {output_dir}, {len(failed)} failed")
@@ -163,50 +177,40 @@ def run_folder(input_dir: Path, args, output_dir: Path) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run the Week 9 Prompt 1 -> Priority Assessment -> briefing-input "
-                    "pipeline, for one file or every file in a folder."
+        description=(
+            "Run Prompt 1 -> Priority Assessment -> briefing-input for one "
+            "file or every JSON file in a folder."
+        )
     )
-    parser.add_argument(
-        "prompt1_json",
-        type=Path,
-        nargs="?",
-        default=DEFAULT_INPUT_DIR,
-        help="a Prompt 1 JSON file, or a folder of them "
-             f"(default: {DEFAULT_INPUT_DIR.relative_to(REPO_ROOT)})",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=DEFAULT_OUTPUT_DIR,
-        help="where the final briefing-ready JSON is written, one per input "
-             f"(default: {DEFAULT_OUTPUT_DIR.relative_to(REPO_ROOT)})",
-    )
+    parser.add_argument("prompt1_json", type=Path, nargs="?", default=DEFAULT_INPUT_DIR)
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--prompt", type=Path, default=DEFAULT_PROMPT)
     parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
     parser.add_argument("--api-url", default=os.getenv("PROMPT2_API_URL"))
-    parser.add_argument("--api-key", default=os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY"))
+    parser.add_argument(
+        "--api-key",
+        default=os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY"),
+    )
     parser.add_argument("--model", default=os.getenv("PROMPT2_MODEL"))
+    parser.add_argument("--backend", choices=("bedrock", "api_key"),
+                        default=os.getenv("LLM_BACKEND"))
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--plain-json", action="store_true")
-    parser.add_argument(
-        "--assessment-file",
-        type=Path,
-        help="Single-file mode only: use an existing Priority Assessment article-mode "
-             "result instead of making an API call.",
-    )
+    parser.add_argument("--assessment-file", type=Path)
     args = parser.parse_args()
 
     input_path = args.prompt1_json.resolve()
     if not input_path.exists():
         parser.error(f"Input does not exist: {input_path}")
+    if not args.schema.exists():
+        parser.error(f"Article schema does not exist: {args.schema}")
 
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if input_path.is_dir():
         if args.assessment_file:
-            parser.error("--assessment-file only works with a single input file, "
-                         "not a folder")
+            parser.error("--assessment-file only works with a single input file")
         if run_folder(input_path, args, output_dir):
             raise SystemExit(1)
         return
