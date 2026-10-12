@@ -1,15 +1,21 @@
 import argparse
+import copy
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
-from urllib import error, request
 
-# When run on its own, read PROMPT2_* from the repo-root .env. Anything already
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "pipeline"))
+
+from llm_transport import backend_from_env, post_chat_completion  # noqa: E402
+
+# When run on its own, read settings from the repo-root .env. Anything already
 # exported in the shell still wins.
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+    load_dotenv(REPO_ROOT / ".env")
 except ImportError:
     pass
 
@@ -39,11 +45,40 @@ def parse_model_json(text: str) -> Dict[str, Any]:
     return parsed
 
 
+def _bedrock_compatible_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a Bedrock-compatible copy without changing the repo schema.
+
+    Local validation still uses the full Draft 2020-12 schema. Only the API
+    request copy drops constraints that Bedrock structured outputs reject.
+    """
+    unsupported_keywords = {
+        "minLength",
+        "maxLength",
+        "minimum",
+        "maximum",
+        "multipleOf",
+    }
+
+    def clean(value):
+        if isinstance(value, dict):
+            return {
+                key: clean(item)
+                for key, item in value.items()
+                if key not in unsupported_keywords
+            }
+        if isinstance(value, list):
+            return [clean(item) for item in value]
+        return value
+
+    return clean(copy.deepcopy(schema))
+
+
 def build_request_payload(
     model: str,
     prompt_text: str,
     article_input: Dict[str, Any],
     json_mode: bool = True,
+    response_schema: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     user_message = (
         "Execute Priority Assessment v0.3 article mode on the supplied article insights.\n"
@@ -58,56 +93,63 @@ def build_request_payload(
         ],
     }
     if json_mode:
-        payload["response_format"] = {"type": "json_object"}
+        if response_schema is not None:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "priority_assessment_article",
+                    "strict": True,
+                    "schema": response_schema,
+                },
+            }
+        else:
+            payload["response_format"] = {"type": "json_object"}
     return payload
 
 
 def call_openai_compatible_chat(
     api_url: str,
-    api_key: str,
+    api_key: Optional[str],
     model: str,
     prompt_text: str,
     article_input: Dict[str, Any],
     *,
     timeout_seconds: int = 180,
     json_mode: bool = True,
+    response_schema: Optional[Dict[str, Any]] = None,
+    backend: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Call an OpenAI-compatible /chat/completions endpoint.
+    """Call an OpenAI-compatible chat-completions endpoint.
 
-    The provider is intentionally configurable for Week 9. The pipeline owns the
-    handoff/validation contract, not the provider choice.
+    Bedrock uses the AWS credential chain + SigV4. API-key mode uses bearer
+    authentication. The prompt/output contract is identical for both.
     """
-    payload = build_request_payload(model, prompt_text, article_input, json_mode)
-    body = json.dumps(payload).encode("utf-8")
-    req = request.Request(
-        api_url,
-        data=body,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+    backend = backend or backend_from_env()
+    if response_schema is not None and backend == "bedrock":
+        response_schema = _bedrock_compatible_schema(response_schema)
+
+    payload = build_request_payload(
+        model,
+        prompt_text,
+        article_input,
+        json_mode=json_mode,
+        response_schema=response_schema,
     )
-
-    try:
-        with request.urlopen(req, timeout=timeout_seconds) as response:
-            response_body = response.read().decode("utf-8")
-    except error.HTTPError as exc:
-        details = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(
-            f"Priority Assessment API returned HTTP {exc.code}: {details}"
-        ) from exc
-    except error.URLError as exc:
-        raise RuntimeError(f"Priority Assessment API request failed: {exc}") from exc
-
-    envelope = json.loads(response_body)
+    envelope, _ = post_chat_completion(
+        api_url,
+        payload,
+        backend=backend,
+        api_key=api_key,
+        timeout_seconds=timeout_seconds,
+        max_attempts=2,
+    )
     try:
         content = envelope["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError(
-            "Unexpected OpenAI-compatible response shape; missing choices[0].message.content"
+            "Unexpected OpenAI-compatible response shape; "
+            "missing choices[0].message.content"
         ) from exc
-
     if not isinstance(content, str):
         raise RuntimeError("Priority Assessment response content is not a string")
     return parse_model_json(content)
@@ -123,7 +165,10 @@ def run_call(
     model: Optional[str] = None,
     json_mode: bool = True,
     timeout_seconds: int = 180,
+    schema_path: Optional[Path] = None,
+    backend: Optional[str] = None,
 ) -> Dict[str, Any]:
+    backend = backend or backend_from_env()
     api_url = api_url or os.getenv("PROMPT2_API_URL")
     api_key = api_key or os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY")
     model = model or os.getenv("PROMPT2_MODEL")
@@ -132,16 +177,20 @@ def run_call(
         name
         for name, value in (
             ("PROMPT2_API_URL / --api-url", api_url),
-            ("PROMPT2_API_KEY / --api-key", api_key),
             ("PROMPT2_MODEL / --model", model),
         )
         if not value
     ]
+    if backend == "api_key" and not api_key:
+        missing.append("PROMPT2_API_KEY / --api-key")
     if missing:
         raise RuntimeError("Missing API configuration: " + ", ".join(missing))
 
     article_input = _load_json(input_path)
     prompt_text = prompt_path.read_text(encoding="utf-8")
+    response_schema = None
+    if json_mode and schema_path is not None:
+        response_schema = _load_json(schema_path)
 
     results = call_openai_compatible_chat(
         api_url=api_url,
@@ -151,6 +200,8 @@ def run_call(
         article_input=article_input,
         timeout_seconds=timeout_seconds,
         json_mode=json_mode,
+        response_schema=response_schema,
+        backend=backend,
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -165,14 +216,16 @@ def main() -> None:
     parser.add_argument("input_json", type=Path)
     parser.add_argument("--prompt", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=Path("assessment_results.json"))
+    parser.add_argument("--schema", type=Path)
     parser.add_argument("--api-url")
     parser.add_argument("--api-key")
     parser.add_argument("--model")
+    parser.add_argument("--backend", choices=("bedrock", "api_key"))
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument(
         "--plain-json",
         action="store_true",
-        help="Do not send response_format=json_object (for providers that do not support it).",
+        help="Do not send response_format (local validation can still run separately).",
     )
     args = parser.parse_args()
 
@@ -185,6 +238,8 @@ def main() -> None:
         model=args.model,
         json_mode=not args.plain_json,
         timeout_seconds=args.timeout,
+        schema_path=args.schema,
+        backend=args.backend,
     )
     print(f"Saved: {args.output}")
 
