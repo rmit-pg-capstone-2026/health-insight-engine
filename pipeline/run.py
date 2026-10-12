@@ -156,6 +156,11 @@ def summary(conn, counts: dict, status: str) -> dict:
     return counts
 
 
+def _missing_evidence_location(value) -> bool:
+    """True when the evidence locator is absent or contains only whitespace."""
+    return not isinstance(value, str) or not value.strip()
+
+
 def run_extract(conn, limit=None) -> dict:
     counts = {"done": 0, "failed": 0}
     docs = waiting(conn, "new", limit)
@@ -177,7 +182,22 @@ def run_extract(conn, limit=None) -> dict:
         with conn:  # all or nothing
             conn.execute("DELETE FROM insights WHERE document_id = ?", (doc["id"],))
             for ins in insights:
-                ok = ins["evidence_found"]
+                quote_ok = bool(ins["evidence_found"])
+                location_missing = _missing_evidence_location(ins["evidence_location"])
+
+                held_back_reasons = []
+                if not quote_ok:
+                    held_back_reasons.append(
+                        "evidence quote not found in the source document"
+                    )
+                if location_missing:
+                    held_back_reasons.append("missing or blank evidence_location")
+
+                held_back = bool(held_back_reasons)
+                held_back_reason = (
+                    "; ".join(held_back_reasons) if held_back_reasons else None
+                )
+
                 conn.execute(
                     "INSERT INTO insights (document_id, position, insight_type, finding, "
                     "evidence, evidence_location, target_population, caveat, reasoning, "
@@ -185,8 +205,8 @@ def run_extract(conn, limit=None) -> dict:
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (doc["id"], ins["position"], ins["insight_type"], ins["finding"],
                      ins["evidence"], ins["evidence_location"], ins["target_population"],
-                     ins["caveat"], ins["reasoning"], int(ok), int(not ok),
-                     None if ok else "evidence quote not found in the source document"))
+                     ins["caveat"], ins["reasoning"], int(quote_ok), int(held_back),
+                     held_back_reason))
             conn.execute(
                 "UPDATE documents SET publisher = ?, publication_date = ?, period_covered = ?, "
                 "summary = ?, document_scope = ?, duplicates_dropped = ?, status = ?, "
@@ -197,10 +217,15 @@ def run_extract(conn, limit=None) -> dict:
         db.checkpoint(conn)
         counts["done"] += 1
 
-        held = sum(1 for ins in insights if not ins["evidence_found"])
+        held = sum(
+            1
+            for ins in insights
+            if not ins["evidence_found"]
+            or _missing_evidence_location(ins["evidence_location"])
+        )
         cost = out["llm"].get("cost_usd")
         print(f"    {len(out['insights'])} found, {dropped} already seen, {len(insights)} new "
-              f"({held} held back: quote not found)" + (f", ${cost:.4f}" if cost else ""))
+              f"({held} held back for review)" + (f", ${cost:.4f}" if cost else ""))
     return summary(conn, counts, "new")
 
 
@@ -215,9 +240,25 @@ def assessment_input(conn, doc) -> dict:
     insights = []
     for r in rows:
         insight_id = "INSIGHT_%03d" % r["position"]
-        missing = [f for f in HANDOFF_REQUIRED_FIELDS if r[f] in (None, "")]
+        missing = [
+            f
+            for f in HANDOFF_REQUIRED_FIELDS
+            if f != "evidence_location" and r[f] in (None, "")
+        ]
         if missing:
             raise ValueError(f"{insight_id} is missing required handoff fields: {missing}")
+
+        # Defensive handling for rows created before extraction began holding
+        # back insights with missing evidence locators.
+        if _missing_evidence_location(r["evidence_location"]):
+            conn.execute(
+                "UPDATE insights SET held_back = 1, held_back_reason = ? WHERE id = ?",
+                ("missing or blank evidence_location", r["id"]),
+            )
+            print(
+                f"    {insight_id} held back: missing or blank evidence_location"
+            )
+            continue
         insights.append({"insight_id": insight_id, "insight_type": r["insight_type"],
                          "finding": r["finding"], "evidence": r["evidence"],
                          "evidence_location": r["evidence_location"],
