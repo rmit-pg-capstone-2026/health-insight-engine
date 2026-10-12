@@ -12,7 +12,7 @@ def load_json(path: Path) -> Any:
 def aggregate_assessed_insights(
     article_input: Dict[str, Any],
     assessment_results: Dict[str, Any],
-    priority_assessment_version: str = "v0.3_article",
+    priority_assessment_version: str = "v0.4.3_article",
 ) -> Dict[str, Any]:
     insights = article_input.get("insights", [])
     assessments = assessment_results.get("assessments", [])
@@ -52,7 +52,7 @@ def main() -> None:
     parser.add_argument("input_json", type=Path)
     parser.add_argument("results_json", type=Path)
     parser.add_argument("--output", type=Path, default=Path("assessed_insights.json"))
-    parser.add_argument("--priority-assessment-version", default="v0.3_article")
+    parser.add_argument("--priority-assessment-version", default="v0.4.3_article")
     args = parser.parse_args()
 
     aggregated = aggregate_assessed_insights(

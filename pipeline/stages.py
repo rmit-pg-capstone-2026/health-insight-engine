@@ -47,7 +47,7 @@ EXTRACT_MODEL = os.environ.get("EXTRACT_MODEL", "deepseek/deepseek-v4-flash-0731
 EXTRACT_PROVIDER = os.environ.get("EXTRACT_PROVIDER", "deepinfra") or None
 
 PRIORITY_ROOT = REPO_ROOT / "priority_assessment"
-PRIORITY_PROMPT = PRIORITY_ROOT / "prompts" / "priority_assessment_v0.3_article.md"
+PRIORITY_PROMPT = PRIORITY_ROOT / "prompts" / "priority_assessment_v0.4.3_article.md"
 PRIORITY_SCHEMA = (
     PRIORITY_ROOT / "schemas" / "priority_assessment_article_schema_v0.1.json"
 )

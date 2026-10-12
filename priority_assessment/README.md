@@ -158,8 +158,8 @@ Insights held back by upstream grounding checks remain available for traceabilit
 
 ## Prompt versions
 
-`priority_assessment_v0.3.md` is retained as the evaluated one-insight development prompt.
+`priority_assessment_v0.4.3.md` is the current integrated and evaluated Priority Assessment prompt version.
 
-`priority_assessment_v0.3_article.md` is the article-level wrapper used by the integrated pipeline to assess multiple insights in one model call.
+`priority_assessment_v0.4.3_article.md` is the current article-mode wrapper used by the integrated pipeline to assess multiple insights in one model call.
 
-The article-mode wrapper does not by itself declare the underlying priority methodology to be a final `v1.0`. Assessment prompt version promotion should follow the project's evaluation process.
+The `v0.3` prompt files are retained as earlier historical versions.

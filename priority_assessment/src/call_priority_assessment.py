@@ -81,7 +81,7 @@ def build_request_payload(
     response_schema: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     user_message = (
-        "Execute Priority Assessment v0.3 article mode on the supplied article insights.\n"
+        "Execute Priority Assessment article mode on the supplied article insights.\n"
         "Return only JSON matching the required article-mode output.\n\n"
         + json.dumps(article_input, ensure_ascii=False, indent=2)
     )

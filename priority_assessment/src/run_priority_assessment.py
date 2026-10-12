@@ -18,7 +18,7 @@ from validate_priority_assessment import (
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parent
-DEFAULT_PROMPT = ROOT / "prompts" / "priority_assessment_v0.3_article.md"
+DEFAULT_PROMPT = ROOT / "prompts" / "priority_assessment_v0.4.3_article.md"
 DEFAULT_SCHEMA = ROOT / "schemas" / "priority_assessment_article_schema_v0.1.json"
 
 # Shared pipeline folders: stage 2 writes the first, stage 4 reads the second.
