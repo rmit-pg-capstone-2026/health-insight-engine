@@ -19,7 +19,7 @@ The module preserves the agreed handoff between source-grounded insight extracti
 
 ## Example input and smoke-test fixture
 
-`data/raw/deepseek_prompt1_output.json` contains a sample Insight Extraction output used during integration testing.
+`data/raw/deepseek_prompt1_output.json` is a historical fixture filename containing a sample Insight Extraction output used during integration testing.
 
 Running preprocessing on this fixture produces:
 
@@ -57,9 +57,9 @@ Uses Bearer-token authentication against an OpenAI-compatible endpoint.
 Configure:
 
 ```text
-PROMPT2_API_URL=<full chat completions endpoint>
-PROMPT2_MODEL=<model name used by that endpoint>
-PROMPT2_API_KEY=<API key>
+PRIORITY_ASSESSMENT_API_URL=<full chat completions endpoint>
+PRIORITY_ASSESSMENT_MODEL=<model name used by that endpoint>
+PRIORITY_ASSESSMENT_API_KEY=<API key>
 ```
 
 API-key mode is provider-neutral. It can be used with compatible third-party providers or with Amazon Bedrock when using a Bedrock API key.
@@ -79,8 +79,8 @@ LLM_BACKEND=api_key
 together with:
 
 ```text
-PROMPT2_API_URL=<full chat completions endpoint>
-PROMPT2_MODEL=<model name used by that endpoint>
+PRIORITY_ASSESSMENT_API_URL=<full chat completions endpoint>
+PRIORITY_ASSESSMENT_MODEL=<model name used by that endpoint>
 ```
 
 ## One-command pipeline run
@@ -162,4 +162,4 @@ Insights held back by upstream grounding checks remain available for traceabilit
 
 `priority_assessment_v0.3_article.md` is the article-level wrapper used by the integrated pipeline to assess multiple insights in one model call.
 
-The article-mode wrapper does not by itself declare the underlying priority methodology to be a final `v1.0`. Prompt/version promotion should follow the project's evaluation process.
+The article-mode wrapper does not by itself declare the underlying priority methodology to be a final `v1.0`. Assessment prompt version promotion should follow the project's evaluation process.

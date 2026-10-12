@@ -106,7 +106,7 @@ def main():
 
     assert (
         review[3]["reason"]
-        == "Prompt 1 quote check: found_in_source = false"
+        == "Insight Extraction quote check: found_in_source = false"
     )
 
     print("Evidence-location regression passed")

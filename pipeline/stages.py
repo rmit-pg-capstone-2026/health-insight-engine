@@ -292,13 +292,15 @@ def assess(article: dict) -> dict:
     insight, in order - anything else raises.
     """
     backend = backend_from_env()
-    api_url = os.environ.get("PROMPT2_API_URL")
-    api_key = os.environ.get("PROMPT2_API_KEY") or os.environ.get("OPENAI_API_KEY")
-    model = os.environ.get("PROMPT2_MODEL")
+    api_url = os.environ.get("PRIORITY_ASSESSMENT_API_URL") or os.environ.get("PROMPT2_API_URL")
+    api_key = (os.environ.get("PRIORITY_ASSESSMENT_API_KEY")
+               or os.environ.get("PROMPT2_API_KEY")
+               or os.environ.get("OPENAI_API_KEY"))
+    model = os.environ.get("PRIORITY_ASSESSMENT_MODEL") or os.environ.get("PROMPT2_MODEL")
     if not (api_url and model):
-        raise RuntimeError("Set PROMPT2_API_URL and PROMPT2_MODEL in the repo-root .env")
+        raise RuntimeError("Set PRIORITY_ASSESSMENT_API_URL and PRIORITY_ASSESSMENT_MODEL in the repo-root .env")
     if backend == "api_key" and not api_key:
-        raise RuntimeError("LLM_BACKEND=api_key requires PROMPT2_API_KEY or OPENAI_API_KEY")
+        raise RuntimeError("LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_KEY or OPENAI_API_KEY")
 
     prompt_text = PRIORITY_PROMPT.read_text(encoding="utf-8")
     article_schema = load_json(PRIORITY_SCHEMA)

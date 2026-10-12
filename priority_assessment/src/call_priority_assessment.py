@@ -169,20 +169,21 @@ def run_call(
     backend: Optional[str] = None,
 ) -> Dict[str, Any]:
     backend = backend or backend_from_env()
-    api_url = api_url or os.getenv("PROMPT2_API_URL")
-    api_key = api_key or os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY")
-    model = model or os.getenv("PROMPT2_MODEL")
+    api_url = api_url or os.getenv("PRIORITY_ASSESSMENT_API_URL") or os.getenv("PROMPT2_API_URL")
+    api_key = (api_key or os.getenv("PRIORITY_ASSESSMENT_API_KEY")
+               or os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY"))
+    model = model or os.getenv("PRIORITY_ASSESSMENT_MODEL") or os.getenv("PROMPT2_MODEL")
 
     missing = [
         name
         for name, value in (
-            ("PROMPT2_API_URL / --api-url", api_url),
-            ("PROMPT2_MODEL / --model", model),
+            ("PRIORITY_ASSESSMENT_API_URL / --api-url", api_url),
+            ("PRIORITY_ASSESSMENT_MODEL / --model", model),
         )
         if not value
     ]
     if backend == "api_key" and not api_key:
-        missing.append("PROMPT2_API_KEY / --api-key")
+        missing.append("PRIORITY_ASSESSMENT_API_KEY / --api-key")
     if missing:
         raise RuntimeError("Missing API configuration: " + ", ".join(missing))
 

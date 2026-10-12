@@ -26,7 +26,7 @@ DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "insight-generated-files"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "priority-tagged-insight-files"
 
 # Settings come from the repo-root .env. Loaded before the parser is built,
-# because the argument defaults below read PROMPT2_* from the environment.
+# because the argument defaults below read Priority Assessment settings from the environment.
 # Anything already exported in the shell still wins.
 try:
     from dotenv import load_dotenv
@@ -74,7 +74,7 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
     briefing_path = handoff_dir / "briefing_input.json"
     final_path = output_dir / input_path.name
 
-    print("[1/5] Loading Prompt 1 output...")
+    print("[1/5] Loading Insight Extraction output...")
     print(f"      {input_path}")
 
     print("[2/5] Preprocessing / QA...")
@@ -89,7 +89,7 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
     article_schema = load_json(args.schema)
     expected_ids = [x["insight_id"] for x in article_input["insights"]]
 
-    print("[3/5] Running Priority Assessment v0.3 article mode...")
+    print("[3/5] Running Priority Assessment article mode...")
     if not article_input["insights"]:
         assessment_results = {"assessments": []}
         _write_json(results_path, assessment_results)
@@ -103,8 +103,9 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
     else:
         if not (args.api_url and args.model):
             raise RuntimeError(
-                "Priority Assessment configuration is missing. Set PROMPT2_API_URL "
-                "and PROMPT2_MODEL; API-key mode also needs PROMPT2_API_KEY."
+                "Priority Assessment configuration is missing. Set "
+                "PRIORITY_ASSESSMENT_API_URL and PRIORITY_ASSESSMENT_MODEL; "
+                "API-key mode also needs PRIORITY_ASSESSMENT_API_KEY."
             )
 
         # Structured output should normally satisfy the article schema on the
@@ -159,7 +160,7 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
 
 
 def run_folder(input_dir: Path, args, output_dir: Path) -> int:
-    """Process every Prompt 1 JSON in a folder. One file failing does not stop
+    """Process every Insight Extraction JSON in a folder. One file failing does not stop
     the rest. Returns the number of failures."""
     files = sorted(p for p in input_dir.glob("*.json") if p.is_file())
     if not files:
@@ -200,11 +201,11 @@ def main() -> None:
                     "pipeline, for one file or every file in a folder."
     )
     parser.add_argument(
-        "prompt1_json",
+        "insight_extraction_json",
         type=Path,
         nargs="?",
         default=DEFAULT_INPUT_DIR,
-        help="a Prompt 1 JSON file, or a folder of them "
+        help="an Insight Extraction JSON file, or a folder of them "
              f"(default: {DEFAULT_INPUT_DIR.relative_to(REPO_ROOT)})",
     )
     parser.add_argument(
@@ -221,12 +222,13 @@ def main() -> None:
         default=DEFAULT_SCHEMA,
         help="article-mode output schema used for structured output and local validation",
     )
-    parser.add_argument("--api-url", default=os.getenv("PROMPT2_API_URL"))
+    parser.add_argument("--api-url", default=os.getenv("PRIORITY_ASSESSMENT_API_URL") or os.getenv("PROMPT2_API_URL"))
     parser.add_argument(
         "--api-key",
-        default=os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY"),
+        default=(os.getenv("PRIORITY_ASSESSMENT_API_KEY") or os.getenv("PROMPT2_API_KEY")
+                 or os.getenv("OPENAI_API_KEY")),
     )
-    parser.add_argument("--model", default=os.getenv("PROMPT2_MODEL"))
+    parser.add_argument("--model", default=os.getenv("PRIORITY_ASSESSMENT_MODEL") or os.getenv("PROMPT2_MODEL"))
     parser.add_argument("--backend", choices=("bedrock", "api_key"),
                         default=os.getenv("LLM_BACKEND"))
     parser.add_argument("--timeout", type=int, default=180)
@@ -243,7 +245,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    input_path = args.prompt1_json.resolve()
+    input_path = args.insight_extraction_json.resolve()
     if not input_path.exists():
         parser.error(f"Input does not exist: {input_path}")
     if not args.schema.exists():

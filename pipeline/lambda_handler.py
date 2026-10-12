@@ -20,11 +20,11 @@ a time - two at once would overwrite each other's database.
 Required environment variables on the function:
     PIPELINE_S3_BUCKET, LLM_BACKEND,
     EXTRACT_API_URL, EXTRACT_MODEL,
-    PROMPT2_API_URL, PROMPT2_MODEL
+    PRIORITY_ASSESSMENT_API_URL, PRIORITY_ASSESSMENT_MODEL
 
 For LLM_BACKEND=bedrock, no LLM API key is required. The Lambda execution role
 must be allowed to invoke the configured Bedrock model. For LLM_BACKEND=api_key,
-set EXTRACT_API_KEY/OPENROUTER_API_KEY and PROMPT2_API_KEY as appropriate.
+set EXTRACT_API_KEY/OPENROUTER_API_KEY and PRIORITY_ASSESSMENT_API_KEY as appropriate.
 """
 
 import os

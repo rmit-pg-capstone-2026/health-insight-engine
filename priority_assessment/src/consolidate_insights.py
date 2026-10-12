@@ -12,7 +12,7 @@ PRIORITY_ORDER = {
     "Not Applicable": 4,
 }
 
-# Prompt 1 provides the three top-level insight domains used by the briefing.
+# Insight Extraction provides the three top-level insight domains used by the briefing.
 # Watchlist is not an insight_type; it is a separate briefing bucket derived
 # from Priority Assessment priority == "Watchlist".
 SECTION_KEYS = (
@@ -67,7 +67,7 @@ def consolidate_insights(
     for insight in kept:
         insight_id = insight["insight_id"]
 
-        # Watchlist is determined by Priority Assessment priority, not Prompt 1 insight_type.
+        # Watchlist is determined by Priority Assessment priority, not Insight Extraction insight_type.
         # Route it to the dedicated briefing watchlist rather than duplicating it
         # in its original domain section.
         if insight["priority"] == "Watchlist":

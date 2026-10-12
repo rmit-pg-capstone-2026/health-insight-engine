@@ -16,16 +16,16 @@ def _load_json(path: Path) -> Dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, dict):
-        raise ValueError("Prompt 1 output must be a JSON object")
+        raise ValueError("Insight Extraction output must be a JSON object")
     return data
 
 
 def build_assessment_article_input(
     input_path: Path,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-    """Convert Prompt 1 output into the agreed article-mode Priority Assessment handoff.
+    """Convert Insight Extraction output into the agreed article-mode Priority Assessment handoff.
 
-    Upstream QA is consumed before Prompt 1 reasoning/debug fields are stripped.
+    Upstream QA is consumed before Insight Extraction reasoning/debug fields are stripped.
     Explicit source-grounding failures are quarantined for review.
     """
     raw = _load_json(input_path)
@@ -35,7 +35,7 @@ def build_assessment_article_input(
 
     schema_errors = raw.get("schema_errors", [])
     if schema_errors:
-        raise ValueError(f"Prompt 1 output contains schema errors: {schema_errors}")
+        raise ValueError(f"Insight Extraction output contains schema errors: {schema_errors}")
 
     source = result.get("source")
     summary = result.get("summary")
@@ -107,7 +107,7 @@ def build_assessment_article_input(
             review_required.append(
                 {
                     "insight_id": insight_id,
-                    "reason": "Prompt 1 quote check: found_in_source = false",
+                    "reason": "Insight Extraction quote check: found_in_source = false",
                     "upstream_qa": {
                         "index": index,
                         "found_in_source": False,
@@ -162,7 +162,7 @@ def write_outputs(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Prepare article-mode Priority Assessment input from Prompt 1 JSON."
+        description="Prepare article-mode Priority Assessment input from Insight Extraction JSON."
     )
     parser.add_argument("input_json", type=Path)
     parser.add_argument(

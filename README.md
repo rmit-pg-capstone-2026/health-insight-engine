@@ -53,9 +53,9 @@ Both modes use the same pipeline code and OpenAI-compatible Chat Completions tra
 | `LLM_BACKEND=bedrock` | Uses the AWS credential chain and SigV4 authentication. On Lambda, credentials come from the execution role. |
 | `LLM_BACKEND=api_key` | Uses generic Bearer-token authentication for an OpenAI-compatible endpoint. |
 | `EXTRACT_API_URL`, `EXTRACT_MODEL` | Extraction endpoint and model. |
-| `PROMPT2_API_URL`, `PROMPT2_MODEL` | Priority Assessment endpoint and model. |
+| `PRIORITY_ASSESSMENT_API_URL`, `PRIORITY_ASSESSMENT_MODEL` | Priority Assessment endpoint and model. |
 | `EXTRACT_API_KEY` | Extraction key in `api_key` mode. |
-| `PROMPT2_API_KEY` | Priority Assessment key in `api_key` mode. |
+| `PRIORITY_ASSESSMENT_API_KEY` | Priority Assessment key in `api_key` mode. |
 
 In `bedrock` mode, configure AWS credentials using the standard AWS credential chain and set the appropriate AWS region. For example, local development may use an AWS profile through `AWS_PROFILE`. On Lambda, the function uses its execution role.
 
