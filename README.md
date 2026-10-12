@@ -32,18 +32,38 @@ In every new terminal after that, you only need:
 source .venv/bin/activate
 ```
 
-## Keys in `.env`
+## LLM configuration
 
-Open `.env` in the repo root and set:
+For the automated `pipeline/` Extract and Priority Assessment stages, explicitly set either:
 
-| Key | Used by | What to put |
-|---|---|---|
-| `OPENROUTER_API_KEY` | Layers 2 and 3 | Your OpenRouter key (`sk-or-v1-...`). **The only value you must change.** |
-| `PROMPT2_API_URL` | Layer 3 | Leave as is - OpenRouter's endpoint. |
-| `PROMPT2_API_KEY` | Layer 3 | Leave as is - reuses `OPENROUTER_API_KEY`. |
-| `PROMPT2_MODEL` | Layer 3 | The ranking model. Defaults to `deepseek/deepseek-v4-flash-0731`. |
+```text
+LLM_BACKEND=bedrock
+```
 
-`.env` is gitignored. Never commit it.
+or:
+
+```text
+LLM_BACKEND=api_key
+```
+
+Both modes use the same pipeline code and OpenAI-compatible Chat Completions transport.
+
+| Setting | Purpose |
+|---|---|
+| `LLM_BACKEND=bedrock` | Uses the AWS credential chain and SigV4 authentication. On Lambda, credentials come from the execution role. |
+| `LLM_BACKEND=api_key` | Uses generic Bearer-token authentication for an OpenAI-compatible endpoint. |
+| `EXTRACT_API_URL`, `EXTRACT_MODEL` | Extraction endpoint and model. |
+| `PROMPT2_API_URL`, `PROMPT2_MODEL` | Priority Assessment endpoint and model. |
+| `EXTRACT_API_KEY` | Extraction key in `api_key` mode. |
+| `PROMPT2_API_KEY` | Priority Assessment key in `api_key` mode. |
+
+In `bedrock` mode, configure AWS credentials using the standard AWS credential chain and set the appropriate AWS region. For example, local development may use an AWS profile through `AWS_PROFILE`. On Lambda, the function uses its execution role.
+
+In `api_key` mode, supply the relevant API key through the environment. This mode can be used with compatible providers that accept Bearer-token authentication, including Amazon Bedrock when using a Bedrock API key.
+
+The standalone layer-2 script (insight-extraction-test/extract.py) still calls OpenRouter directly and requires OPENROUTER_API_KEY. The automated pipeline/ Extract stage uses the shared dual-backend transport described above. The standalone Priority Assessment runner also supports the shared dual-backend transport.
+
+`.env` is gitignored. Never commit credentials.
 
 ## Running the pipeline
 

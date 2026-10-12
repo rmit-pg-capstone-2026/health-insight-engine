@@ -48,7 +48,7 @@ def _validate_results(assessment_results, article_input, article_schema) -> None
 
 
 def process_one(input_path: Path, args, output_dir: Path) -> dict:
-    """Run the Week 9 pipeline for one Prompt 1 file.
+    """Run the Priority Assessment pipeline for one Insight Extraction file.
 
     Unchanged from the original single-file flow, except that:
       - the review queue is named after the input, so every article keeps its
@@ -196,7 +196,7 @@ def run_folder(input_dir: Path, args, output_dir: Path) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run the Week 9 Prompt 1 -> Priority Assessment -> briefing-input "
+        description="Run the Insight Extraction -> Priority Assessment -> briefing-input "
                     "pipeline, for one file or every file in a folder."
     )
     parser.add_argument(
