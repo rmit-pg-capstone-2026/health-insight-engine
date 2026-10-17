@@ -99,6 +99,17 @@ python briefing/generate_briefing.py
 
 The PDF is written to `data/briefing-paper/briefing_report.pdf`, replacing the previous one.
 
+The PDF follows the agreed briefing format: **Executive Summary** (one paragraph), **What Changed This Period** (one line per key development, with its priority), the insight cards grouped into **Clinical**, **Pharmaceutical** and **Prosthesis & Medical Technology Insights** (highest priority first, each keeping its priority tag), then the **Emerging Watchlist**.
+
+The summary, What Changed list and Emerging Watchlist come from one LLM call using the same `LLM_BACKEND` and `PRIORITY_ASSESSMENT_*` settings as stage 3 (override with `EXEC_SUMMARY_*` in `.env`). The answer is checked before it is used: every cited insight must exist, every figure must appear in the insight it cites, and every Watchlist-priority insight must be on the watchlist, with one retry if not. If the LLM is unavailable or still fails, a rule-based version is used instead and the PDF says so. Insight cards are numbered, and the summary links to those numbers.
+
+```bash
+python briefing/generate_briefing.py --summary rules   # no LLM call
+python briefing/generate_briefing.py --summary none    # no executive summary
+```
+
+The prompt is `briefing/prompts/executive_summary_v0.2.md`.
+
 ## Automated pipeline (database)
 
 `pipeline/` runs the same four layers without prompts. A SQLite database (`data/pipeline.db`, gitignored) sits between the stages: each stage reads its work from it and writes its results back.
