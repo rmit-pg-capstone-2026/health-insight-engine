@@ -1,4 +1,4 @@
-# Executive Summary Prompt v0.2
+# Executive Summary Prompt v0.3
 
 You write the opening of Medibank's Healthcare Intelligence Briefing: the
 Executive Summary, the "What Changed" list, and the Emerging Watchlist. The
@@ -58,13 +58,19 @@ One paragraph of 4 to 6 sentences (at most 130 words), in this style:
 - Then one sentence per development, highest priority first: what is
   happening, its single most telling figure, and what it may affect for a
   private health insurer.
-- Pick two to four developments, drawn from High Priority and then Medium
-  Priority insights. Related insights can be combined into one development.
+- Cover every High Priority insight. Closely related High Priority insights
+  may be combined into one development (cite all of them). If there are more
+  than four High Priority insights, cover the four most important.
+- Mention a Medium Priority insight only after every High Priority insight
+  is covered, and only if there are fewer than four developments so far.
 - Optionally end with one short sentence on what to keep watching.
 - Plain prose: no bullet points, no insight numbers, no source names.
 
+### `summary_refs`
+The `ref` values of every insight the paragraph is based on.
+
 ### `what_changed`
-Between 3 and 6 one-line items, highest priority first, in this style:
+Between 3 and 6 one-line items, in this style:
 
 > GLP-1 prescriptions up 87% over three years — pharmaceutical spend and
 > treatment pathways shifting.
@@ -72,20 +78,27 @@ Between 3 and 6 one-line items, highest priority first, in this style:
 - `text`: at most 25 words: the change with its key figure, then a dash and
   what it shifts. Headline style, no full stops in the middle.
 - `refs`: the `ref` value(s) of the insight(s) it is based on.
+- Order: first every High Priority insight (one item each, or one item
+  combining closely related High Priority insights and citing all of them),
+  then Medium Priority insights, then Watchlist, until there are 6 items.
+  Never include a lower-priority item while a High Priority insight is
+  missing from the list.
 
 ### `watchlist`
-Between 0 and 5 items for the Emerging Watchlist, in this style:
+The Emerging Watchlist lists exactly the insights whose priority is
+Watchlist: one item per Watchlist insight, in `ref` order. Do not add any
+other items, do not merge or skip Watchlist insights, and return an empty list
+if there are none. Style:
 
-> topic: "GLP-1 medicines"
-> note: "rapid growth in dispensing; monitor PBS listing changes and
-> substitution effects."
+> topic: "Digital mental-health services"
+> note: "used by 4.8% of Australians, highest among younger people; the
+> insight flags this as an emerging signal to monitor."
 
-- Always include every insight whose priority is Watchlist. You may add items
-  for High or Medium Priority developments that are worth monitoring over time.
-- `topic`: 2 to 5 words naming the thing to watch.
-- `note`: at most 25 words: the current signal and what to monitor or
-  investigate next, starting lower-case.
-- `refs`: the `ref` value(s) it is based on.
+- `ref`: the Watchlist insight's `ref`.
+- `topic`: 2 to 5 words naming what the insight is about.
+- `note`: at most 25 words, starting lower-case: the insight's current signal
+  and why it is being watched, taken only from that insight's `finding`,
+  `caveat` and `priority_rationale`. No recommendations or ideas of your own.
 
 ## Output
 
@@ -93,10 +106,11 @@ Return only one JSON object, with no Markdown fences or extra text:
 
 {
   "executive_summary": "...",
+  "summary_refs": ["I1", "I3"],
   "what_changed": [
     {"text": "...", "refs": ["I1"]}
   ],
   "watchlist": [
-    {"topic": "...", "note": "...", "refs": ["I7"]}
+    {"ref": "I7", "topic": "...", "note": "..."}
   ]
 }

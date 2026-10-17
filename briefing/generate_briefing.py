@@ -400,8 +400,8 @@ def executive_summary_block(summary, priority_by_ref, width):
 def watchlist_block(summary, items, width):
     """Emerging Watchlist: from the summary, or the Watchlist-priority insights."""
     story = [Paragraph("Emerging Watchlist", S["h1"]),
-             Paragraph("Topics to keep watching, drawn from the insights in this "
-                       "briefing.", S["note"])]
+             Paragraph("Every insight rated Watchlist in this briefing: emerging "
+                       "signals to keep watching.", S["note"])]
     if summary is not None:
         entries = summary.get("watchlist") or []
     else:
