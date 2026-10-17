@@ -36,52 +36,40 @@ python -m pip install -r requirements.txt
 
 ## LLM configuration
 
-The runner uses a configurable OpenAI-compatible `/chat/completions` interface so the pipeline is not tied to a single authentication method or provider.
+Priority Assessment defaults to AWS Bedrock Converse through the AWS SDK and
+the standard AWS credential chain. With `LLM_BACKEND` absent or set to
+`bedrock`, configure:
 
-Two backend modes are supported:
+```text
+AWS_REGION=<Bedrock region>
+PRIORITY_ASSESSMENT_MODEL=<Bedrock model or inference profile ID>
+PRIORITY_ASSESSMENT_REASONING=off
+```
 
-### `LLM_BACKEND=bedrock`
-
-Uses the AWS credential chain and SigV4 authentication.
-
-No LLM API key is required.
+No API URL or API key is required in Bedrock mode.
 
 When running locally, configure AWS credentials using the standard AWS credential chain and set the appropriate AWS region. For example, an AWS profile may be selected through `AWS_PROFILE`.
 
 When running on AWS Lambda, credentials are obtained from the Lambda execution role.
 
-### `LLM_BACKEND=api_key`
-
-Uses Bearer-token authentication against an OpenAI-compatible endpoint.
-
-Configure:
+For the explicit development or recovery alternative, set
+`LLM_BACKEND=api_key` and configure:
 
 ```text
-PRIORITY_ASSESSMENT_API_URL=<full chat completions endpoint>
-PRIORITY_ASSESSMENT_MODEL=<model name used by that endpoint>
-PRIORITY_ASSESSMENT_API_KEY=<API key>
+PRIORITY_ASSESSMENT_API_URL=<OpenAI-compatible chat-completions endpoint>
+PRIORITY_ASSESSMENT_API_KEY=<bearer API key>
+PRIORITY_ASSESSMENT_MODEL=<model ID used by that endpoint>
 ```
 
-API-key mode is provider-neutral. It can be used with compatible third-party providers or with Amazon Bedrock when using a Bedrock API key.
+`PRIORITY_ASSESSMENT_MODEL` is required. `PRIORITY_ASSESSMENT_REASONING` is
+optional and defaults to `off`, which sends no thinking fields. Any other
+value is passed to Bedrock as the adaptive-thinking effort setting. API-key
+mode may use `OPENROUTER_API_KEY`, or `OPENAI_API_KEY` for backward
+compatibility, when the stage-specific key is absent.
 
-For either backend, configure:
-
-```text
-LLM_BACKEND=bedrock
-```
-
-or:
-
-```text
-LLM_BACKEND=api_key
-```
-
-together with:
-
-```text
-PRIORITY_ASSESSMENT_API_URL=<full chat completions endpoint>
-PRIORITY_ASSESSMENT_MODEL=<model name used by that endpoint>
-```
+There is no automatic fallback after a Bedrock error. Switching backend does
+not change the prompt, schema, validation, aggregation, consolidation, or
+downstream output.
 
 ## One-command pipeline run
 

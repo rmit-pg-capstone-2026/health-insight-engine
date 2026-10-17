@@ -1,8 +1,7 @@
-"""Small shared transport for OpenAI-compatible chat completions.
+"""Small shared transport for pipeline LLM calls.
 
-The pipeline can run all LLM stages through either:
-- Amazon Bedrock Runtime using the Lambda/SDK AWS credential chain + SigV4, or
-- an OpenAI-compatible bearer-key endpoint (for example OpenRouter).
+Bedrock calls use the Converse SDK operation. Explicit api_key mode uses an
+OpenAI-compatible bearer-auth chat-completions endpoint.
 
 Stage-specific prompts, schemas and validation stay in stages.py. This module
 only owns authentication, HTTP transport and bounded retries for transient
@@ -19,12 +18,10 @@ import requests
 
 try:
     import boto3
-    from botocore.auth import SigV4Auth
-    from botocore.awsrequest import AWSRequest
+    from botocore.config import Config
 except ImportError:  # clearer error if someone installs only partial deps
     boto3 = None
-    SigV4Auth = None
-    AWSRequest = None
+    Config = None
 
 
 VALID_BACKENDS = {"bedrock", "api_key"}
@@ -32,10 +29,7 @@ RETRYABLE_STATUS = {429, 500, 502, 503, 504, 529}
 
 
 def backend_from_env() -> str:
-    raw = os.environ.get("LLM_BACKEND")
-    if not raw:
-        raise RuntimeError("Set LLM_BACKEND to 'bedrock' or 'api_key'")
-    backend = raw.strip().lower()
+    backend = os.environ.get("LLM_BACKEND", "bedrock").strip().lower()
     if backend not in VALID_BACKENDS:
         raise RuntimeError(
             "LLM_BACKEND must be 'bedrock' or 'api_key' "
@@ -44,71 +38,11 @@ def backend_from_env() -> str:
     return backend
 
 
-def _bedrock_headers(api_url: str, body: bytes) -> Dict[str, str]:
-    if boto3 is None or SigV4Auth is None or AWSRequest is None:
-        raise RuntimeError(
-            "boto3/botocore are required for Bedrock IAM authentication"
-        )
-    if "bedrock-runtime." not in api_url.lower():
-        raise RuntimeError(
-            "LLM_BACKEND=bedrock requires a Bedrock Runtime endpoint"
-        )
-
-    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
-    profile = os.environ.get("AWS_PROFILE") or None
-    session = boto3.Session(profile_name=profile, region_name=region)
-    region = session.region_name
-    if not region:
-        raise RuntimeError(
-            "AWS region is not configured. Set AWS_REGION/AWS_DEFAULT_REGION "
-            "or configure a default region in the active AWS profile."
-        )
-
-    credentials = session.get_credentials()
-    if credentials is None:
-        raise RuntimeError(
-            "No AWS credentials found. Use AWS SSO/credential chain locally, "
-            "or a Lambda execution role in AWS."
-        )
-
-    aws_request = AWSRequest(
-        method="POST",
-        url=api_url,
-        data=body,
-        headers={"Content-Type": "application/json"},
-    )
-    SigV4Auth(
-        credentials.get_frozen_credentials(), "bedrock", region
-    ).add_auth(aws_request)
-    return dict(aws_request.headers.items())
-
-
-def _headers(
-    backend: str,
-    api_url: str,
-    body: bytes,
-    api_key: Optional[str],
-) -> Dict[str, str]:
-    if backend == "bedrock":
-        # Deliberately ignore any stale API-key variables in Bedrock mode.
-        return _bedrock_headers(api_url, body)
-
-    if not api_key:
-        raise RuntimeError(
-            "LLM_BACKEND=api_key requires the configured stage API key"
-        )
-    return {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-
 def post_chat_completion(
     api_url: str,
     payload: Dict[str, Any],
     *,
-    backend: str,
-    api_key: Optional[str] = None,
+    api_key: str,
     timeout_seconds: int = 180,
     max_attempts: int = 2,
 ) -> Tuple[Dict[str, Any], float]:
@@ -118,19 +52,21 @@ def post_chat_completion(
     retries belong to the calling stage so retry layers do not multiply.
     Returns (decoded_response_json, elapsed_seconds_for_successful_attempt).
     """
-    backend = backend.strip().lower()
-    if backend not in VALID_BACKENDS:
-        raise RuntimeError(f"Unsupported LLM backend: {backend!r}")
     if not api_url:
         raise RuntimeError("LLM API URL is not configured")
+    if not api_key:
+        raise RuntimeError("API-key chat completions require an API key")
     if max_attempts < 1:
         raise ValueError("max_attempts must be at least 1")
 
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
     last_error = None
 
     for attempt in range(1, max_attempts + 1):
-        headers = _headers(backend, api_url, body, api_key)
         started = time.time()
         try:
             response = requests.post(
@@ -167,3 +103,78 @@ def post_chat_completion(
         time.sleep(min(4.0, (2 ** (attempt - 1)) + random.random()))
 
     raise RuntimeError(last_error or "LLM request failed")
+
+
+def converse(
+    model: str,
+    system_text: str,
+    user_text: str,
+    *,
+    response_schema: Optional[Dict[str, Any]] = None,
+    response_schema_name: str = "priority_assessment_article",
+    reasoning: str = "off",
+    temperature: Optional[float] = None,
+    timeout_seconds: int = 180,
+    max_attempts: Optional[int] = None,
+) -> Tuple[Dict[str, Any], float]:
+    """Call Amazon Bedrock Converse and return its response and elapsed time."""
+    if boto3 is None or Config is None:
+        raise RuntimeError("boto3/botocore are required for Bedrock Converse")
+
+    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
+    profile = os.environ.get("AWS_PROFILE") or None
+    session = boto3.Session(profile_name=profile, region_name=region)
+    if not session.region_name:
+        raise RuntimeError(
+            "AWS region is not configured. Set AWS_REGION/AWS_DEFAULT_REGION "
+            "or configure a default region in the active AWS profile."
+        )
+
+    request: Dict[str, Any] = {
+        "modelId": model,
+        "system": [{"text": system_text}],
+        "messages": [
+            {"role": "user", "content": [{"text": user_text}]},
+        ],
+    }
+    if response_schema is not None:
+        request["outputConfig"] = {
+            "textFormat": {
+                "type": "json_schema",
+                "structure": {
+                    "jsonSchema": {
+                        "name": response_schema_name,
+                        "schema": json.dumps(response_schema, ensure_ascii=False),
+                    }
+                },
+            }
+        }
+
+    if temperature is not None:
+        request["inferenceConfig"] = {"temperature": temperature}
+
+    reasoning = reasoning.strip().lower()
+    if reasoning != "off":
+        request["additionalModelRequestFields"] = {
+            "thinking": {"type": "adaptive"},
+            "output_config": {"effort": reasoning},
+        }
+
+    config_options: Dict[str, Any] = {
+        "connect_timeout": timeout_seconds,
+        "read_timeout": timeout_seconds,
+    }
+    if max_attempts is not None:
+        if max_attempts < 1:
+            raise ValueError("max_attempts must be at least 1")
+        config_options["retries"] = {
+            "total_max_attempts": max_attempts,
+            "mode": "standard",
+        }
+    client = session.client(
+        "bedrock-runtime",
+        config=Config(**config_options),
+    )
+    started = time.time()
+    response = client.converse(**request)
+    return response, round(time.time() - started, 1)

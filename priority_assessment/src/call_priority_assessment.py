@@ -9,7 +9,12 @@ from typing import Any, Dict, Optional
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "pipeline"))
 
-from llm_transport import backend_from_env, post_chat_completion  # noqa: E402
+from llm_transport import (  # noqa: E402
+    VALID_BACKENDS,
+    backend_from_env,
+    converse,
+    post_chat_completion,
+)
 
 # When run on its own, read settings from the repo-root .env. Anything already
 # exported in the shell still wins.
@@ -73,18 +78,30 @@ def _bedrock_compatible_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
     return clean(copy.deepcopy(schema))
 
 
-def build_request_payload(
-    model: str,
-    prompt_text: str,
+def build_user_message(
     article_input: Dict[str, Any],
-    json_mode: bool = True,
-    response_schema: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    user_message = (
+) -> str:
+    return (
         "Execute Priority Assessment article mode on the supplied article insights.\n"
         "Return only JSON matching the required article-mode output.\n\n"
         + json.dumps(article_input, ensure_ascii=False, indent=2)
     )
+
+
+def _normalise_backend(backend: Optional[str]) -> str:
+    backend = (backend or backend_from_env()).strip().lower()
+    if backend not in VALID_BACKENDS:
+        raise RuntimeError(f"Unsupported LLM backend: {backend!r}")
+    return backend
+
+
+def _chat_payload(
+    model: str,
+    prompt_text: str,
+    user_message: str,
+    json_mode: bool,
+    response_schema: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
     payload: Dict[str, Any] = {
         "model": model,
         "messages": [
@@ -107,49 +124,83 @@ def build_request_payload(
     return payload
 
 
-def call_openai_compatible_chat(
-    api_url: str,
-    api_key: Optional[str],
+def call_priority_assessment(
     model: str,
     prompt_text: str,
     article_input: Dict[str, Any],
     *,
+    backend: Optional[str] = None,
+    api_url: Optional[str] = None,
+    api_key: Optional[str] = None,
     timeout_seconds: int = 180,
     json_mode: bool = True,
     response_schema: Optional[Dict[str, Any]] = None,
-    backend: Optional[str] = None,
+    reasoning: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Call an OpenAI-compatible chat-completions endpoint.
-
-    Bedrock uses the AWS credential chain + SigV4. API-key mode uses bearer
-    authentication. The prompt/output contract is identical for both.
-    """
-    backend = backend or backend_from_env()
-    if response_schema is not None and backend == "bedrock":
-        response_schema = _bedrock_compatible_schema(response_schema)
-
-    payload = build_request_payload(
-        model,
-        prompt_text,
-        article_input,
-        json_mode=json_mode,
-        response_schema=response_schema,
+    """Call Priority Assessment through the explicitly selected backend."""
+    backend = _normalise_backend(backend)
+    reasoning = reasoning if reasoning is not None else os.getenv(
+        "PRIORITY_ASSESSMENT_REASONING", "off"
     )
-    envelope, _ = post_chat_completion(
-        api_url,
-        payload,
-        backend=backend,
-        api_key=api_key,
-        timeout_seconds=timeout_seconds,
-        max_attempts=2,
-    )
-    try:
-        content = envelope["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, TypeError) as exc:
-        raise RuntimeError(
-            "Unexpected OpenAI-compatible response shape; "
-            "missing choices[0].message.content"
-        ) from exc
+    user_message = build_user_message(article_input)
+
+    if backend == "bedrock":
+        bedrock_schema = (
+            _bedrock_compatible_schema(response_schema)
+            if response_schema is not None
+            else None
+        )
+        envelope, _ = converse(
+            model,
+            prompt_text,
+            user_message,
+            response_schema=bedrock_schema if json_mode else None,
+            reasoning=reasoning,
+            timeout_seconds=timeout_seconds,
+            max_attempts=2,
+        )
+        try:
+            blocks = envelope["output"]["message"]["content"]
+            content = next(block["text"] for block in blocks if "text" in block)
+        except (KeyError, IndexError, TypeError) as exc:
+            raise RuntimeError(
+                "Unexpected Bedrock Converse response shape; missing output text"
+            ) from exc
+        except StopIteration as exc:
+            raise RuntimeError(
+                "Bedrock Converse response contains no text block"
+            ) from exc
+    else:
+        if not api_url:
+            raise RuntimeError(
+                "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_URL"
+            )
+        if not api_key:
+            raise RuntimeError(
+                "LLM_BACKEND=api_key requires a Priority Assessment API key"
+            )
+        payload = _chat_payload(
+            model,
+            prompt_text,
+            user_message,
+            json_mode,
+            response_schema,
+        )
+        envelope, _ = post_chat_completion(
+            api_url,
+            payload,
+            api_key=api_key,
+            timeout_seconds=timeout_seconds,
+            max_attempts=2,
+        )
+        try:
+            content = envelope["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise RuntimeError(
+                "Unexpected OpenAI-compatible response shape; "
+                "missing choices[0].message.content"
+            ) from exc
+
     if not isinstance(content, str):
         raise RuntimeError("Priority Assessment response content is not a string")
     return parse_model_json(content)
@@ -168,24 +219,27 @@ def run_call(
     schema_path: Optional[Path] = None,
     backend: Optional[str] = None,
 ) -> Dict[str, Any]:
-    backend = backend or backend_from_env()
-    api_url = api_url or os.getenv("PRIORITY_ASSESSMENT_API_URL") or os.getenv("PROMPT2_API_URL")
-    api_key = (api_key or os.getenv("PRIORITY_ASSESSMENT_API_KEY")
-               or os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY"))
-    model = model or os.getenv("PRIORITY_ASSESSMENT_MODEL") or os.getenv("PROMPT2_MODEL")
+    backend = _normalise_backend(backend)
+    api_url = api_url or os.getenv("PRIORITY_ASSESSMENT_API_URL")
+    api_key = (
+        api_key
+        or os.getenv("PRIORITY_ASSESSMENT_API_KEY")
+        or os.getenv("OPENROUTER_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+    )
+    model = model or os.getenv("PRIORITY_ASSESSMENT_MODEL")
 
-    missing = [
-        name
-        for name, value in (
-            ("PRIORITY_ASSESSMENT_API_URL / --api-url", api_url),
-            ("PRIORITY_ASSESSMENT_MODEL / --model", model),
+    if not model:
+        raise RuntimeError("Set PRIORITY_ASSESSMENT_MODEL or pass --model")
+    if backend == "api_key" and not api_url:
+        raise RuntimeError(
+            "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_URL"
         )
-        if not value
-    ]
     if backend == "api_key" and not api_key:
-        missing.append("PRIORITY_ASSESSMENT_API_KEY / --api-key")
-    if missing:
-        raise RuntimeError("Missing API configuration: " + ", ".join(missing))
+        raise RuntimeError(
+            "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_KEY, "
+            "OPENROUTER_API_KEY, or OPENAI_API_KEY"
+        )
 
     article_input = _load_json(input_path)
     prompt_text = prompt_path.read_text(encoding="utf-8")
@@ -193,16 +247,16 @@ def run_call(
     if json_mode and schema_path is not None:
         response_schema = _load_json(schema_path)
 
-    results = call_openai_compatible_chat(
-        api_url=api_url,
-        api_key=api_key,
+    results = call_priority_assessment(
         model=model,
         prompt_text=prompt_text,
         article_input=article_input,
+        backend=backend,
+        api_url=api_url,
+        api_key=api_key,
         timeout_seconds=timeout_seconds,
         json_mode=json_mode,
         response_schema=response_schema,
-        backend=backend,
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

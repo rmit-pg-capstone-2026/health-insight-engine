@@ -101,11 +101,19 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
         _validate_results(assessment_results, article_input, article_schema)
         print(f"      using existing assessment file: {args.assessment_file}")
     else:
-        if not (args.api_url and args.model):
+        if not args.model:
             raise RuntimeError(
                 "Priority Assessment configuration is missing. Set "
-                "PRIORITY_ASSESSMENT_API_URL and PRIORITY_ASSESSMENT_MODEL; "
-                "API-key mode also needs PRIORITY_ASSESSMENT_API_KEY."
+                "PRIORITY_ASSESSMENT_MODEL."
+            )
+        if args.backend == "api_key" and not args.api_url:
+            raise RuntimeError(
+                "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_URL."
+            )
+        if args.backend == "api_key" and not args.api_key:
+            raise RuntimeError(
+                "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_KEY, "
+                "OPENROUTER_API_KEY, or OPENAI_API_KEY."
             )
 
         # Structured output should normally satisfy the article schema on the
@@ -222,15 +230,24 @@ def main() -> None:
         default=DEFAULT_SCHEMA,
         help="article-mode output schema used for structured output and local validation",
     )
-    parser.add_argument("--api-url", default=os.getenv("PRIORITY_ASSESSMENT_API_URL") or os.getenv("PROMPT2_API_URL"))
+    parser.add_argument(
+        "--api-url",
+        default=os.getenv("PRIORITY_ASSESSMENT_API_URL"),
+    )
     parser.add_argument(
         "--api-key",
-        default=(os.getenv("PRIORITY_ASSESSMENT_API_KEY") or os.getenv("PROMPT2_API_KEY")
-                 or os.getenv("OPENAI_API_KEY")),
+        default=(
+            os.getenv("PRIORITY_ASSESSMENT_API_KEY")
+            or os.getenv("OPENROUTER_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+        ),
     )
-    parser.add_argument("--model", default=os.getenv("PRIORITY_ASSESSMENT_MODEL") or os.getenv("PROMPT2_MODEL"))
-    parser.add_argument("--backend", choices=("bedrock", "api_key"),
-                        default=os.getenv("LLM_BACKEND"))
+    parser.add_argument("--model", default=os.getenv("PRIORITY_ASSESSMENT_MODEL"))
+    parser.add_argument(
+        "--backend",
+        choices=("bedrock", "api_key"),
+        default=os.getenv("LLM_BACKEND", "bedrock"),
+    )
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument(
         "--plain-json",

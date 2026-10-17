@@ -34,34 +34,37 @@ source .venv/bin/activate
 
 ## LLM configuration
 
-For the automated `pipeline/` Extract and Priority Assessment stages, explicitly set either:
+The automated Insight Extraction and Priority Assessment stages default to
+Amazon Bedrock Converse through the AWS SDK. Configure:
 
 ```text
 LLM_BACKEND=bedrock
+AWS_REGION=ap-southeast-2
+
+EXTRACT_MODEL=moonshotai.kimi-k2.5
+EXTRACT_REASONING=off
+
+PRIORITY_ASSESSMENT_MODEL=au.anthropic.claude-opus-4-6-v1
+PRIORITY_ASSESSMENT_REASONING=off
 ```
 
-or:
+The model settings are required. Each reasoning setting is optional and
+defaults to `off`, which sends no thinking fields. Any other value is passed
+to Bedrock as the adaptive-thinking effort setting. Local runs use the
+standard AWS credential chain; Lambda uses its execution role.
 
-```text
-LLM_BACKEND=api_key
-```
+For an explicit development or recovery alternative, set
+`LLM_BACKEND=api_key` and configure `EXTRACT_API_URL`, `EXTRACT_API_KEY`,
+`PRIORITY_ASSESSMENT_API_URL`, and `PRIORITY_ASSESSMENT_API_KEY` alongside the
+two model IDs. `OPENROUTER_API_KEY` can supply either stage key; Priority
+Assessment also accepts `OPENAI_API_KEY` for backward compatibility.
 
-Both modes use the same pipeline code and OpenAI-compatible Chat Completions transport.
+API-key mode uses bearer-auth OpenAI-compatible chat completions. It is never
+selected automatically after a Bedrock error. Switching backend does not
+change prompts, schemas, validation, or downstream processing.
 
-| Setting | Purpose |
-|---|---|
-| `LLM_BACKEND=bedrock` | Uses the AWS credential chain and SigV4 authentication. On Lambda, credentials come from the execution role. |
-| `LLM_BACKEND=api_key` | Uses generic Bearer-token authentication for an OpenAI-compatible endpoint. |
-| `EXTRACT_API_URL`, `EXTRACT_MODEL` | Extraction endpoint and model. |
-| `PRIORITY_ASSESSMENT_API_URL`, `PRIORITY_ASSESSMENT_MODEL` | Priority Assessment endpoint and model. |
-| `EXTRACT_API_KEY` | Extraction key in `api_key` mode. |
-| `PRIORITY_ASSESSMENT_API_KEY` | Priority Assessment key in `api_key` mode. |
-
-In `bedrock` mode, configure AWS credentials using the standard AWS credential chain and set the appropriate AWS region. For example, local development may use an AWS profile through `AWS_PROFILE`. On Lambda, the function uses its execution role.
-
-In `api_key` mode, supply the relevant API key through the environment. This mode can be used with compatible providers that accept Bearer-token authentication, including Amazon Bedrock when using a Bedrock API key.
-
-The standalone layer-2 script (insight-extraction-test/extract.py) still calls OpenRouter directly and requires OPENROUTER_API_KEY. The automated pipeline/ Extract stage uses the shared dual-backend transport described above. The standalone Priority Assessment runner also supports the shared dual-backend transport.
+The standalone `insight-extraction-test/extract.py` script continues to use
+OpenRouter and `OPENROUTER_API_KEY`.
 
 `.env` is gitignored. Never commit credentials.
 
