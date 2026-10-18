@@ -101,6 +101,7 @@ def _chat_payload(
     user_message: str,
     json_mode: bool,
     response_schema: Optional[Dict[str, Any]],
+    temperature: Optional[float] = None,
 ) -> Dict[str, Any]:
     payload: Dict[str, Any] = {
         "model": model,
@@ -109,6 +110,10 @@ def _chat_payload(
             {"role": "user", "content": user_message},
         ],
     }
+
+    if temperature is not None:
+        payload["temperature"] = temperature
+
     if json_mode:
         if response_schema is not None:
             payload["response_format"] = {
@@ -136,6 +141,7 @@ def call_priority_assessment(
     json_mode: bool = True,
     response_schema: Optional[Dict[str, Any]] = None,
     reasoning: Optional[str] = None,
+    temperature: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Call Priority Assessment through the explicitly selected backend."""
     backend = _normalise_backend(backend)
@@ -150,12 +156,13 @@ def call_priority_assessment(
             if response_schema is not None
             else None
         )
-        envelope, _ = converse(
+        envelope, elapsed = converse(
             model,
             prompt_text,
             user_message,
             response_schema=bedrock_schema if json_mode else None,
             reasoning=reasoning,
+            temperature=temperature,
             timeout_seconds=timeout_seconds,
             max_attempts=2,
         )
@@ -185,8 +192,9 @@ def call_priority_assessment(
             user_message,
             json_mode,
             response_schema,
+            temperature,
         )
-        envelope, _ = post_chat_completion(
+        envelope, elapsed = post_chat_completion(
             api_url,
             payload,
             api_key=api_key,
@@ -203,7 +211,31 @@ def call_priority_assessment(
 
     if not isinstance(content, str):
         raise RuntimeError("Priority Assessment response content is not a string")
-    return parse_model_json(content)
+
+    result = parse_model_json(content)
+
+    usage = envelope.get("usage") or {}
+
+    if backend == "bedrock":
+        prompt_tokens = usage.get("inputTokens")
+        completion_tokens = usage.get("outputTokens")
+    else:
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+
+    return {
+        "result": result,
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "cost_usd": (
+                usage.get("cost_usd", usage.get("cost"))
+                if backend == "api_key"
+                else None
+            ),
+        },
+        "seconds": elapsed,
+    }
 
 
 def run_call(
@@ -218,6 +250,7 @@ def run_call(
     timeout_seconds: int = 180,
     schema_path: Optional[Path] = None,
     backend: Optional[str] = None,
+    temperature: Optional[float] = None,
 ) -> Dict[str, Any]:
     backend = _normalise_backend(backend)
     api_url = api_url or os.getenv("PRIORITY_ASSESSMENT_API_URL")
@@ -247,7 +280,7 @@ def run_call(
     if json_mode and schema_path is not None:
         response_schema = _load_json(schema_path)
 
-    results = call_priority_assessment(
+    response = call_priority_assessment(
         model=model,
         prompt_text=prompt_text,
         article_input=article_input,
@@ -257,7 +290,13 @@ def run_call(
         timeout_seconds=timeout_seconds,
         json_mode=json_mode,
         response_schema=response_schema,
+        temperature=(
+            temperature
+            if temperature is not None
+            else float(os.getenv("PRIORITY_ASSESSMENT_TEMPERATURE", "0.0"))
+        ),
     )
+    results = response["result"]
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(

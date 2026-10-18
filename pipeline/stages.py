@@ -324,7 +324,8 @@ def assess(article: dict) -> dict:
     Out: {"assessments": [{"insight_id": "INSIGHT_001", "relevance": "Relevant",
                            "criteria": {...10 factors...}, "priority": "High Priority",
                            "priority_rationale": "..."}, ...],
-          "llm": {"model", "seconds", "error"}}
+          "llm": {"model", "provider", "prompt_tokens", "completion_tokens",
+                    "cost_usd", "seconds", "error"}
 
     The response is checked against the schema and must cover every input
     insight, in order - anything else raises.
@@ -332,6 +333,9 @@ def assess(article: dict) -> dict:
     backend = backend_from_env()
     model = os.environ.get("PRIORITY_ASSESSMENT_MODEL")
     reasoning = os.environ.get("PRIORITY_ASSESSMENT_REASONING", "off")
+    temperature = float(
+        os.environ.get("PRIORITY_ASSESSMENT_TEMPERATURE", "0.0")
+    )
     if not model:
         raise RuntimeError("Set PRIORITY_ASSESSMENT_MODEL in the repo-root .env")
     api_url = os.environ.get("PRIORITY_ASSESSMENT_API_URL")
@@ -358,6 +362,9 @@ def assess(article: dict) -> dict:
     llm = {
         "model": model,
         "provider": "amazon-bedrock" if backend == "bedrock" else "api-key",
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "cost_usd": None,
         "seconds": None,
         "error": None,
     }
@@ -367,7 +374,7 @@ def assess(article: dict) -> dict:
     last_results = None
     for attempt in range(1, 3):
         try:
-            results = call_priority_assessment(
+            response = call_priority_assessment(
                 model,
                 prompt_text,
                 article,
@@ -377,6 +384,16 @@ def assess(article: dict) -> dict:
                 timeout_seconds=180,
                 response_schema=article_schema,
                 reasoning=reasoning,
+                temperature=temperature,
+            )
+            results = response["result"]
+            usage = response["usage"]
+
+            llm.update(
+                prompt_tokens=usage.get("prompt_tokens"),
+                completion_tokens=usage.get("completion_tokens"),
+                cost_usd=usage.get("cost_usd"),
+                seconds=response.get("seconds"),
             )
             last_results = results
             validate_priority_assessment_results(
@@ -384,7 +401,6 @@ def assess(article: dict) -> dict:
                 expected_ids,
                 article_schema,
             )
-            llm["seconds"] = round(time.time() - started, 1)
             return {"assessments": results["assessments"], "llm": llm}
         except PriorityAssessmentValidationError as exc:
             if attempt < 2:
