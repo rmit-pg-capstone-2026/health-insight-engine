@@ -2,14 +2,14 @@
 Executive summary for the Healthcare Intelligence Briefing.
 
 make_executive_summary() takes every insight that will appear in the PDF and
-returns the three summary parts of the agreed briefing format
-(Healthcare_Intelligence_Briefing_sample_output.docx):
+returns the summary at the top of the briefing, in up to two paragraphs:
 
-    executive_summary  one paragraph: the developments that warrant executive
-                       attention, their key figure and what they may affect
-    what_changed       3-6 one-line items, each with its priority
-    watchlist          one line per Watchlist-priority insight - exactly those,
-                       nothing added (Emerging Watchlist section)
+    executive_summary  the top 5 insights by priority (High first, then
+                       Medium, then Informational; Watchlist excluded), each
+                       with its key figure and what it may affect for Medibank
+    watch_summary      early signals worth watching, from the Watchlist-
+                       priority insights only (at most 3). Empty when the
+                       briefing has no Watchlist insights.
 
 How it is produced
 ------------------
@@ -20,23 +20,27 @@ mode="llm"   (default) One LLM call through the pipeline's shared transport
                - it must be valid JSON in the expected shape;
                - every insight it cites must exist;
                - every figure (2+ digits) must appear in the insights it cites;
-               - every High Priority insight must be in the What Changed list
-                 (and in the paragraph, when there are four or fewer);
-               - the watchlist must be exactly the Watchlist-priority
-                 insights, one item each, with nothing added.
-             If a check fails, the model gets one retry with the problem
-             explained. If it still fails, or no LLM is configured, the
-             rule-based summary below is used instead and the PDF says so.
+               - paragraph 1 must cite the top 5 by priority rank (no lower
+                 rank while a higher one is left out) and no Watchlist insight;
+               - paragraph 2 may cite only Watchlist insights (1 to 3), and
+                 must be empty when there are none.
+             These accuracy checks are strict: if the one retry still fails
+             one, or no LLM is configured, the rule-based summary is used.
+             Style is checked loosely (clearly too long, or a sentence packed
+             with figures). A style problem gets the same one retry, but if
+             the retry is still too long the accurate answer is kept anyway -
+             style never causes the rule-based fallback.
 mode="rules" No LLM call. Built directly from the insights' priorities and
              criteria ratings - same input always gives the same output.
 mode="none"  No executive summary.
 
 Configuration (repo-root .env)
 ------------------------------
-EXEC_SUMMARY_API_URL / EXEC_SUMMARY_MODEL / EXEC_SUMMARY_API_KEY are optional.
-When they are not set, the PRIORITY_ASSESSMENT_* values are used, so nothing
-new needs configuring. LLM_BACKEND (bedrock | api_key) works as for the other
-stages.
+LLM_BACKEND (bedrock | api_key) works as for the other stages. With bedrock
+(the default) the call goes through Bedrock Converse, so Claude models work.
+EXEC_SUMMARY_MODEL / EXEC_SUMMARY_REASONING are optional; when unset the
+PRIORITY_ASSESSMENT_* values are used, so nothing new needs configuring.
+EXEC_SUMMARY_API_URL / EXEC_SUMMARY_API_KEY are only for api_key mode.
 """
 
 import json
@@ -48,7 +52,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
-PROMPT_PATH = HERE / "prompts" / "executive_summary_v0.3.md"
+PROMPT_PATH = HERE / "prompts" / "executive_summary_v0.4.md"
 
 # Load the repo-root .env when run locally (on Lambda the environment is set).
 try:
@@ -60,8 +64,18 @@ except ImportError:
 PRIORITY_RANK = {"High Priority": 0, "Medium Priority": 1,
                  "Watchlist": 2, "Informational": 3}
 
-MAX_WHAT_CHANGED = 6
-MAX_LINE_CHARS = 400
+# Paragraph 1 covers the top this-many insights; paragraph 2 at most
+# MAX_WATCH Watchlist insights.
+MAX_DEVELOPMENTS = 5
+MAX_WATCH = 3
+# Ranks that can appear in paragraph 1, highest first.
+TOP_RANKS = ("High Priority", "Medium Priority", "Informational")
+
+# Style limits. The prompt asks for about 120 / 60 words and one figure per
+# development; these only catch answers that are clearly over.
+MAX_WORDS_SUMMARY = 180
+MAX_WORDS_WATCH = 90
+MAX_FIGURES_PER_SENTENCE = 2
 
 # Criteria rating -> plain-English reason it may matter (rules mode only).
 CRITERIA_PHRASES = [
@@ -77,41 +91,18 @@ CRITERIA_PHRASES = [
 RESPONSE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["executive_summary", "summary_refs", "what_changed", "watchlist"],
+    "required": ["executive_summary", "summary_refs", "watch_summary", "watch_refs"],
     "properties": {
         "executive_summary": {"type": "string"},
         "summary_refs": {"type": "array", "items": {"type": "string"}},
-        "what_changed": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["text", "refs"],
-                "properties": {
-                    "text": {"type": "string"},
-                    "refs": {"type": "array", "items": {"type": "string"}},
-                },
-            },
-        },
-        "watchlist": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["ref", "topic", "note"],
-                "properties": {
-                    "ref": {"type": "string"},
-                    "topic": {"type": "string"},
-                    "note": {"type": "string"},
-                },
-            },
-        },
+        "watch_summary": {"type": "string"},
+        "watch_refs": {"type": "array", "items": {"type": "string"}},
     },
 }
 
 
 class SummaryCheckError(ValueError):
-    """The LLM answer failed a check; the message is sent back on retry."""
+    """The LLM answer failed an accuracy check; the message is sent back on retry."""
 
 
 # ---------------------------------------------------------------------------
@@ -206,104 +197,124 @@ def _clean_refs(refs, known, where):
     return list(dict.fromkeys(refs))
 
 
+def _priority(it):
+    return it["insight"].get("priority")
+
+
 def check_llm_summary(raw, items):
     """Validate the parsed LLM answer and return a clean summary dict."""
     if not isinstance(raw, dict):
         raise SummaryCheckError("The answer must be a JSON object.")
     by_ref = {_ref(it["number"]): it for it in items}
     text_by_ref = {r: _source_text(it["insight"]) for r, it in by_ref.items()}
-    all_refs = list(by_ref)
+    watch_all = [r for r, it in by_ref.items() if _priority(it) == "Watchlist"]
 
+    # --- Paragraph 1: the top MAX_DEVELOPMENTS insights by rank ---------------
     paragraph = raw.get("executive_summary")
     if not isinstance(paragraph, str) or not paragraph.strip():
         raise SummaryCheckError("'executive_summary' must be a non-empty string.")
     summary_refs = _clean_refs(raw.get("summary_refs"), by_ref, "The executive summary")
     _check_figures(paragraph, summary_refs, text_by_ref, "The executive summary")
 
-    # High Priority insights must lead. The paragraph covers all of them when
-    # there are four or fewer (otherwise at least four of them).
-    high_refs = [r for r, it in by_ref.items()
-                 if it["insight"].get("priority") == "High Priority"]
-    in_paragraph = [r for r in high_refs if r in summary_refs]
-    if len(in_paragraph) < min(len(high_refs), 4):
-        missing = [r for r in high_refs if r not in summary_refs]
+    wrong = [r for r in summary_refs if _priority(by_ref[r]) not in TOP_RANKS]
+    if wrong:
         raise SummaryCheckError(
-            f"The executive summary leaves out High Priority insight(s) "
-            f"{', '.join(missing)}. Cover every High Priority insight (related "
-            f"ones may be combined) before mentioning any Medium Priority one, "
-            f"and list them in 'summary_refs'.")
-
-    changed = raw.get("what_changed")
-    if not isinstance(changed, list) or not changed:
-        raise SummaryCheckError("'what_changed' must contain at least one item.")
-    clean_changed = []
-    for n, c in enumerate(changed[:MAX_WHAT_CHANGED], start=1):
-        where = f"What-changed item {n}"
-        if not isinstance(c, dict) or not (c.get("text") or "").strip():
-            raise SummaryCheckError(f"{where} needs a non-empty 'text'.")
-        refs = _clean_refs(c.get("refs"), by_ref, where)
-        _check_figures(c["text"], refs, text_by_ref, where)
-        clean_changed.append({"text": c["text"].strip()[:MAX_LINE_CHARS], "refs": refs})
-
-    covered = {r for c in clean_changed for r in c["refs"]}
-    missing = [r for r in high_refs if r not in covered]
-    if missing:
+            f"The first paragraph cites {', '.join(wrong)}, which are not High, "
+            f"Medium or Informational priority. Watchlist insights belong only "
+            f"in 'watch_summary'.")
+    if len(summary_refs) > MAX_DEVELOPMENTS:
         raise SummaryCheckError(
-            f"High Priority insight(s) {', '.join(missing)} are missing from "
-            f"'what_changed'. List every High Priority insight first (related "
-            f"ones may share one item), then Medium Priority, up to "
-            f"{MAX_WHAT_CHANGED} items in total.")
-
-    # Show the list highest priority first, whatever order the model used.
-    def best_rank(refs):
-        return min(PRIORITY_RANK.get(by_ref[r]["insight"].get("priority"), 9)
-                   for r in refs)
-    clean_changed.sort(key=lambda c: best_rank(c["refs"]))
-
-    # Emerging Watchlist = exactly the Watchlist-priority insights, one item
-    # each, in card order. The model only words them; it cannot add or drop any.
-    watch_refs = [r for r, it in by_ref.items()
-                  if it["insight"].get("priority") == "Watchlist"]
-    watch = raw.get("watchlist") or []
-    if not isinstance(watch, list):
-        raise SummaryCheckError("'watchlist' must be a list.")
-    worded = {}
-    for n, w in enumerate(watch, start=1):
-        where = f"Watchlist item {n}"
-        if not isinstance(w, dict) or not (w.get("topic") or "").strip() \
-                or not (w.get("note") or "").strip():
-            raise SummaryCheckError(f"{where} needs 'ref', 'topic' and 'note'.")
-        ref = w.get("ref")
-        if ref not in watch_refs:
+            f"The first paragraph cites {len(summary_refs)} insights; cite "
+            f"exactly the top {MAX_DEVELOPMENTS}.")
+    # Fill the 5 places rank by rank: all High (up to 5), then Medium, then
+    # Informational. Each rank must contribute what it is owed.
+    remaining = MAX_DEVELOPMENTS
+    for rank in TOP_RANKS:
+        at_rank = [r for r, it in by_ref.items() if _priority(it) == rank]
+        owed = min(remaining, len(at_rank))
+        cited = [r for r in summary_refs if r in at_rank]
+        if len(cited) < owed:
+            missing = [r for r in at_rank if r not in summary_refs]
             raise SummaryCheckError(
-                f"{where} refers to {ref!r}, which is not a Watchlist-priority "
-                f"insight. The watchlist must contain only these insights: "
-                f"{', '.join(watch_refs) or 'none (return an empty list)'}.")
-        if ref in worded:
-            raise SummaryCheckError(f"{ref} appears twice in 'watchlist'; list it once.")
-        _check_figures(w["topic"] + " " + w["note"], [ref], text_by_ref, where)
-        worded[ref] = {"topic": w["topic"].strip(),
-                       "note": w["note"].strip()[:MAX_LINE_CHARS], "refs": [ref]}
-    missing = [r for r in watch_refs if r not in worded]
-    if missing:
-        raise SummaryCheckError(
-            f"Watchlist-priority insight(s) {', '.join(missing)} are missing "
-            f"from 'watchlist'. Include every Watchlist insight, one item each.")
-    clean_watch = [worded[r] for r in watch_refs]
+                f"The first paragraph must cover {owed} {rank} insight(s) but "
+                f"covers {len(cited)}. Not covered: {', '.join(missing)}. Take "
+                f"the top {MAX_DEVELOPMENTS} in rank order: every High Priority "
+                f"insight first (the most important five if there are more), "
+                f"then Medium Priority, then Informational.")
+        remaining -= owed
+
+    # --- Paragraph 2: early signals (Watchlist only) --------------------------
+    watch_text = raw.get("watch_summary") or ""
+    if not isinstance(watch_text, str):
+        raise SummaryCheckError("'watch_summary' must be a string.")
+    watch_text = watch_text.strip()
+    watch_refs = raw.get("watch_refs") or []
+    if not watch_all:
+        # No Watchlist insights: no second paragraph, whatever was returned.
+        watch_text, watch_refs = "", []
+    else:
+        if not watch_text:
+            raise SummaryCheckError(
+                f"'watch_summary' is empty, but the briefing has Watchlist "
+                f"insight(s) {', '.join(watch_all)}. Write the second paragraph "
+                f"about up to {MAX_WATCH} of them.")
+        watch_refs = _clean_refs(watch_refs, by_ref, "The watch paragraph")
+        not_watch = [r for r in watch_refs if r not in watch_all]
+        if not_watch:
+            raise SummaryCheckError(
+                f"The watch paragraph cites {', '.join(not_watch)}, which are not "
+                f"Watchlist insights. Use only: {', '.join(watch_all)}.")
+        if len(watch_refs) > MAX_WATCH:
+            raise SummaryCheckError(
+                f"The watch paragraph cites {len(watch_refs)} insights; mention "
+                f"at most {MAX_WATCH}.")
+        _check_figures(watch_text, watch_refs, text_by_ref, "The watch paragraph")
 
     return {"executive_summary": paragraph.strip(), "summary_refs": summary_refs,
-            "what_changed": clean_changed, "watchlist": clean_watch}
+            "watch_summary": watch_text, "watch_refs": watch_refs}
+
+
+_YEAR = re.compile(r"\b(?:19|20)\d{2}(?:\s*[\u2013\u2014/-]\s*\d{2,4})?\b")
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"'(])")
+
+
+def _figure_count(sentence):
+    """Figures (2+ digits) in a sentence, not counting years like 2024-25."""
+    return len(_numbers(_YEAR.sub(" ", sentence)))
+
+
+def style_problem(summary):
+    """Return a message if the summary is clearly too long or too dense with
+    figures, else None. Loose on purpose - see the module docstring."""
+    problems = []
+    for key, label, limit in (("executive_summary", "The first paragraph", MAX_WORDS_SUMMARY),
+                              ("watch_summary", "The watch paragraph", MAX_WORDS_WATCH)):
+        text = summary.get(key) or ""
+        words = len(text.split())
+        if words > limit:
+            problems.append(f"{label} is {words} words; keep it to about "
+                            f"{limit * 2 // 3} words.")
+        dense = [sent for sent in _SENTENCE_END.split(text)
+                 if _figure_count(sent) > MAX_FIGURES_PER_SENTENCE]
+        if dense:
+            problems.append(f"{label} has {len(dense)} sentence(s) with more than "
+                            f"{MAX_FIGURES_PER_SENTENCE} figures, e.g. \"{dense[0][:120]}\". "
+                            "Use one figure per development.")
+    if not problems:
+        return None
+    return ("The answer is accurate but hard to read: " + " ".join(problems)
+            + " Rewrite it shorter in plain language, keeping the same insights.")
 
 
 # ---------------------------------------------------------------------------
 # LLM call
 # ---------------------------------------------------------------------------
 
-def _llm_config():
-    def env(name):
-        return (os.environ.get(f"EXEC_SUMMARY_{name}")
-                or os.environ.get(f"PRIORITY_ASSESSMENT_{name}"))
-    return env("API_URL"), env("MODEL"), env("API_KEY") or os.environ.get("OPENAI_API_KEY")
+def _env(name, default=None):
+    """EXEC_SUMMARY_<name>, falling back to PRIORITY_ASSESSMENT_<name>."""
+    return (os.environ.get(f"EXEC_SUMMARY_{name}")
+            or os.environ.get(f"PRIORITY_ASSESSMENT_{name}")
+            or default)
 
 
 def _transport():
@@ -311,8 +322,8 @@ def _transport():
     pipeline_dir = str(REPO_ROOT / "pipeline")
     if pipeline_dir not in sys.path:
         sys.path.insert(0, pipeline_dir)
-    from llm_transport import backend_from_env, post_chat_completion
-    return backend_from_env, post_chat_completion
+    import llm_transport
+    return llm_transport
 
 
 def _chat_content(body):
@@ -322,46 +333,110 @@ def _chat_content(body):
         raise RuntimeError("Unexpected LLM response shape (no choices[0].message.content)")
 
 
+def _converse_content(body):
+    try:
+        blocks = body["output"]["message"]["content"]
+    except (KeyError, TypeError):
+        raise RuntimeError("Unexpected Bedrock response shape (no output.message.content)")
+    texts = [b["text"] for b in blocks if isinstance(b, dict) and b.get("text")]
+    if not texts:
+        raise RuntimeError("Bedrock response had no text content")
+    return "".join(texts)
+
+
+def _ask_bedrock(transport, model, system_prompt, user_text):
+    body, _ = transport.converse(
+        model, system_prompt, user_text,
+        response_schema=RESPONSE_SCHEMA,
+        response_schema_name="executive_summary",
+        reasoning=_env("REASONING", "off"),
+        temperature=0.0,
+        timeout_seconds=180,
+        max_attempts=2,
+    )
+    return _converse_content(body)
+
+
+def _ask_api_key(transport, model, messages):
+    api_url = _env("API_URL")
+    api_key = _env("API_KEY") or os.environ.get("OPENAI_API_KEY")
+    if not api_url:
+        raise RuntimeError("LLM_BACKEND=api_key needs EXEC_SUMMARY_API_URL "
+                           "(or PRIORITY_ASSESSMENT_API_URL) in .env")
+    payload = {
+        "model": model,
+        "temperature": 0.0,
+        "messages": messages,
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"name": "executive_summary", "strict": True,
+                            "schema": RESPONSE_SCHEMA},
+        },
+    }
+    body, _ = transport.post_chat_completion(api_url, payload, api_key=api_key,
+                                             timeout_seconds=180)
+    return _chat_content(body)
+
+
 def llm_summary(items, sources, max_attempts=2):
-    """Call the LLM and return (summary, model). Raises on failure."""
-    backend_from_env, post_chat_completion = _transport()
-    backend = backend_from_env()
-    api_url, model, api_key = _llm_config()
-    if not (api_url and model):
-        raise RuntimeError("Set EXEC_SUMMARY_API_URL/EXEC_SUMMARY_MODEL "
-                           "(or PRIORITY_ASSESSMENT_API_URL/_MODEL) in .env")
+    """Call the LLM and return (summary, model). Raises on failure.
+
+    LLM_BACKEND=bedrock (default): Bedrock Converse, so Claude models work.
+    LLM_BACKEND=api_key: an OpenAI-compatible chat-completions endpoint.
+    """
+    transport = _transport()
+    backend = transport.backend_from_env()
+    model = _env("MODEL")
+    if not model:
+        raise RuntimeError("Set EXEC_SUMMARY_MODEL (or PRIORITY_ASSESSMENT_MODEL) in .env")
 
     system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
     user_content = json.dumps(build_llm_input(items, sources), ensure_ascii=False)
-    messages = [{"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}]
 
     last_problem = None
+    previous = None
+    accurate = None   # an accurate answer that only failed the style check
     for attempt in range(1, max_attempts + 1):
-        payload = {
-            "model": model,
-            "temperature": 0.0,
-            "messages": messages,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {"name": "executive_summary", "strict": True,
-                                "schema": RESPONSE_SCHEMA},
-            },
-        }
-        body, _ = post_chat_completion(api_url, payload, backend=backend,
-                                       api_key=api_key, timeout_seconds=180)
-        content = _chat_content(body)
+        if previous is None:
+            user_text = user_content
+            messages = [{"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_content}]
+        else:
+            # Retry once, telling the model exactly what was wrong.
+            fix = (f"Your answer failed a check: {last_problem} "
+                   "Return the corrected JSON object only.")
+            user_text = (f"{user_content}\n\nYour previous answer was:\n{previous}"
+                         f"\n\n{fix}")
+            messages = [{"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_content},
+                        {"role": "assistant", "content": previous},
+                        {"role": "user", "content": fix}]
+
+        if backend == "bedrock":
+            content = _ask_bedrock(transport, model, system_prompt, user_text)
+        else:
+            content = _ask_api_key(transport, model, messages)
+
         try:
-            return check_llm_summary(_parse_json(content), items), model
+            summary = check_llm_summary(_parse_json(content), items)
         except SummaryCheckError as problem:
             last_problem = problem
+            previous = content
             print(f"  executive summary attempt {attempt} failed a check: {problem}")
-            # Retry once, telling the model exactly what was wrong.
-            messages = messages[:2] + [
-                {"role": "assistant", "content": content},
-                {"role": "user", "content": f"Your answer failed a check: {problem} "
-                                            "Return the corrected JSON object only."},
-            ]
+            continue
+
+        problem = style_problem(summary)
+        if problem is None:
+            return summary, model
+        accurate = summary
+        last_problem = problem
+        previous = content
+        print(f"  executive summary attempt {attempt} style: {problem}")
+
+    if accurate is not None:
+        # Accurate but long: better than the rule-based fallback.
+        print("  executive summary: keeping the accurate (if long) answer")
+        return accurate, model
     raise RuntimeError(f"LLM summary failed checks: {last_problem}")
 
 
@@ -372,9 +447,8 @@ def llm_summary(items, sources, max_attempts=2):
 def rules_summary(items, sources):
     counts = {p: 0 for p in PRIORITY_RANK}
     for it in items:
-        p = it["insight"].get("priority")
-        if p in counts:
-            counts[p] += 1
+        if _priority(it) in counts:
+            counts[_priority(it)] += 1
     publishers = sorted({(s.get("publisher") or "").strip() for s in sources} - {""})
 
     def strength(it):
@@ -382,11 +456,9 @@ def rules_summary(items, sources):
         return sum(1 for key, good, _ in CRITERIA_PHRASES if crit.get(key) in good)
 
     ranked = sorted(items, key=lambda it: (
-        PRIORITY_RANK.get(it["insight"].get("priority"), 9), -strength(it), it["number"]))
-    top = [it for it in ranked
-           if it["insight"].get("priority") in ("High Priority", "Medium Priority")][:4]
-    if not top:
-        top = ranked[:3]
+        PRIORITY_RANK.get(_priority(it), 9), -strength(it), it["number"]))
+    top = [it for it in ranked if _priority(it) in TOP_RANKS][:MAX_DEVELOPMENTS]
+    watch = [it for it in ranked if _priority(it) == "Watchlist"][:MAX_WATCH]
 
     parts = [f"{counts[p]} {p}" for p in PRIORITY_RANK if counts[p]]
     paragraph = (f"This briefing covers {len(sources)} publication(s)"
@@ -394,7 +466,7 @@ def rules_summary(items, sources):
                  f"with {len(items)} insight(s): {', '.join(parts)}.")
     if counts["High Priority"]:
         paragraph += (f" {counts['High Priority']} development(s) are rated High "
-                      "Priority and are listed first below.")
+                      "Priority.")
     else:
         paragraph += " No High Priority developments were identified."
     reasons = []
@@ -406,18 +478,17 @@ def rules_summary(items, sources):
         paragraph += (" Based on the priority ratings, the leading items may matter "
                       "to Medibank because of " + "; ".join(reasons[:3]) + ".")
 
-    # What Changed: every High Priority insight first, then Medium, up to the limit.
-    leading = [it for it in ranked
-               if it["insight"].get("priority") in ("High Priority", "Medium Priority")]
-    changed = [{"text": it["insight"].get("finding") or "", "refs": [_ref(it["number"])]}
-               for it in (leading or ranked)[:MAX_WHAT_CHANGED]]
-    # Emerging Watchlist: every Watchlist-priority insight, in card order.
-    watch = [{"topic": it["source"].get("title") or "Watchlist item",
-              "note": it["insight"].get("finding") or "",
-              "refs": [_ref(it["number"])]}
-             for it in items if it["insight"].get("priority") == "Watchlist"]
-    return {"executive_summary": paragraph, "what_changed": changed,
-            "watchlist": watch}
+    watch_text = ""
+    if watch:
+        findings = [(it["insight"].get("finding") or "").strip().rstrip(".")
+                    for it in watch]
+        watch_text = ("Early signals worth watching: "
+                      + "; ".join(f for f in findings if f) + ".")
+
+    return {"executive_summary": paragraph,
+            "summary_refs": [_ref(it["number"]) for it in top],
+            "watch_summary": watch_text,
+            "watch_refs": [_ref(it["number"]) for it in watch]}
 
 
 # ---------------------------------------------------------------------------
@@ -427,7 +498,8 @@ def rules_summary(items, sources):
 def make_executive_summary(items, sources, mode="llm"):
     """Return the summary dict, or None when mode is 'none' or nothing to summarise.
 
-    The dict has executive_summary, what_changed, watchlist, plus:
+    The dict has executive_summary, summary_refs, watch_summary and
+    watch_refs, plus:
       method  "llm" or "rules"
       model   model id (llm only)
       note    why the rules fallback was used, if it was

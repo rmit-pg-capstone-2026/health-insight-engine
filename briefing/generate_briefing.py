@@ -7,13 +7,11 @@ e.g. one AIHW report and one ABS release) and writes a single PDF with a title
 block, then follows the agreed briefing format
 (Healthcare_Intelligence_Briefing_sample_output.docx):
 
-    Executive Summary            one paragraph (LLM)
-    What Changed This Period     one line per key development (LLM)
+    Executive Summary            top 5 findings + early signals to watch (LLM)
     Clinical Insights            insight cards grouped by insight_type,
     Pharmaceutical Insights      highest priority first, each with its
     Prosthesis & Medical         priority tag (Watchlist items stay in their
       Technology Insights        topic section with a WATCHLIST tag)
-    Emerging Watchlist           topics to keep watching (LLM)
 
 The Executive Summary is written by an LLM through the pipeline's shared
 transport (same Bedrock / API-key settings as the other stages) and checked
@@ -95,10 +93,6 @@ TOPIC_SECTIONS = {
                            "Prosthesis & Medical Technology Insights"),
 }
 
-# Short priority words for the "What Changed" list, as in the sample briefing.
-PRIORITY_WORD = {"High Priority": "HIGH", "Medium Priority": "MEDIUM",
-                 "Watchlist": "WATCH", "Informational": "INFO"}
-WATCH_COLOUR = colors.HexColor("#2E86C1")
 
 # ---------------------------------------------------------------------------
 # Text styles
@@ -359,83 +353,20 @@ def _insight_links(refs):
     return f'<font color="#5F6B7A">{word} {", ".join(links)}</font>'
 
 
-def _summary_note(summary):
-    if summary.get("method") == "llm":
-        return (f"Drafted by an AI model ({txt(summary.get('model'))}) from the "
-                "insights in this briefing, and checked so that every figure "
-                "matches the insight it cites. Numbers link to the full insight.")
-    if summary.get("note"):
-        return ("Generated automatically from the insights' priority ratings "
-                "(AI summary unavailable for this run).")
-    return "Generated automatically from the insights' priority ratings."
-
-
-def _best_priority(refs, priority_by_ref):
-    ranked = sorted((PRIORITY_STYLE.get(priority_by_ref.get(r), UNKNOWN_PRIORITY)[2],
-                     priority_by_ref.get(r)) for r in refs)
-    return ranked[0][1] if ranked else None
-
-
-def executive_summary_block(summary, priority_by_ref, width):
-    """Executive Summary paragraph + What Changed list, as in the sample."""
+def executive_summary_block(summary, width):
+    """Executive Summary: key findings, then (if any) early signals to watch,
+    with links to the insights both paragraphs are based on."""
     story = [Paragraph("Executive Summary", S["h1"]),
-             Paragraph(_summary_note(summary), S["note"]),
-             Paragraph(txt(summary.get("executive_summary")), S["summary"]),
-             Spacer(1, 4 * mm)]
-
-    changed = summary.get("what_changed") or []
-    if changed:
-        story.append(Paragraph("What Changed This Period", S["h1"]))
-        for c in changed:
-            priority = _best_priority(c["refs"], priority_by_ref)
-            word = PRIORITY_WORD.get(priority, "")
-            colour = PRIORITY_STYLE.get(priority, UNKNOWN_PRIORITY)[1].hexval()[2:]
-            text = (f'<font color="#{colour}"><b>{word}</b></font>&nbsp;&nbsp;'
-                    f'{txt(c.get("text"))}&nbsp;&nbsp;{_insight_links(c["refs"])}')
-            story.append(Paragraph(text, S["bullet"], bulletText="•"))
+             Paragraph(txt(summary.get("executive_summary")), S["summary"])]
+    if summary.get("watch_summary"):
+        story.append(Spacer(1, 2 * mm))
+        story.append(Paragraph(txt(summary["watch_summary"]), S["summary"]))
+    refs = list(dict.fromkeys((summary.get("summary_refs") or [])
+                              + (summary.get("watch_refs") or [])))
+    if refs:
+        story.append(Spacer(1, 2 * mm))
+        story.append(Paragraph(f"Based on {_insight_links(refs)}", S["note"]))
     story.append(Spacer(1, 6 * mm))
-    return story
-
-
-def watchlist_block(summary, items, width):
-    """Emerging Watchlist: from the summary, or the Watchlist-priority insights."""
-    story = [Paragraph("Emerging Watchlist", S["h1"]),
-             Paragraph("Every insight rated Watchlist in this briefing: emerging "
-                       "signals to keep watching.", S["note"])]
-    if summary is not None:
-        entries = summary.get("watchlist") or []
-    else:
-        entries = [{"topic": it["source"].get("title") or "Watchlist item",
-                    "note": it["insight"].get("finding") or "",
-                    "refs": [f'I{it["number"]}']}
-                   for it in items if it["insight"].get("priority") == "Watchlist"]
-    if not entries:
-        story.append(Paragraph("No items flagged for monitoring in this briefing.",
-                               S["empty"]))
-        return story
-
-    rows = []
-    for e in entries:
-        tag = Table([[Paragraph("WATCH", S["tag"])]])
-        tag.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), WATCH_COLOUR),
-            ("LEFTPADDING", (0, 0), (-1, -1), 5),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-            ("TOPPADDING", (0, 0), (-1, -1), 2),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ]))
-        text = (f'<b>{txt(e.get("topic"))}</b> — {txt(e.get("note"))}'
-                f'&nbsp;&nbsp;{_insight_links(e["refs"])}')
-        rows.append([tag, Paragraph(text, S["body"])])
-    table = Table(rows, colWidths=[16 * mm, width - 16 * mm])
-    table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (0, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-    ]))
-    story.append(table)
     return story
 
 
@@ -509,9 +440,7 @@ def build_pdf(briefings, pdf_path: Path, summary_mode=None) -> tuple[int, int]:
              for n, (topic, _, _, _, insight, source) in enumerate(cards, start=1)]
     summary = make_executive_summary(items, sources, mode=summary_mode)
     if summary:
-        priority_by_ref = {f'I{it["number"]}': it["insight"].get("priority")
-                           for it in items}
-        story += executive_summary_block(summary, priority_by_ref, doc.width)
+        story += executive_summary_block(summary, doc.width)
 
     # One section per topic, as in the sample briefing.
     for topic in topics:
@@ -525,10 +454,6 @@ def build_pdf(briefings, pdf_path: Path, summary_mode=None) -> tuple[int, int]:
             story.append(insight_card(it["insight"], it["section"], it["source"],
                                       doc.width, number=it["number"]))
             story.append(Spacer(1, 5 * mm))
-
-    # Emerging Watchlist: from the summary, or straight from the
-    # Watchlist-priority insights when the summary is switched off.
-    story += watchlist_block(summary, items, doc.width)
 
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return len(sources), len(cards)
