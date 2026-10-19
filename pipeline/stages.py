@@ -27,20 +27,62 @@ for folder in ("collect_and_extract", "insight-extraction-test",
 
 import collect_and_extract as stage1  # noqa: E402
 import extract as stage2  # noqa: E402  (also loads the repo-root .env)
-from call_priority_assessment import call_openai_compatible_chat  # noqa: E402
+from call_priority_assessment import call_priority_assessment  # noqa: E402
 from generate_briefing import build_pdf  # noqa: E402
-from run_priority_assessment import DEFAULT_PROMPT, DEFAULT_SCHEMA  # noqa: E402
-from validate_priority_assessment import load_json, validate_priority_assessment_results  # noqa: E402
+from validate_priority_assessment import (  # noqa: E402
+    PriorityAssessmentValidationError,
+    load_json,
+    validate_priority_assessment_results,
+)
 
 import storage  # noqa: E402
+from llm_transport import (  # noqa: E402
+    backend_from_env,
+    converse,
+    post_chat_completion,
+)
 
 # One file per page version. A subfolder, so the stage 2 script's batch mode
 # (which only reads the top level of source-extracted-files/) never picks
 # these up alongside the files the stage 1 script writes.
 DOCUMENTS_DIR = storage.DATA_DIR / "source-extracted-files" / "versions"
 
-EXTRACT_MODEL = os.environ.get("EXTRACT_MODEL", "deepseek/deepseek-v4-flash-0731")
+EXTRACT_MODEL = os.environ.get("EXTRACT_MODEL")
 EXTRACT_PROVIDER = os.environ.get("EXTRACT_PROVIDER", "deepinfra") or None
+
+PRIORITY_ROOT = REPO_ROOT / "priority_assessment"
+PRIORITY_PROMPT = PRIORITY_ROOT / "prompts" / "priority_assessment_v0.4.3_article.md"
+PRIORITY_SCHEMA = (
+    PRIORITY_ROOT / "schemas" / "priority_assessment_article_schema_v0.1.json"
+)
+
+
+def _converse_content(body: dict) -> str:
+    try:
+        blocks = body["output"]["message"]["content"]
+        content = next(block["text"] for block in blocks if "text" in block)
+    except (KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(
+            "Unexpected Bedrock Converse response shape; missing output text"
+        ) from exc
+    except StopIteration as exc:
+        raise RuntimeError("Bedrock Converse response contains no text block") from exc
+    if not isinstance(content, str):
+        raise RuntimeError("LLM response content is not a string")
+    return content
+
+
+def _chat_content(body: dict) -> str:
+    try:
+        content = body["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(
+            "Unexpected OpenAI-compatible response shape; "
+            "missing choices[0].message.content"
+        ) from exc
+    if not isinstance(content, str):
+        raise RuntimeError("LLM response content is not a string")
+    return content
 
 
 # ----------------------------------------------------------------- stage 1
@@ -112,28 +154,126 @@ def extract(document: dict) -> dict:
     evidence_found is the verbatim-quote check: False means the quote is not
     in the document, and the insight should not be trusted.
     """
-    api_key = os.environ.get("OPENROUTER_API_KEY")
-    if not api_key:
-        raise RuntimeError("Set OPENROUTER_API_KEY in the repo-root .env")
+    backend = backend_from_env()
+    if not EXTRACT_MODEL:
+        raise RuntimeError("Set EXTRACT_MODEL in the repo-root .env")
+    reasoning = os.environ.get("EXTRACT_REASONING", "off")
+    api_url = os.environ.get("EXTRACT_API_URL")
+    api_key = (
+        os.environ.get("EXTRACT_API_KEY")
+        or os.environ.get("OPENROUTER_API_KEY")
+    )
+    if backend == "api_key" and not api_url:
+        raise RuntimeError("LLM_BACKEND=api_key requires EXTRACT_API_URL")
+    if backend == "api_key" and not api_key:
+        raise RuntimeError(
+            "LLM_BACKEND=api_key requires EXTRACT_API_KEY or OPENROUTER_API_KEY"
+        )
 
     prompt = stage2.PROMPT_PATH.read_text(encoding="utf-8")
     path = storage.local(document["markdown_path"])
     if not path.exists():
         raise FileNotFoundError(f"document file is missing: {document['markdown_path']}")
     text = stage2.load_article(path)
-    result, meta = stage2.call_model(EXTRACT_MODEL, text, prompt, api_key,
-                                     temperature=0.0, reasoning="off",
-                                     provider=EXTRACT_PROVIDER, indent="    ")
-    llm = {"model": EXTRACT_MODEL,
-           "provider": meta.get("provider") or EXTRACT_PROVIDER,
-           "prompt_tokens": meta.get("prompt_tokens"),
-           "completion_tokens": meta.get("completion_tokens"),
-           "cost_usd": meta.get("cost_usd"),
-           "seconds": meta.get("seconds"),
-           "error": meta.get("error")}
-    if result is None:
-        raise StageError(f"stage 2 call failed: {meta.get('error')}", llm=llm,
-                         output=meta.get("raw") or meta.get("raw_content"))
+
+    user_message = (
+        "Read the document below and produce the briefing "
+        "insights.\n\n<article>\n" + text + "\n</article>"
+    )
+    response_format = stage2.RESPONSE_FORMAT["json_schema"]
+
+    started = time.time()
+    llm = {
+        "model": EXTRACT_MODEL,
+        "provider": "amazon-bedrock" if backend == "bedrock" else EXTRACT_PROVIDER,
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "cost_usd": None,
+        "seconds": None,
+        "error": None,
+    }
+    try:
+        if backend == "bedrock":
+            body, elapsed = converse(
+                EXTRACT_MODEL,
+                prompt,
+                user_message,
+                response_schema=response_format["schema"],
+                response_schema_name=response_format["name"],
+                reasoning=reasoning,
+                temperature=0.0,
+                timeout_seconds=stage2.TIMEOUT,
+                max_attempts=2,
+            )
+            content = _converse_content(body)
+        else:
+            payload = {
+                "model": EXTRACT_MODEL,
+                "temperature": 0.0,
+                "messages": [
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                "response_format": stage2.RESPONSE_FORMAT,
+            }
+            if "openrouter.ai" in api_url.lower():
+                payload["provider"] = {"require_parameters": True}
+                payload["usage"] = {"include": True}
+                payload["reasoning"] = {"enabled": False}
+                if EXTRACT_PROVIDER:
+                    payload["provider"]["only"] = [EXTRACT_PROVIDER]
+                    payload["provider"]["allow_fallbacks"] = False
+            body, elapsed = post_chat_completion(
+                api_url,
+                payload,
+                api_key=api_key,
+                timeout_seconds=stage2.TIMEOUT,
+                max_attempts=2,
+            )
+            content = _chat_content(body)
+        result = stage2.parse_json(content)
+        if result is None:
+            raise RuntimeError("stage 2 response was not valid JSON")
+    except Exception as exc:
+        llm.update(seconds=round(time.time() - started, 1), error=str(exc))
+        raise StageError(str(exc), llm=llm) from exc
+
+    usage = body.get("usage") or {}
+    details = usage.get("completion_tokens_details") or {}
+    llm.update(
+        provider=(
+            "amazon-bedrock"
+            if backend == "bedrock"
+            else body.get("provider") or EXTRACT_PROVIDER
+        ),
+        prompt_tokens=(
+            usage.get("inputTokens")
+            if backend == "bedrock"
+            else usage.get("prompt_tokens")
+        ),
+        completion_tokens=(
+            usage.get("outputTokens")
+            if backend == "bedrock"
+            else usage.get("completion_tokens")
+        ),
+        cost_usd=usage.get("cost") if backend == "api_key" else None,
+        seconds=elapsed,
+    )
+    meta = {
+        "model_returned": body.get("model"),
+        "provider": llm["provider"],
+        "prompt_tokens": llm["prompt_tokens"],
+        "completion_tokens": llm["completion_tokens"],
+        "reasoning_tokens": (
+            None if backend == "bedrock" else details.get("reasoning_tokens")
+        ),
+        "cost_usd": llm["cost_usd"],
+        "seconds": llm["seconds"],
+        "reasoning_setting": reasoning if backend == "bedrock" else "off",
+        "provider_pinned": EXTRACT_PROVIDER if backend == "api_key" else None,
+        "backend": backend,
+        "error": None,
+    }
 
     # The same checks, in the same order, as extract.py.
     record = {"meta": meta, "result": result,
@@ -184,36 +324,94 @@ def assess(article: dict) -> dict:
     Out: {"assessments": [{"insight_id": "INSIGHT_001", "relevance": "Relevant",
                            "criteria": {...10 factors...}, "priority": "High Priority",
                            "priority_rationale": "..."}, ...],
-          "llm": {"model", "seconds", "error"}}
+          "llm": {"model", "provider", "prompt_tokens", "completion_tokens",
+                    "cost_usd", "seconds", "error"}
 
     The response is checked against the schema and must cover every input
     insight, in order - anything else raises.
     """
-    api_url = os.environ.get("PROMPT2_API_URL")
-    api_key = os.environ.get("PROMPT2_API_KEY") or os.environ.get("OPENAI_API_KEY")
-    model = os.environ.get("PROMPT2_MODEL")
-    if not (api_url and api_key and model):
-        raise RuntimeError("Set PROMPT2_API_URL, PROMPT2_API_KEY and PROMPT2_MODEL "
-                           "in the repo-root .env")
+    backend = backend_from_env()
+    model = os.environ.get("PRIORITY_ASSESSMENT_MODEL")
+    reasoning = os.environ.get("PRIORITY_ASSESSMENT_REASONING", "off")
+    temperature = float(
+        os.environ.get("PRIORITY_ASSESSMENT_TEMPERATURE", "0.0")
+    )
+    if not model:
+        raise RuntimeError("Set PRIORITY_ASSESSMENT_MODEL in the repo-root .env")
+    api_url = os.environ.get("PRIORITY_ASSESSMENT_API_URL")
+    api_key = (
+        os.environ.get("PRIORITY_ASSESSMENT_API_KEY")
+        or os.environ.get("OPENROUTER_API_KEY")
+        or os.environ.get("OPENAI_API_KEY")
+    )
+    if backend == "api_key" and not api_url:
+        raise RuntimeError(
+            "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_URL"
+        )
+    if backend == "api_key" and not api_key:
+        raise RuntimeError(
+            "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_KEY, "
+            "OPENROUTER_API_KEY, or OPENAI_API_KEY"
+        )
+
+    prompt_text = PRIORITY_PROMPT.read_text(encoding="utf-8")
+    article_schema = load_json(PRIORITY_SCHEMA)
+    expected_ids = [x["insight_id"] for x in article["insights"]]
 
     started = time.time()
-    llm = {"model": model, "seconds": None, "error": None}
-    try:
-        results = call_openai_compatible_chat(
-            api_url, api_key, model, DEFAULT_PROMPT.read_text(encoding="utf-8"),
-            article, timeout_seconds=180)
-    except Exception as exc:
-        llm.update(seconds=round(time.time() - started, 1), error=str(exc))
-        raise StageError(str(exc), llm=llm) from exc
-    llm["seconds"] = round(time.time() - started, 1)
+    llm = {
+        "model": model,
+        "provider": "amazon-bedrock" if backend == "bedrock" else "api-key",
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "cost_usd": None,
+        "seconds": None,
+        "error": None,
+    }
 
-    expected_ids = [x["insight_id"] for x in article["insights"]]
-    try:
-        validate_priority_assessment_results(results, expected_ids, load_json(DEFAULT_SCHEMA))
-    except Exception as exc:
-        llm["error"] = str(exc)
-        raise StageError(str(exc), llm=llm, output=results) from exc
-    return {"assessments": results["assessments"], "llm": llm}
+    # One semantic retry only. Transport-level transient retries happen inside
+    # llm_transport, so retries do not multiply across layers.
+    last_results = None
+    for attempt in range(1, 3):
+        try:
+            response = call_priority_assessment(
+                model,
+                prompt_text,
+                article,
+                backend=backend,
+                api_url=api_url,
+                api_key=api_key,
+                timeout_seconds=180,
+                response_schema=article_schema,
+                reasoning=reasoning,
+                temperature=temperature,
+            )
+            results = response["result"]
+            usage = response["usage"]
+
+            llm.update(
+                prompt_tokens=usage.get("prompt_tokens"),
+                completion_tokens=usage.get("completion_tokens"),
+                cost_usd=usage.get("cost_usd"),
+                seconds=response.get("seconds"),
+            )
+            last_results = results
+            validate_priority_assessment_results(
+                results,
+                expected_ids,
+                article_schema,
+            )
+            return {"assessments": results["assessments"], "llm": llm}
+        except PriorityAssessmentValidationError as exc:
+            if attempt < 2:
+                continue
+            llm.update(seconds=round(time.time() - started, 1), error=str(exc))
+            raise StageError(str(exc), llm=llm, output=last_results) from exc
+        except Exception as exc:
+            llm.update(seconds=round(time.time() - started, 1), error=str(exc))
+            raise StageError(str(exc), llm=llm, output=last_results) from exc
+
+    raise StageError("Priority Assessment failed", llm=llm, output=last_results)
 
 
 # ----------------------------------------------------------------- stage 4

@@ -16,16 +16,16 @@ def _load_json(path: Path) -> Dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, dict):
-        raise ValueError("Prompt 1 output must be a JSON object")
+        raise ValueError("Insight Extraction output must be a JSON object")
     return data
 
 
 def build_assessment_article_input(
     input_path: Path,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-    """Convert Prompt 1 output into the agreed article-mode Priority Assessment handoff.
+    """Convert Insight Extraction output into the agreed article-mode Priority Assessment handoff.
 
-    Upstream QA is consumed before Prompt 1 reasoning/debug fields are stripped.
+    Upstream QA is consumed before Insight Extraction reasoning/debug fields are stripped.
     Explicit source-grounding failures are quarantined for review.
     """
     raw = _load_json(input_path)
@@ -35,7 +35,7 @@ def build_assessment_article_input(
 
     schema_errors = raw.get("schema_errors", [])
     if schema_errors:
-        raise ValueError(f"Prompt 1 output contains schema errors: {schema_errors}")
+        raise ValueError(f"Insight Extraction output contains schema errors: {schema_errors}")
 
     source = result.get("source")
     summary = result.get("summary")
@@ -80,10 +80,12 @@ def build_assessment_article_input(
             raise ValueError(f"Duplicate insight_id: {insight_id}")
         seen_ids.add(insight_id)
 
+        # Keep the existing hard handoff requirements, but treat a missing
+        # evidence locator as reviewable rather than failing the whole article.
         missing = [
             field
             for field in HANDOFF_REQUIRED_FIELDS
-            if insight.get(field) in (None, "")
+            if field != "evidence_location" and insight.get(field) in (None, "")
         ]
         if missing:
             raise ValueError(
@@ -105,12 +107,23 @@ def build_assessment_article_input(
             review_required.append(
                 {
                     "insight_id": insight_id,
-                    "reason": "Prompt 1 quote check: found_in_source = false",
+                    "reason": "Insight Extraction quote check: found_in_source = false",
                     "upstream_qa": {
                         "index": index,
                         "found_in_source": False,
                         "fragments_missing": quote_check.get("fragments_missing", []),
                     },
+                    "assessment_input": clean_record,
+                }
+            )
+            continue
+
+        evidence_location = insight.get("evidence_location")
+        if not isinstance(evidence_location, str) or not evidence_location.strip():
+            review_required.append(
+                {
+                    "insight_id": insight_id,
+                    "reason": "Missing or blank evidence_location",
                     "assessment_input": clean_record,
                 }
             )
@@ -149,7 +162,7 @@ def write_outputs(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Prepare article-mode Priority Assessment input from Prompt 1 JSON."
+        description="Prepare article-mode Priority Assessment input from Insight Extraction JSON."
     )
     parser.add_argument("input_json", type=Path)
     parser.add_argument(

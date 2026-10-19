@@ -32,18 +32,41 @@ In every new terminal after that, you only need:
 source .venv/bin/activate
 ```
 
-## Keys in `.env`
+## LLM configuration
 
-Open `.env` in the repo root and set:
+The automated Insight Extraction and Priority Assessment stages default to
+Amazon Bedrock Converse through the AWS SDK. Configure:
 
-| Key | Used by | What to put |
-|---|---|---|
-| `OPENROUTER_API_KEY` | Layers 2 and 3 | Your OpenRouter key (`sk-or-v1-...`). **The only value you must change.** |
-| `PROMPT2_API_URL` | Layer 3 | Leave as is - OpenRouter's endpoint. |
-| `PROMPT2_API_KEY` | Layer 3 | Leave as is - reuses `OPENROUTER_API_KEY`. |
-| `PROMPT2_MODEL` | Layer 3 | The ranking model. Defaults to `deepseek/deepseek-v4-flash-0731`. |
+```text
+LLM_BACKEND=bedrock
+AWS_REGION=ap-southeast-2
 
-`.env` is gitignored. Never commit it.
+EXTRACT_MODEL=moonshotai.kimi-k2.5
+EXTRACT_REASONING=off
+
+PRIORITY_ASSESSMENT_MODEL=au.anthropic.claude-opus-4-6-v1
+PRIORITY_ASSESSMENT_REASONING=off
+```
+
+The model settings are required. Each reasoning setting is optional and
+defaults to `off`, which sends no thinking fields. Any other value is passed
+to Bedrock as the adaptive-thinking effort setting. Local runs use the
+standard AWS credential chain; Lambda uses its execution role.
+
+For an explicit development or recovery alternative, set
+`LLM_BACKEND=api_key` and configure `EXTRACT_API_URL`, `EXTRACT_API_KEY`,
+`PRIORITY_ASSESSMENT_API_URL`, and `PRIORITY_ASSESSMENT_API_KEY` alongside the
+two model IDs. `OPENROUTER_API_KEY` can supply either stage key; Priority
+Assessment also accepts `OPENAI_API_KEY` for backward compatibility.
+
+API-key mode uses bearer-auth OpenAI-compatible chat completions. It is never
+selected automatically after a Bedrock error. Switching backend does not
+change prompts, schemas, validation, or downstream processing.
+
+The standalone `insight-extraction-test/extract.py` script continues to use
+OpenRouter and `OPENROUTER_API_KEY`.
+
+`.env` is gitignored. Never commit credentials.
 
 ## Running the pipeline
 
