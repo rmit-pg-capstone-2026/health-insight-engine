@@ -32,6 +32,7 @@ Usage:
 
 import argparse
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -364,6 +365,9 @@ def next_pdf_path(preview: bool) -> str:
 
 
 def run_brief(conn, preview: bool = False) -> dict:
+    """Render the PDF and, for a real briefing (never on preview), email it to
+    everyone in pipeline/recipients.json - skipped with a message rather than
+    an error if there's no one configured or BRIEFING_SENDER isn't set."""
     rows = conn.execute(BRIEFABLE).fetchall()
     if not rows:
         print("  nothing new to brief - no PDF made")
@@ -390,6 +394,23 @@ def run_brief(conn, preview: bool = False) -> dict:
     db.checkpoint(conn)
     print(f"  recorded as briefing #{cur.lastrowid}; {len(rows)} insight(s) marked as briefed")
     result["briefing_id"] = cur.lastrowid
+
+    recipients = [r["email"] for r in storage.read_config("recipients.json") if r.get("email")]
+    sender = os.environ.get("BRIEFING_SENDER")
+    if not recipients:
+        print("  no recipients configured (pipeline/recipients.json) - skipped emailing")
+    elif not sender:
+        print("  ! BRIEFING_SENDER not set - skipped emailing the briefing")
+    else:
+        try:
+            email_out = stages.send_briefing_email(
+                storage.local(rel), recipients, sender,
+                subject=f"Health Insight Briefing - {date.today():%B %Y}")
+            print(f"  emailed to {len(recipients)} recipient(s): {email_out['message_id']}")
+            result["email"] = email_out
+        except Exception as exc:  # the briefing is already recorded either way
+            print(f"  ! failed to email briefing: {exc}")
+
     return result
 
 
