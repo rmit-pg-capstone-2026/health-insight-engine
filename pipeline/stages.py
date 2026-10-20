@@ -18,6 +18,9 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -433,6 +436,39 @@ def brief(briefings: list, pdf_path: Path) -> dict:
     source_count, insight_count = build_pdf(briefings, pdf_path)
     return {"pdf_path": str(pdf_path), "source_count": source_count,
             "insight_count": insight_count}
+
+
+# ---------------------------------------------------------------- stage 4b
+
+def send_briefing_email(pdf_path: Path, recipients: list[str], sender: str,
+                        subject: str) -> dict:
+    """Email the finished PDF to everyone in recipients, as an attachment.
+
+    In:  pdf_path    the local PDF file (already uploaded to S3 by the caller)
+         recipients  ["a@example.com", "b@example.com", ...]
+         sender      an SES-verified "From" address
+         subject
+    Out: {"message_id": "...", "recipients": [...]}
+
+    Raises if SES rejects the send (sender/recipients not verified, account
+    still in the SES sandbox, etc.) - the caller decides whether that should
+    stop anything else.
+    """
+    msg = MIMEMultipart()
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = ", ".join(recipients)
+    msg.attach(MIMEText(
+        "Attached is this quarter's AIHW/ABS health insights briefing.", "plain"))
+
+    part = MIMEApplication(pdf_path.read_bytes(), _subtype="pdf")
+    part.add_header("Content-Disposition", "attachment", filename=pdf_path.name)
+    msg.attach(part)
+
+    import boto3  # built into Lambda; only needed when actually emailing
+    response = boto3.client("ses").send_raw_email(
+        Source=sender, Destinations=recipients, RawMessage={"Data": msg.as_bytes()})
+    return {"message_id": response["MessageId"], "recipients": recipients}
 
 
 class IncompleteCapture(RuntimeError):
