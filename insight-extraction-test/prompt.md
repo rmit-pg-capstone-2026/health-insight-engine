@@ -29,9 +29,10 @@ It must:
 
 - **Stand on its own.** A reader who has never seen the document must understand it completely from your sentence alone. It names who, what, how much, and when.
 - **Say something.** It has a point. A number with no consequence is a statistic, not an insight.
-- **Be yours.** You may combine several statements from across the document into one claim, and you should when that is what makes it meaningful. Where a single sentence in the document already states the whole insight, following it closely is fine - but a fragment, a table row, or half a thought is never an insight.
+- **Make one point.** One development per finding. You may combine statements from across the document only when together they make that one point - a contrast (public hospital spending up, private down) or a change and its main driver. Never combine just to pack in more detail.
+- **Be yours.** Where a single sentence in the document already states the whole insight, following it closely is fine - but a fragment, a table row, or half a thought is never an insight.
 
-**This is the most common failure: pasting a line from the document and calling it a finding.** "15-17 | 82.9 | 78.4 | 87.4" is a table row. "82.9% of 15-17 year olds had a smart phone in their bedroom" is a statistic. "Pre-bed screen use is near-universal among older teenagers - 82.9% have a phone in the bedroom and 60% use a screen in the hour before sleep, against a backdrop where only 78% of 14-17 year olds meet sleep guidelines" is an insight. Aim for the third.
+**This is the most common failure: pasting a line from the document and calling it a finding.** "15-17 | 82.9 | 78.4 | 87.4" is a table row. "82.9% of 15-17 year olds had a smart phone in their bedroom" is a statistic. "Most older teenagers take a phone to bed: 82.9% of 15-17 year olds keep a smart phone in their bedroom" is an insight. Aim for the third: the point first, in plain words, then the figure that proves it.
 
 ## What makes something briefing-worthy
 
@@ -64,7 +65,13 @@ If you are hesitating over the tenth item, it is not one.
 
 ## The fields
 
-**`finding`** - your claim, one or two sentences, in plain professional English. Include the figures. Written by you, not copied.
+**`finding`** - your claim, written by you, not copied, in plain English a busy executive can follow in one read.
+
+- **Lead with the point** in plain words, then the figure that proves it.
+- **About 35 words** - one or two short sentences.
+- **At most two figures** - the ones that carry the point. The other numbers are already in the evidence quote underneath, so the finding does not need to repeat them.
+- **Two sides of one development become one simple contrast**, not two findings and not a list of every figure: "Public hospital spending grew 5.2% after inflation, while non-government spending on private hospitals fell 1.6%."
+- **Use everyday words**: "hospital stays", not "separations"; "after inflation", not "in real terms"; "private health insurance", not "PHI". The meaning must stay exactly the document's - plain words, same facts.
 
 **`evidence`** - one **contiguous** passage copied from the document, character for character.
 
@@ -100,7 +107,7 @@ The test: name the group the percentage is measured *out of*, and make sure your
 
 This is the most damaging mistake you can make, because the quote beneath it will be correct and nobody will notice.
 
-## Two worked examples
+## Three worked examples
 
 **Good.**
 - finding: "Two new Alzheimer's therapies were approved by the TGA in 2025, but donanemab was refused PBS listing, leaving both drugs available only through private payment."
@@ -111,6 +118,11 @@ This is the most damaging mistake you can make, because the quote beneath it wil
 - finding: "An estimated 18% of people aged 15 and over with disability experienced personal fraud in 2023-24."
 - reasoning: "Personal fraud can lead to financial stress and mental health conditions requiring treatment."
 - Why it fails: the reasoning builds a chain the document never states, and the same chain would justify keeping absolutely anything.
+
+**Too long.** (An invented example - only the shape matters.)
+- finding: "Dental spending reached $11.2 billion in 2023-24, a real increase of 3.1%, driven mainly by a 4.0% rise in individuals' out-of-pocket spending to $6.4 billion, while government dental spending fell 1.2% and private health insurance benefits for dental rose 2.6% to $2.3 billion."
+- Rewritten: "People are paying more of their own dental bills: out-of-pocket dental spending rose 4.0% after inflation in 2023-24, while government dental spending fell 1.2%."
+- Why the rewrite works: one point (who pays is shifting), said first in plain words, two figures that prove it. The total, the insurance figure and the dollar amounts stay in the evidence quote.
 
 ## The document-level fields
 
