@@ -320,7 +320,7 @@ def insight_card(insight, section_label, source, width, number=None):
     if insight.get("caveat"):
         rows.append([Paragraph("Caveat", S["label"]),
                      Paragraph(txt(insight["caveat"]), S["body"])])
-    rows.append([Paragraph("Why this priority", S["label"]),
+    rows.append([Paragraph("Why it matters", S["label"]),
                  Paragraph(txt(insight.get("priority_rationale")), S["body"])])
 
     card = Table(rows, colWidths=[30 * mm, width - 30 * mm])
