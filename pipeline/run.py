@@ -333,7 +333,7 @@ def briefing_input(rows) -> list:
     document-position, because INSIGHT_003 can exist in both versions."""
     by_source = {}
     for r in rows:  # ordered by document id, so later versions come last
-        page = by_source.setdefault(r["source_id"], {"priority_assessment_version": "v0.4.3_article",
+        page = by_source.setdefault(r["source_id"], {"priority_assessment_version": "v0.4.4_article",
                                                      "assessed_insights": []})
         page["source"] = {"publisher": r["publisher"], "title": r["title"],
                           "url": r["source_url"], "publication_date": r["publication_date"],
