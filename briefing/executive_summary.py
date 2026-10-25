@@ -2,7 +2,8 @@
 Executive summary for the Healthcare Intelligence Briefing.
 
 make_executive_summary() takes every insight that will appear in the PDF and
-returns the summary at the top of the briefing, in up to two paragraphs:
+returns the summary at the top of the briefing: up to two paragraphs, then a
+scannable Top 5 Insights list:
 
     executive_summary  the top 5 insights by priority (High first, then
                        Medium, then Informational; Watchlist excluded), each
@@ -10,6 +11,9 @@ returns the summary at the top of the briefing, in up to two paragraphs:
     watch_summary      early signals worth watching, from the Watchlist-
                        priority insights only (at most 3). Empty when the
                        briefing has no Watchlist insights.
+    top_insights       the same top 5 as paragraph 1, in the same order, as a
+                       list of {ref, title, key_figure}: a short topic label
+                       and one key figure, shown with a link to the insight.
 
 How it is produced
 ------------------
@@ -23,13 +27,18 @@ mode="llm"   (default) One LLM call through the pipeline's shared transport
                - paragraph 1 must cite the top 5 by priority rank (no lower
                  rank while a higher one is left out) and no Watchlist insight;
                - paragraph 2 may cite only Watchlist insights (1 to 3), and
-                 must be empty when there are none.
+                 must be empty when there are none;
+               - the Top 5 list must cover exactly the paragraph-1 insights
+                 in the same order, with a title for each, and every figure
+                 must appear in that entry's own insight.
              These accuracy checks are strict: if the one retry still fails
              one, or no LLM is configured, the rule-based summary is used.
              Style is checked loosely (clearly too long, or a sentence packed
              with figures). A style problem gets the same one retry, but if
              the retry is still too long the accurate answer is kept anyway -
              style never causes the rule-based fallback.
+             If only the Top 5 list still fails after the retry, the accurate
+             paragraphs are kept and the list alone is built by the rules.
 mode="rules" No LLM call. Built directly from the insights' priorities and
              criteria ratings - same input always gives the same output.
 mode="none"  No executive summary.
@@ -52,7 +61,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
-PROMPT_PATH = HERE / "prompts" / "executive_summary_v0.4.md"
+PROMPT_PATH = HERE / "prompts" / "executive_summary_v0.5.md"
 
 # Load the repo-root .env when run locally (on Lambda the environment is set).
 try:
@@ -76,6 +85,9 @@ TOP_RANKS = ("High Priority", "Medium Priority", "Informational")
 MAX_WORDS_SUMMARY = 180
 MAX_WORDS_WATCH = 90
 MAX_FIGURES_PER_SENTENCE = 2
+# Top 5 list: a title is a short label, the key figure a short phrase.
+MAX_WORDS_TITLE = 8
+MAX_WORDS_KEY_FIGURE = 16
 
 # Criteria rating -> plain-English reason it may matter (rules mode only).
 CRITERIA_PHRASES = [
@@ -91,12 +103,26 @@ CRITERIA_PHRASES = [
 RESPONSE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["executive_summary", "summary_refs", "watch_summary", "watch_refs"],
+    "required": ["executive_summary", "summary_refs", "watch_summary", "watch_refs",
+                 "top_insights"],
     "properties": {
         "executive_summary": {"type": "string"},
         "summary_refs": {"type": "array", "items": {"type": "string"}},
         "watch_summary": {"type": "string"},
         "watch_refs": {"type": "array", "items": {"type": "string"}},
+        "top_insights": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["ref", "title", "key_figure"],
+                "properties": {
+                    "ref": {"type": "string"},
+                    "title": {"type": "string"},
+                    "key_figure": {"type": "string"},
+                },
+            },
+        },
     },
 }
 
@@ -274,6 +300,45 @@ def check_llm_summary(raw, items):
             "watch_summary": watch_text, "watch_refs": watch_refs}
 
 
+class TopInsightsError(SummaryCheckError):
+    """Only the Top 5 list is wrong; the paragraphs passed their checks."""
+
+
+def check_top_insights(raw, summary_refs, items):
+    """Validate the Top 5 list against the paragraph-1 refs; return a clean list."""
+    by_ref = {_ref(it["number"]): it for it in items}
+    text_by_ref = {r: _source_text(it["insight"]) for r, it in by_ref.items()}
+    entries = raw.get("top_insights") if isinstance(raw, dict) else None
+    if not isinstance(entries, list) or not entries:
+        raise TopInsightsError(
+            f"'top_insights' is missing. Give one entry per summary ref, in "
+            f"the same order: {', '.join(summary_refs)}.")
+    refs = [e.get("ref") if isinstance(e, dict) else None for e in entries]
+    if refs != summary_refs:
+        raise TopInsightsError(
+            f"'top_insights' covers {', '.join(map(str, refs))} but must cover "
+            f"exactly the summary refs, in the same order: "
+            f"{', '.join(summary_refs)}.")
+    clean = []
+    for entry in entries:
+        ref = entry["ref"]
+        title = (entry.get("title") or "").strip().rstrip(".")
+        key_figure = (entry.get("key_figure") or "").strip().rstrip(".")
+        if not title:
+            raise TopInsightsError(f"The Top 5 entry for {ref} has no 'title'.")
+        if _numbers(title):
+            raise TopInsightsError(
+                f"The Top 5 title for {ref} ('{title}') contains a figure; put "
+                f"figures only in 'key_figure'.")
+        try:
+            _check_figures(key_figure, [ref], text_by_ref,
+                           f"The Top 5 key figure for {ref}")
+        except SummaryCheckError as problem:
+            raise TopInsightsError(str(problem))
+        clean.append({"ref": ref, "title": title, "key_figure": key_figure})
+    return clean
+
+
 _YEAR = re.compile(r"\b(?:19|20)\d{2}(?:\s*[\u2013\u2014/-]\s*\d{2,4})?\b")
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"'(])")
 
@@ -300,6 +365,15 @@ def style_problem(summary):
             problems.append(f"{label} has {len(dense)} sentence(s) with more than "
                             f"{MAX_FIGURES_PER_SENTENCE} figures, e.g. \"{dense[0][:120]}\". "
                             "Use one figure per development.")
+    for entry in summary.get("top_insights") or []:
+        if len(entry["title"].split()) > MAX_WORDS_TITLE:
+            problems.append(f"The Top 5 title for {entry['ref']} is too long; use "
+                            f"2 to 6 words.")
+        if (len(entry["key_figure"].split()) > MAX_WORDS_KEY_FIGURE
+                or _figure_count(entry["key_figure"]) > 1):
+            problems.append(f"The Top 5 key figure for {entry['ref']} is too long "
+                            "or has more than one figure; use one figure in at "
+                            "most 12 words.")
     if not problems:
         return None
     return ("The answer is accurate but hard to read: " + " ".join(problems)
@@ -396,6 +470,7 @@ def llm_summary(items, sources, max_attempts=2):
     last_problem = None
     previous = None
     accurate = None   # an accurate answer that only failed the style check
+    paragraphs_ok = None  # accurate paragraphs whose Top 5 list failed a check
     for attempt in range(1, max_attempts + 1):
         if previous is None:
             user_text = user_content
@@ -418,11 +493,22 @@ def llm_summary(items, sources, max_attempts=2):
             content = _ask_api_key(transport, model, messages)
 
         try:
-            summary = check_llm_summary(_parse_json(content), items)
+            raw = _parse_json(content)
+            summary = check_llm_summary(raw, items)
         except SummaryCheckError as problem:
             last_problem = problem
             previous = content
             print(f"  executive summary attempt {attempt} failed a check: {problem}")
+            continue
+        try:
+            summary["top_insights"] = check_top_insights(
+                raw, summary["summary_refs"], items)
+        except TopInsightsError as problem:
+            paragraphs_ok = summary
+            last_problem = problem
+            previous = content
+            print(f"  executive summary attempt {attempt} Top 5 list failed a "
+                  f"check: {problem}")
             continue
 
         problem = style_problem(summary)
@@ -437,12 +523,47 @@ def llm_summary(items, sources, max_attempts=2):
         # Accurate but long: better than the rule-based fallback.
         print("  executive summary: keeping the accurate (if long) answer")
         return accurate, model
+    if paragraphs_ok is not None:
+        # Paragraphs are accurate; only the list failed. Keep the paragraphs
+        # and build the list from the insights themselves.
+        print("  executive summary: Top 5 list built by the rules instead")
+        paragraphs_ok["top_insights"] = rules_top_insights(
+            paragraphs_ok["summary_refs"], items)
+        paragraphs_ok["top_insights_method"] = "rules"
+        return paragraphs_ok, model
     raise RuntimeError(f"LLM summary failed checks: {last_problem}")
 
 
 # ---------------------------------------------------------------------------
 # Rule-based summary (no LLM)
 # ---------------------------------------------------------------------------
+
+_CLAUSE_SPLIT = re.compile(r"\s*(?:[:;]|,\s|\s[\u2013\u2014-]\s)\s*")
+
+
+def _shorten(text, max_words):
+    words = text.split()
+    if len(words) <= max_words:
+        return text
+    return " ".join(words[:max_words]).rstrip(",;:") + "\u2026"
+
+
+def rules_top_insights(refs, items):
+    """Top 5 list without an LLM: the opening words of each finding as the
+    title, and a clause holding a figure (not the opening one, where there
+    is another) as the key figure. Plainer than the LLM list, but accurate."""
+    by_ref = {_ref(it["number"]): it for it in items}
+    entries = []
+    for ref in refs:
+        finding = (by_ref[ref]["insight"].get("finding") or "").strip().rstrip(".")
+        clauses = [c for c in _CLAUSE_SPLIT.split(finding) if c]
+        title = _shorten(clauses[0] if clauses else finding, 7) or "See insight"
+        with_figure = [c for c in clauses[1:] if _figure_count(c)] or \
+                      [c for c in clauses[:1] if _figure_count(c)]
+        key_figure = _shorten(with_figure[0], 12) if with_figure else ""
+        entries.append({"ref": ref, "title": title, "key_figure": key_figure})
+    return entries
+
 
 def rules_summary(items, sources):
     counts = {p: 0 for p in PRIORITY_RANK}
@@ -485,10 +606,12 @@ def rules_summary(items, sources):
         watch_text = ("Early signals worth watching: "
                       + "; ".join(f for f in findings if f) + ".")
 
+    summary_refs = [_ref(it["number"]) for it in top]
     return {"executive_summary": paragraph,
-            "summary_refs": [_ref(it["number"]) for it in top],
+            "summary_refs": summary_refs,
             "watch_summary": watch_text,
-            "watch_refs": [_ref(it["number"]) for it in watch]}
+            "watch_refs": [_ref(it["number"]) for it in watch],
+            "top_insights": rules_top_insights(summary_refs, items)}
 
 
 # ---------------------------------------------------------------------------
@@ -498,8 +621,8 @@ def rules_summary(items, sources):
 def make_executive_summary(items, sources, mode="llm"):
     """Return the summary dict, or None when mode is 'none' or nothing to summarise.
 
-    The dict has executive_summary, summary_refs, watch_summary and
-    watch_refs, plus:
+    The dict has executive_summary, summary_refs, watch_summary, watch_refs
+    and top_insights, plus:
       method  "llm" or "rules"
       model   model id (llm only)
       note    why the rules fallback was used, if it was

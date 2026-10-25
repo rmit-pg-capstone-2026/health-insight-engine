@@ -102,16 +102,16 @@ python briefing/generate_briefing.py
 
 The PDF is written to `data/briefing-paper/briefing_report.pdf`, replacing the previous one.
 
-The PDF follows the agreed briefing format: **Executive Summary** (one paragraph), **What Changed This Period** (one line per key development, with its priority), the insight cards grouped into **Clinical**, **Pharmaceutical** and **Prosthesis & Medical Technology Insights** (highest priority first, each keeping its priority tag), then the **Emerging Watchlist**.
+The PDF follows the agreed briefing format: an **Executive Summary** (a paragraph on the top 5 insights by priority, then a paragraph on up to three early signals from the Watchlist insights), a **Top 5 Insights** list (a short title, one key figure and a link to the full card for each of the same five insights), then the insight cards grouped into **Clinical**, **Pharmaceutical** and **Prosthesis & Medical Technology Insights** (highest priority first, each keeping its priority tag).
 
-The summary, What Changed list and Emerging Watchlist come from one LLM call using the same `LLM_BACKEND` and `PRIORITY_ASSESSMENT_*` settings as stage 3 (override with `EXEC_SUMMARY_*` in `.env`). The answer is checked before it is used: every cited insight must exist, every figure must appear in the insight it cites, every High Priority insight must lead the What Changed list (and the summary paragraph, when there are four or fewer), and the Emerging Watchlist must contain exactly the Watchlist-priority insights (one line each, nothing added by the AI), with one retry if not. If the LLM is unavailable or still fails, a rule-based version is used instead and the PDF says so. Insight cards are numbered, and the summary links to those numbers.
+The summary paragraphs and the Top 5 list come from one LLM call using the same `LLM_BACKEND` and `PRIORITY_ASSESSMENT_*` settings as stage 3 (override with `EXEC_SUMMARY_*` in `.env`). The answer is checked before it is used: every cited insight must exist, every figure must appear in the insight it cites, paragraph 1 must cover the top 5 by priority (no Watchlist), paragraph 2 only Watchlist insights, and the Top 5 list exactly the paragraph-1 insights in the same order. There is one retry if a check fails. If only the Top 5 list still fails, the paragraphs are kept and the list is built from the insights by rules; if the LLM is unavailable or the paragraphs still fail, a rule-based summary is used. Insight cards are numbered, and the summary and Top 5 list link to those numbers.
 
 ```bash
 python briefing/generate_briefing.py --summary rules   # no LLM call
 python briefing/generate_briefing.py --summary none    # no executive summary
 ```
 
-The prompt is `briefing/prompts/executive_summary_v0.3.md`.
+The prompt is `briefing/prompts/executive_summary_v0.5.md` (v0.4 is kept for comparison).
 
 ## Automated pipeline (database)
 
