@@ -9,20 +9,24 @@ from aggregate_assessed_insights import aggregate_assessed_insights
 from call_priority_assessment import run_call
 from consolidate_insights import consolidate_insights
 from prepare_assessment_input import write_outputs
-from validate_priority_assessment import load_json, validate_priority_assessment_results
+from validate_priority_assessment import (
+    PriorityAssessmentValidationError,
+    load_json,
+    validate_priority_assessment_results,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parent
-DEFAULT_PROMPT = ROOT / "prompts" / "priority_assessment_v0.3_article.md"
-DEFAULT_SCHEMA = ROOT / "schemas" / "priority_assessment_schema_v0.1.json"
+DEFAULT_PROMPT = ROOT / "prompts" / "priority_assessment_v0.4.3_article.md"
+DEFAULT_SCHEMA = ROOT / "schemas" / "priority_assessment_article_schema_v0.1.json"
 
 # Shared pipeline folders: stage 2 writes the first, stage 4 reads the second.
 DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "insight-generated-files"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "priority-tagged-insight-files"
 
 # Settings come from the repo-root .env. Loaded before the parser is built,
-# because the argument defaults below read PROMPT2_* from the environment.
+# because the argument defaults below read Priority Assessment settings from the environment.
 # Anything already exported in the shell still wins.
 try:
     from dotenv import load_dotenv
@@ -36,8 +40,15 @@ def _write_json(path: Path, value) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _validate_results(assessment_results, article_input, article_schema) -> None:
+    expected_ids = [x["insight_id"] for x in article_input["insights"]]
+    validate_priority_assessment_results(
+        assessment_results, expected_ids, article_schema
+    )
+
+
 def process_one(input_path: Path, args, output_dir: Path) -> dict:
-    """Run the Week 9 pipeline for one Prompt 1 file.
+    """Run the Priority Assessment pipeline for one Insight Extraction file.
 
     Unchanged from the original single-file flow, except that:
       - the review queue is named after the input, so every article keeps its
@@ -63,7 +74,7 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
     briefing_path = handoff_dir / "briefing_input.json"
     final_path = output_dir / input_path.name
 
-    print("[1/5] Loading Prompt 1 output...")
+    print("[1/5] Loading Insight Extraction output...")
     print(f"      {input_path}")
 
     print("[2/5] Preprocessing / QA...")
@@ -71,39 +82,68 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
         input_path, assessment_input_path, review_path
     )
     print(
-        f"      ready={len(article_input['insights'])}, review_required={len(review_required)}"
+        f"      ready={len(article_input['insights'])}, "
+        f"review_required={len(review_required)}"
     )
 
-    print("[3/5] Running Priority Assessment v0.3 article mode...")
+    article_schema = load_json(args.schema)
+    expected_ids = [x["insight_id"] for x in article_input["insights"]]
+
+    print("[3/5] Running Priority Assessment article mode...")
     if not article_input["insights"]:
         assessment_results = {"assessments": []}
         _write_json(results_path, assessment_results)
+        _validate_results(assessment_results, article_input, article_schema)
         print("      no clean insights; API call skipped")
     elif args.assessment_file:
         assessment_results = load_json(args.assessment_file)
         _write_json(results_path, assessment_results)
+        _validate_results(assessment_results, article_input, article_schema)
         print(f"      using existing assessment file: {args.assessment_file}")
     else:
-        if not (args.api_url and args.api_key and args.model):
+        if not args.model:
             raise RuntimeError(
-                "Priority Assessment API configuration is missing. Set PROMPT2_API_URL, "
-                "PROMPT2_API_KEY and PROMPT2_MODEL in the repo-root .env, or pass "
-                "--assessment-file."
+                "Priority Assessment configuration is missing. Set "
+                "PRIORITY_ASSESSMENT_MODEL."
             )
-        assessment_results = run_call(
-            assessment_input_path,
-            args.prompt,
-            results_path,
-            api_url=args.api_url,
-            api_key=args.api_key,
-            model=args.model,
-            json_mode=not args.plain_json,
-            timeout_seconds=args.timeout,
-        )
+        if args.backend == "api_key" and not args.api_url:
+            raise RuntimeError(
+                "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_URL."
+            )
+        if args.backend == "api_key" and not args.api_key:
+            raise RuntimeError(
+                "LLM_BACKEND=api_key requires PRIORITY_ASSESSMENT_API_KEY, "
+                "OPENROUTER_API_KEY, or OPENAI_API_KEY."
+            )
 
-    expected_ids = [x["insight_id"] for x in article_input["insights"]]
-    item_schema = load_json(args.schema)
-    validate_priority_assessment_results(assessment_results, expected_ids, item_schema)
+        # Structured output should normally satisfy the article schema on the
+        # first call. Keep one controlled retry for dynamic checks such as
+        # exact insight IDs/order or cross-field business rules.
+        max_attempts = 2
+        for attempt in range(1, max_attempts + 1):
+            if attempt > 1:
+                print("      retrying Priority Assessment once...")
+            assessment_results = run_call(
+                assessment_input_path,
+                args.prompt,
+                results_path,
+                api_url=args.api_url,
+                api_key=args.api_key,
+                model=args.model,
+                json_mode=not args.plain_json,
+                timeout_seconds=args.timeout,
+                schema_path=None if args.plain_json else args.schema,
+                backend=args.backend,
+            )
+            try:
+                _validate_results(assessment_results, article_input, article_schema)
+                break
+            except PriorityAssessmentValidationError as exc:
+                if attempt >= max_attempts:
+                    raise
+                print("      validation failed; requesting one fresh response")
+                print(f"      {exc}")
+
     print(f"      validated {len(expected_ids)} assessments")
 
     print("[4/5] Aggregating...")
@@ -128,7 +168,7 @@ def process_one(input_path: Path, args, output_dir: Path) -> dict:
 
 
 def run_folder(input_dir: Path, args, output_dir: Path) -> int:
-    """Process every Prompt 1 JSON in a folder. One file failing does not stop
+    """Process every Insight Extraction JSON in a folder. One file failing does not stop
     the rest. Returns the number of failures."""
     files = sorted(p for p in input_dir.glob("*.json") if p.is_file())
     if not files:
@@ -153,8 +193,10 @@ def run_folder(input_dir: Path, args, output_dir: Path) -> int:
     print("BATCH SUMMARY")
     print("=" * 74)
     for name, info in done:
-        print(f"  ok      {name}  (ready={info['ready']}, review={info['review']}, "
-              f"in briefing={info['kept']})")
+        print(
+            f"  ok      {name}  (ready={info['ready']}, review={info['review']}, "
+            f"in briefing={info['kept']})"
+        )
     for name, why in failed:
         print(f"  FAILED  {name}  {why}")
     print(f"\n{len(done)} written to {output_dir}, {len(failed)} failed")
@@ -163,15 +205,15 @@ def run_folder(input_dir: Path, args, output_dir: Path) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run the Week 9 Prompt 1 -> Priority Assessment -> briefing-input "
+        description="Run the Insight Extraction -> Priority Assessment -> briefing-input "
                     "pipeline, for one file or every file in a folder."
     )
     parser.add_argument(
-        "prompt1_json",
+        "insight_extraction_json",
         type=Path,
         nargs="?",
         default=DEFAULT_INPUT_DIR,
-        help="a Prompt 1 JSON file, or a folder of them "
+        help="an Insight Extraction JSON file, or a folder of them "
              f"(default: {DEFAULT_INPUT_DIR.relative_to(REPO_ROOT)})",
     )
     parser.add_argument(
@@ -182,12 +224,36 @@ def main() -> None:
              f"(default: {DEFAULT_OUTPUT_DIR.relative_to(REPO_ROOT)})",
     )
     parser.add_argument("--prompt", type=Path, default=DEFAULT_PROMPT)
-    parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
-    parser.add_argument("--api-url", default=os.getenv("PROMPT2_API_URL"))
-    parser.add_argument("--api-key", default=os.getenv("PROMPT2_API_KEY") or os.getenv("OPENAI_API_KEY"))
-    parser.add_argument("--model", default=os.getenv("PROMPT2_MODEL"))
+    parser.add_argument(
+        "--schema",
+        type=Path,
+        default=DEFAULT_SCHEMA,
+        help="article-mode output schema used for structured output and local validation",
+    )
+    parser.add_argument(
+        "--api-url",
+        default=os.getenv("PRIORITY_ASSESSMENT_API_URL"),
+    )
+    parser.add_argument(
+        "--api-key",
+        default=(
+            os.getenv("PRIORITY_ASSESSMENT_API_KEY")
+            or os.getenv("OPENROUTER_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+        ),
+    )
+    parser.add_argument("--model", default=os.getenv("PRIORITY_ASSESSMENT_MODEL"))
+    parser.add_argument(
+        "--backend",
+        choices=("bedrock", "api_key"),
+        default=os.getenv("LLM_BACKEND", "bedrock"),
+    )
     parser.add_argument("--timeout", type=int, default=180)
-    parser.add_argument("--plain-json", action="store_true")
+    parser.add_argument(
+        "--plain-json",
+        action="store_true",
+        help="do not send response_format; local article-schema validation still runs",
+    )
     parser.add_argument(
         "--assessment-file",
         type=Path,
@@ -196,9 +262,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    input_path = args.prompt1_json.resolve()
+    input_path = args.insight_extraction_json.resolve()
     if not input_path.exists():
         parser.error(f"Input does not exist: {input_path}")
+    if not args.schema.exists():
+        parser.error(f"Article schema does not exist: {args.schema}")
 
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)

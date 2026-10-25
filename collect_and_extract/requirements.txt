@@ -1,0 +1,4 @@
+requests
+trafilatura
+lxml
+beautifulsoup4

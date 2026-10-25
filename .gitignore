@@ -223,3 +223,8 @@ __marimo__/
 
 # Pipeline data - generated at runtime, keep the folder structure only
 priority_assessment/data/*/*
+
+# Pipeline state database (pipeline/run.py)
+data/pipeline.db
+data/pipeline.db-journal
+data/source-extracted-files/versions/

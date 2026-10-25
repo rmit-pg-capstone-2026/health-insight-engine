@@ -1,0 +1,13 @@
+{
+  "discovery_days": 14,
+  "skip_hub_pages": true,
+  "aihw_skip_topics": [
+    "homelessness-services",
+    "housing-assistance",
+    "child-protection",
+    "youth-justice",
+    "adoptions",
+    "corporate-publications",
+    "australias-welfare"
+  ]
+}

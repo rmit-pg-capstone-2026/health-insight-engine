@@ -4,7 +4,20 @@ Healthcare Intelligence Briefing - PDF generator (prototype)
 
 Reads one or more consolidated insights JSON files (one per source report,
 e.g. one AIHW report and one ABS release) and writes a single PDF with a title
-block listing every source and one combined Insights section.
+block, then follows the agreed briefing format
+(Healthcare_Intelligence_Briefing_sample_output.docx):
+
+    Executive Summary            top 5 findings + early signals to watch (LLM),
+                                 then a Top 5 Insights list linking to cards
+    Clinical Insights            insight cards grouped by insight_type,
+    Pharmaceutical Insights      highest priority first, each with its
+    Prosthesis & Medical         priority tag (Watchlist items stay in their
+      Technology Insights        topic section with a WATCHLIST tag)
+
+The Executive Summary is written by an LLM through the pipeline's shared
+transport (same Bedrock / API-key settings as the other stages) and checked
+before use; if no LLM is available it falls back to a rule-based summary.
+See executive_summary.py.
 
 Usage:
     python generate_briefing.py                           # the pipeline default
@@ -12,22 +25,27 @@ Usage:
     python generate_briefing.py aihw_dementia.json abs_respiratory.json
     python generate_briefing.py briefing_inputs/          # every .json in a folder
     python generate_briefing.py briefing_inputs/ -o my_briefing.pdf
+    python generate_briefing.py --summary rules     # no LLM call
+    python generate_briefing.py --summary none      # no executive summary
 
 With no inputs it reads every .json in <repo root>/data/priority-tagged-insight-files.
 The PDF is saved as <repo root>/data/briefing-paper/briefing_report.pdf unless
 -o is given.
 
 Requires:
-    pip install reportlab
+    pip install reportlab   (plus boto3/requests for the LLM summary)
 """
 
 import argparse
 import json
+import os
 import re
 import sys
 from datetime import date, datetime
 from pathlib import Path
 from xml.sax.saxutils import escape
+
+from executive_summary import make_executive_summary
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
@@ -67,12 +85,15 @@ PRIORITY_STYLE = {
 UNKNOWN_PRIORITY = ("UNRATED", colors.HexColor("#95A5A6"), 9)
 
 # section_index key -> label shown on the card
-SECTION_LABELS = {
-    "clinical": "Clinical",
-    "pharmaceutical": "Pharmaceutical",
-    "medical_technology": "Medical Technology",
-    "watchlist": "Watchlist",
+# insight_type -> (card label, section heading), in the order sections appear.
+# An insight_type not listed here gets its own section after these.
+TOPIC_SECTIONS = {
+    "clinical": ("Clinical", "Clinical Insights"),
+    "pharmaceutical": ("Pharmaceutical", "Pharmaceutical Insights"),
+    "medical_technology": ("Medical Technology",
+                           "Prosthesis & Medical Technology Insights"),
 }
+
 
 # ---------------------------------------------------------------------------
 # Text styles
@@ -89,7 +110,8 @@ S = {
                                  fontSize=9, leading=12, textColor=MUTED),
     "h1": ParagraphStyle("h1", fontName="Helvetica-Bold", fontSize=16,
                          leading=20, textColor=BRAND, spaceBefore=6,
-                         spaceAfter=8),
+                         spaceAfter=8,
+                         keepWithNext=1),
     "tag": ParagraphStyle("tag", fontName="Helvetica-Bold", fontSize=7.5,
                           leading=9, textColor=colors.white, alignment=TA_LEFT),
     "headline": ParagraphStyle("headline", fontName="Helvetica-Bold",
@@ -100,6 +122,25 @@ S = {
                             leading=12, textColor=BRAND),
     "body": ParagraphStyle("body", fontName="Helvetica", fontSize=8.5,
                            leading=12, textColor=TEXT),
+    "h2": ParagraphStyle("h2", fontName="Helvetica-Bold", fontSize=11,
+                         leading=14, textColor=BRAND, spaceBefore=8,
+                         spaceAfter=4,
+                         keepWithNext=1),
+    "summary": ParagraphStyle("summary", fontName="Helvetica", fontSize=9.5,
+                              leading=14, textColor=TEXT),
+    "bullet": ParagraphStyle("bullet", fontName="Helvetica", fontSize=9,
+                             leading=13, textColor=TEXT, leftIndent=10,
+                             bulletIndent=0, spaceAfter=3),
+    "top_no": ParagraphStyle("top_no", fontName="Helvetica-Bold", fontSize=11,
+                             leading=13, textColor=BRAND),
+    "top_title": ParagraphStyle("top_title", fontName="Helvetica-Bold",
+                                fontSize=9, leading=12, textColor=TEXT),
+    "top_figure": ParagraphStyle("top_figure", fontName="Helvetica",
+                                 fontSize=9, leading=12, textColor=TEXT),
+    "top_link": ParagraphStyle("top_link", fontName="Helvetica", fontSize=8.5,
+                               leading=12, textColor=BRAND),
+    "note": ParagraphStyle("note", fontName="Helvetica-Oblique", fontSize=7.5,
+                           leading=10, textColor=MUTED, spaceAfter=4),
     "empty": ParagraphStyle("empty", fontName="Helvetica-Oblique", fontSize=9,
                             leading=12, textColor=MUTED),
 }
@@ -169,22 +210,18 @@ def load_briefing_json(path):
     return data
 
 
-def build_section_lookup(section_index):
-    """Map insight_id -> section label using section_index."""
-    lookup = {}
-    for key, ids in (section_index or {}).items():
-        label = SECTION_LABELS.get(key, key.replace("_", " ").title())
-        for insight_id in ids or []:
-            lookup[insight_id] = label
-    return lookup
+def topic_key(insight):
+    """'Medical technology' / 'medical_technology' -> 'medical_technology'."""
+    raw = str(insight.get("insight_type") or "uncategorised").strip().lower()
+    return re.sub(r"[\s-]+", "_", raw)
 
 
-def section_label_for(insight, lookup):
-    """Use section_index; fall back to insight_type if the ID isn't listed."""
-    if insight.get("insight_id") in lookup:
-        return lookup[insight["insight_id"]]
-    itype = insight.get("insight_type") or "Uncategorised"
-    return SECTION_LABELS.get(itype, itype.replace("_", " ").title())
+def topic_labels(key):
+    """Return (card label, section heading) for an insight_type key."""
+    if key in TOPIC_SECTIONS:
+        return TOPIC_SECTIONS[key]
+    label = key.replace("_", " ").title()
+    return label, f"{label} Insights"
 
 
 # ---------------------------------------------------------------------------
@@ -252,11 +289,16 @@ def priority_tag(priority):
     return tag, tag_colour
 
 
-def insight_card(insight, section_label, source, width):
+def insight_card(insight, section_label, source, width, number=None):
     tag, tag_colour = priority_tag(insight.get("priority"))
 
-    # Header row: priority tag + section label, then headline
+    # Header row: priority tag + section label, then headline. The number is
+    # what the Executive Summary cites ("Insight 3"), and the anchor lets its
+    # links jump straight to this card.
     label = f"{txt(short_publisher(source))}  ·  {txt(section_label)}"
+    if number is not None:
+        label = (f'<a name="insight{number}"/><b>Insight {number}</b>'
+                 f'  ·  {label}')
     header = Table([[tag, Paragraph(label, S["section"])]],
                    colWidths=[32 * mm, None])
     header.setStyle(TableStyle([
@@ -287,7 +329,7 @@ def insight_card(insight, section_label, source, width):
     if insight.get("caveat"):
         rows.append([Paragraph("Caveat", S["label"]),
                      Paragraph(txt(insight["caveat"]), S["body"])])
-    rows.append([Paragraph("Why this priority", S["label"]),
+    rows.append([Paragraph("Why it matters", S["label"]),
                  Paragraph(txt(insight.get("priority_rationale")), S["body"])])
 
     card = Table(rows, colWidths=[30 * mm, width - 30 * mm])
@@ -310,6 +352,78 @@ def insight_card(insight, section_label, source, width):
     return card
 
 
+def _insight_links(refs):
+    """['I1', 'I4'] -> 'Insight 1, 4' with each number linking to its card."""
+    links = []
+    for ref in refs:
+        n = ref[1:]
+        links.append(f'<link href="#insight{n}" color="#0B3D91"><u>{n}</u></link>')
+    word = "Insight" if len(links) == 1 else "Insights"
+    return f'<font color="#5F6B7A">{word} {", ".join(links)}</font>'
+
+
+def top_insights_block(entries, width):
+    """Top 5 Insights: numbered rows of title, key figure and a link that
+    jumps to the insight's card further down the briefing."""
+    rows = []
+    for n, entry in enumerate(entries, start=1):
+        number = entry["ref"][1:]
+        link = (f'<link href="#insight{number}" color="#0B3D91">'
+                f'<u>Insight {number}</u> \u2192</link>')
+        rows.append([
+            Paragraph(str(n), S["top_no"]),
+            Paragraph(txt(entry.get("title")), S["top_title"]),
+            Paragraph(txt(entry.get("key_figure"), default="See insight card"),
+                      S["top_figure"]),
+            Paragraph(link, S["top_link"]),
+        ])
+    table = Table(rows, colWidths=[8 * mm, 58 * mm, None, 22 * mm])
+    style = [
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("BOX", (0, 0), (-1, -1), 0.6, CARD_BORDER),
+        ("LINEBEFORE", (0, 0), (0, -1), 3, BRAND),
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ("ALIGN", (-1, 0), (-1, -1), "RIGHT"),
+    ]
+    for r in range(len(rows)):
+        if r % 2 == 0:
+            style.append(("BACKGROUND", (0, r), (-1, r), CARD_BG))
+        if r:
+            style.append(("LINEABOVE", (0, r), (-1, r), 0.4, CARD_BORDER))
+    table.setStyle(TableStyle(style))
+    return [Paragraph("Top 5 Insights", S["h2"]), table]
+
+
+def executive_summary_block(summary, width):
+    """Executive Summary: key findings, then (if any) early signals to watch,
+    then the Top 5 Insights list, each row linking to its insight card."""
+    story = [Paragraph("Executive Summary", S["h1"]),
+             Paragraph(txt(summary.get("executive_summary")), S["summary"])]
+    if summary.get("watch_summary"):
+        story.append(Spacer(1, 2 * mm))
+        story.append(Paragraph(txt(summary["watch_summary"]), S["summary"]))
+    top = summary.get("top_insights") or []
+    # The Top 5 rows link to their own cards, so the "Based on" line only
+    # needs the insights they don't cover (the early signals).
+    covered = {entry["ref"] for entry in top}
+    refs = [r for r in dict.fromkeys((summary.get("summary_refs") or [])
+                                     + (summary.get("watch_refs") or []))
+            if r not in covered]
+    if refs:
+        story.append(Spacer(1, 2 * mm))
+        lead = "Early signals based on" if top else "Based on"
+        story.append(Paragraph(f"{lead} {_insight_links(refs)}", S["note"]))
+    if top:
+        story.append(Spacer(1, 3 * mm))
+        story += top_insights_block(top, width)
+    story.append(Spacer(1, 6 * mm))
+    return story
+
+
 def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("Helvetica", 7.5)
@@ -326,29 +440,43 @@ def footer(canvas, doc):
 # Main
 # ---------------------------------------------------------------------------
 
-def generate(json_paths, pdf_path: Path) -> tuple[int, int]:
-    sources = []
-    cards = []   # (priority rank, file order, insight order, insight, label, source)
+def generate(json_paths, pdf_path: Path, summary_mode=None) -> tuple[int, int]:
+    """Build the PDF from briefing JSON files on disk."""
+    briefings = [data for data in (load_briefing_json(p) for p in json_paths)
+                 if data is not None]
+    return build_pdf(briefings, pdf_path, summary_mode=summary_mode)
 
-    for file_no, path in enumerate(json_paths):
-        data = load_briefing_json(path)
-        if data is None:
-            continue
+
+def build_pdf(briefings, pdf_path: Path, summary_mode=None) -> tuple[int, int]:
+    """Build the PDF from briefing dicts already in memory (one per source
+    document, same shape as the JSON files). The database pipeline calls this
+    directly. Returns (source count, insight count).
+
+    summary_mode: "llm" (falls back to "rules" if the LLM fails), "rules" (no
+    LLM call) or "none" (no executive summary). When not given, the
+    EXEC_SUMMARY_MODE environment variable is used (handy on Lambda), and
+    "llm" if that is not set either."""
+    summary_mode = (summary_mode or os.environ.get("EXEC_SUMMARY_MODE") or "llm").strip().lower()
+    if summary_mode not in ("llm", "rules", "none"):
+        raise ValueError(f"summary_mode must be llm, rules or none (got {summary_mode!r})")
+    sources = []
+    cards = []   # (topic, priority rank, file order, insight order, insight, source)
+
+    for file_no, data in enumerate(briefings):
         source = data.get("source") or {}
         sources.append(source)
-        # section_index is looked up per file, so repeated IDs such as
-        # INSIGHT_001 in two different files never get mixed up
-        lookup = build_section_lookup(data.get("section_index"))
         for item_no, insight in enumerate(data.get("insights") or []):
             rank = PRIORITY_STYLE.get(insight.get("priority"), UNKNOWN_PRIORITY)[2]
-            cards.append((rank, file_no, item_no, insight,
-                          section_label_for(insight, lookup), source))
+            cards.append((topic_key(insight), rank, file_no, item_no, insight, source))
 
     if not sources:
         sys.exit("Error: no usable briefing JSON files were found.")
 
-    # Highest priority first across ALL sources; ties keep file/JSON order
-    cards.sort(key=lambda c: (c[0], c[1], c[2]))
+    # Section order: the standard topics first, then any other insight_type.
+    topics = list(TOPIC_SECTIONS) + sorted({c[0] for c in cards} - set(TOPIC_SECTIONS))
+    topic_order = {t: n for n, t in enumerate(topics)}
+    # Within a topic: highest priority first; ties keep file/JSON order.
+    cards.sort(key=lambda c: (topic_order[c[0]], c[1], c[2], c[3]))
 
     doc = SimpleDocTemplate(
         str(pdf_path), pagesize=A4,
@@ -359,14 +487,27 @@ def generate(json_paths, pdf_path: Path) -> tuple[int, int]:
     )
 
     story = title_block(sources, len(cards))
-    story.append(Paragraph("Insights", S["h1"]))
 
-    if not cards:
-        story.append(Paragraph("No insights identified for this period.",
-                               S["empty"]))
-    for _, _, _, insight, label, source in cards:
-        story.append(insight_card(insight, label, source, doc.width))
-        story.append(Spacer(1, 5 * mm))
+    # Cards are numbered in display order; the summary cites these numbers.
+    items = [{"number": n, "topic": topic, "insight": insight,
+              "section": topic_labels(topic)[0], "source": source}
+             for n, (topic, _, _, _, insight, source) in enumerate(cards, start=1)]
+    summary = make_executive_summary(items, sources, mode=summary_mode)
+    if summary:
+        story += executive_summary_block(summary, doc.width)
+
+    # One section per topic, as in the sample briefing.
+    for topic in topics:
+        story.append(Paragraph(topic_labels(topic)[1], S["h1"]))
+        in_topic = [it for it in items if it["topic"] == topic]
+        if not in_topic:
+            story.append(Paragraph("No insights identified for this period.",
+                                   S["empty"]))
+            story.append(Spacer(1, 4 * mm))
+        for it in in_topic:
+            story.append(insight_card(it["insight"], it["section"], it["source"],
+                                      doc.width, number=it["number"]))
+            story.append(Spacer(1, 5 * mm))
 
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return len(sources), len(cards)
@@ -382,6 +523,11 @@ def main():
     parser.add_argument("-o", "--output",
                         help="Output PDF path "
                              "(default: data/briefing-paper/briefing_report.pdf)")
+    parser.add_argument("--summary", choices=("llm", "rules", "none"), default=None,
+                        help="How to write the Executive Summary: llm (default, or "
+                             "EXEC_SUMMARY_MODE from .env; "
+                             "falls back to rules if the LLM fails), rules (no "
+                             "LLM call) or none")
     args = parser.parse_args()
 
     inputs = args.inputs or [str(DEFAULT_INPUT_DIR)]
@@ -392,7 +538,8 @@ def main():
     pdf_path = Path(args.output) if args.output else DEFAULT_OUTPUT_PDF
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
-    source_count, insight_count = generate(json_paths, pdf_path)
+    source_count, insight_count = generate(json_paths, pdf_path,
+                                           summary_mode=args.summary)
     print(f"Created {pdf_path} from {source_count} source(s) "
           f"with {insight_count} insight(s).")
 

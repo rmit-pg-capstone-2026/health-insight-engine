@@ -32,18 +32,41 @@ In every new terminal after that, you only need:
 source .venv/bin/activate
 ```
 
-## Keys in `.env`
+## LLM configuration
 
-Open `.env` in the repo root and set:
+The automated Insight Extraction and Priority Assessment stages default to
+Amazon Bedrock Converse through the AWS SDK. Configure:
 
-| Key | Used by | What to put |
-|---|---|---|
-| `OPENROUTER_API_KEY` | Layers 2 and 3 | Your OpenRouter key (`sk-or-v1-...`). **The only value you must change.** |
-| `PROMPT2_API_URL` | Layer 3 | Leave as is - OpenRouter's endpoint. |
-| `PROMPT2_API_KEY` | Layer 3 | Leave as is - reuses `OPENROUTER_API_KEY`. |
-| `PROMPT2_MODEL` | Layer 3 | The ranking model. Defaults to `deepseek/deepseek-v4-flash-0731`. |
+```text
+LLM_BACKEND=bedrock
+AWS_REGION=ap-southeast-2
 
-`.env` is gitignored. Never commit it.
+EXTRACT_MODEL=moonshotai.kimi-k2.5
+EXTRACT_REASONING=off
+
+PRIORITY_ASSESSMENT_MODEL=au.anthropic.claude-opus-4-6-v1
+PRIORITY_ASSESSMENT_REASONING=off
+```
+
+The model settings are required. Each reasoning setting is optional and
+defaults to `off`, which sends no thinking fields. Any other value is passed
+to Bedrock as the adaptive-thinking effort setting. Local runs use the
+standard AWS credential chain; Lambda uses its execution role.
+
+For an explicit development or recovery alternative, set
+`LLM_BACKEND=api_key` and configure `EXTRACT_API_URL`, `EXTRACT_API_KEY`,
+`PRIORITY_ASSESSMENT_API_URL`, and `PRIORITY_ASSESSMENT_API_KEY` alongside the
+two model IDs. `OPENROUTER_API_KEY` can supply either stage key; Priority
+Assessment also accepts `OPENAI_API_KEY` for backward compatibility.
+
+API-key mode uses bearer-auth OpenAI-compatible chat completions. It is never
+selected automatically after a Bedrock error. Switching backend does not
+change prompts, schemas, validation, or downstream processing.
+
+The standalone `insight-extraction-test/extract.py` script continues to use
+OpenRouter and `OPENROUTER_API_KEY`.
+
+`.env` is gitignored. Never commit credentials.
 
 ## Running the pipeline
 
@@ -78,6 +101,119 @@ python briefing/generate_briefing.py
 ```
 
 The PDF is written to `data/briefing-paper/briefing_report.pdf`, replacing the previous one.
+
+The PDF follows the agreed briefing format: an **Executive Summary** (a paragraph on the top 5 insights by priority, then a paragraph on up to three early signals from the Watchlist insights), a **Top 5 Insights** list (a short title, one key figure and a link to the full card for each of the same five insights), then the insight cards grouped into **Clinical**, **Pharmaceutical** and **Prosthesis & Medical Technology Insights** (highest priority first, each keeping its priority tag).
+
+The summary paragraphs and the Top 5 list come from one LLM call using the same `LLM_BACKEND` and `PRIORITY_ASSESSMENT_*` settings as stage 3 (override with `EXEC_SUMMARY_*` in `.env`). The answer is checked before it is used: every cited insight must exist, every figure must appear in the insight it cites, paragraph 1 must cover the top 5 by priority (no Watchlist), paragraph 2 only Watchlist insights, and the Top 5 list exactly the paragraph-1 insights in the same order. There is one retry if a check fails. If only the Top 5 list still fails, the paragraphs are kept and the list is built from the insights by rules; if the LLM is unavailable or the paragraphs still fail, a rule-based summary is used. Insight cards are numbered, and the summary and Top 5 list link to those numbers.
+
+```bash
+python briefing/generate_briefing.py --summary rules   # no LLM call
+python briefing/generate_briefing.py --summary none    # no executive summary
+```
+
+The prompt is `briefing/prompts/executive_summary_v0.5.md` (v0.4 is kept for comparison).
+
+## Automated pipeline (database)
+
+`pipeline/` runs the same four layers without prompts. A SQLite database (`data/pipeline.db`, gitignored) sits between the stages: each stage reads its work from it and writes its results back.
+
+| File | What it is |
+|---|---|
+| `pipeline/collect_settings.json` | How far back the finders look (`discovery_days`), whether to skip AIHW hub pages, and the AIHW topics to skip. |
+| `pipeline/sources.json` | Manual list: older or extra pages to track. Checked every run. |
+| `pipeline/discover.py` | Runs the three finders in `collect_and_extract/` and applies the settings above. |
+| `pipeline/stages.py` | The four stages as plain functions: a dict in, a dict out. No database code. |
+| `pipeline/run.py` | Reads each stage's input from the database, calls the stage, saves the output. |
+| `pipeline/db.py` | The database tables. Run it to see what is in the database. |
+
+```bash
+python pipeline/run.py                    # collect -> extract -> assess
+python pipeline/run.py extract            # one stage only (collect | extract | assess | brief)
+python pipeline/run.py brief --preview    # make the PDF, mark nothing (safe to repeat)
+python pipeline/run.py brief              # make the PDF and mark its insights as briefed
+python pipeline/db.py                     # status: documents, insights, briefings, cost
+```
+
+How collect finds pages, every run:
+
+- The finders (AIHW reports, ABS health articles, ABS health statistics releases) return everything dated in the last `discovery_days` (default 14 - wider than the weekly gap, so one missed run loses nothing).
+- AIHW hub pages (one level deep, e.g. `/mental-health`) and topics in `aihw_skip_topics` are skipped. ABS finders are already health-only.
+- Each found page, plus every page in `sources.json`, is fetched. A page never seen before becomes a new document; a known page becomes a new document only if its content changed. Older discovered pages are not re-checked unless the agency dates them again.
+- If a finder fails, the others still run and the summary says so. If some sub-pages of a known report fail to load, the existing version is kept and the page is retried next run.
+
+How it behaves after that:
+
+- Only a page whose content changed becomes a new document. Each version is saved as its own file in `data/source-extracted-files/versions/` (never overwritten); the database stores just its path.
+- New insights are compared with those already stored for earlier versions of the same page. Any whose evidence quote matches is dropped, so only new insights are assessed and briefed.
+- Insights whose evidence quote is not in the document are held back, same as layer 3.
+- A document that fails is retried on the next run, and marked `failed` after 3 tries.
+- PDFs go to `data/briefing-paper/briefing_<date>.pdf` and are never overwritten.
+
+### Running it on AWS (Lambda + Step Functions)
+
+One Lambda function, `health-insight-pipeline` (handler `pipeline.lambda_handler.handler`), runs every stage; the event says which:
+
+```json
+{"stage": "collect"}
+{"stage": "extract", "limit": 3}
+{"stage": "assess", "limit": 1}
+{"stage": "brief", "preview": true}
+```
+
+The Step Functions workflow in `stepfunctions/weekly.asl.json` calls it in order: collect once, then extract and assess in small batches, calling again while the result's `still_waiting` is above 0. So no single call comes near Lambda's 15-minute limit. Brief runs separately.
+
+Build the zip once and upload it to the one function:
+
+```bash
+bash build_lambda.sh        # -> dist/lambda.zip (Linux packages for Python 3.12, x86_64)
+```
+
+To change `sources.json` or `collect_settings.json` on AWS without redeploying, upload the edited file to `config/<name>` in the bucket - it takes priority over the copy in the code.
+
+On Lambda, files live in `/tmp/data` and are synced with the S3 bucket in `PIPELINE_S3_BUCKET`: each call downloads `pipeline.db`, and uploads it again after every document. Only one call should run at a time.
+
+To start from scratch, delete `data/pipeline.db`. To retry a failed document: `sqlite3 data/pipeline.db "UPDATE documents SET status='new', attempts=0 WHERE id=<id>"` (use `status='extracted'` if it failed at the assess stage).
+
+### Emailing the briefing (SES)
+
+After a real (non-preview) `brief` run makes the PDF, it also emails it as
+an attachment to everyone in the `BRIEFING_RECIPIENTS` environment variable.
+This is skipped quietly, not treated as an error, if either piece below
+isn't set up yet - the PDF is still made and recorded either way.
+
+To test the email without marking anything as briefed, send a preview:
+`{"stage": "brief", "preview": true, "send_email": true}` on Lambda, or
+`python pipeline/run.py brief --preview --send-email` locally.
+
+**One-time setup, per AWS account:**
+
+1. **Verify a sender identity in SES**, in the region the Lambda runs in
+   (e.g. `ap-southeast-2`): SES console -> *Verified identities* -> *Create
+   identity* -> *Email address*. Use an address you control - SES emails you
+   a confirmation link you have to click before it's usable.
+2. **Verify each recipient address too**, unless the account has been moved
+   out of the SES sandbox. A brand-new AWS account starts in the sandbox,
+   where you can only send to addresses that are *also* verified identities
+   - same steps as above, once per recipient. Requesting production access
+   removes this limit, but on an AWS account managed under an Organization
+   (as this one is), that request may be blocked by an org-level Service
+   Control Policy - if "Request production access" is greyed out in the
+   console, ask whoever administers the AWS Organization to grant it, or
+   just keep verifying recipients individually (fine for a small fixed
+   list).
+3. **Set `BRIEFING_SENDER`** on the Lambda function's environment variables
+   to the address verified in step 1.
+4. **Let the Lambda execution role send mail**: attach an inline policy
+   granting `ses:SendRawEmail` (`Resource: "*"`, or scoped to the sender
+   identity's ARN).
+5. **Set `BRIEFING_RECIPIENTS`** on the Lambda function's environment
+   variables: the recipient addresses, comma separated
+   (`a@example.com, b@example.com`). Changing it needs no redeploy. While the
+   account is in the sandbox, every address here must be verified (step 2) -
+   one unverified address makes SES reject the whole send.
+
+If `BRIEFING_SENDER` or `BRIEFING_RECIPIENTS` isn't set, the next `brief` run
+just logs that emailing was skipped - nothing fails, nothing is retried.
 
 ## Useful options
 

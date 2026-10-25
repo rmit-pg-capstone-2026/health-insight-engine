@@ -12,6 +12,9 @@ beautifulsoup4
 # Stage 3 - priority_assessment     (needs 4.20+, below 5)
 jsonschema>=4.20,<5
 
+# Shared Bedrock IAM/SigV4 transport for stages 2 and 3
+boto3
+
 # Stage 4 - briefing (PDF rendering)
 reportlab
 
