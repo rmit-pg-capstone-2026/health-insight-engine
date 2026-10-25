@@ -34,11 +34,11 @@ EXTRACT_API_KEY, PRIORITY_ASSESSMENT_API_URL, and
 PRIORITY_ASSESSMENT_API_KEY. This changes only the transport; prompts,
 schemas, validation, and downstream processing remain the same.
 
-BRIEFING_SENDER is optional, for emailing the brief stage's PDF (via SES)
-once it's made: an SES-verified "From" address. Without it, brief still
-makes and records the PDF, just skips emailing it. Who it's sent to comes
-from pipeline/recipients.json (or config/recipients.json in the bucket), not
-an env var - same pattern as sources.json.
+BRIEFING_SENDER and BRIEFING_RECIPIENTS are optional, for emailing the brief
+stage's PDF (via SES) once it's made:
+    BRIEFING_SENDER      an SES-verified "From" address
+    BRIEFING_RECIPIENTS  comma-separated "To" addresses, e.g. "a@x.com, b@y.com"
+Without both, brief still makes and records the PDF, just skips emailing it.
 """
 
 import os

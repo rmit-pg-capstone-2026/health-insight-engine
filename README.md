@@ -177,10 +177,13 @@ To start from scratch, delete `data/pipeline.db`. To retry a failed document: `s
 ### Emailing the briefing (SES)
 
 After a real (non-preview) `brief` run makes the PDF, it also emails it as
-an attachment to everyone in `pipeline/recipients.json` - same
-`config/<name>`-in-the-bucket override pattern as `sources.json` (see
-above). This is skipped quietly, not treated as an error, if either piece
-below isn't set up yet - the PDF is still made and recorded either way.
+an attachment to everyone in the `BRIEFING_RECIPIENTS` environment variable.
+This is skipped quietly, not treated as an error, if either piece below
+isn't set up yet - the PDF is still made and recorded either way.
+
+To test the email without marking anything as briefed, send a preview:
+`{"stage": "brief", "preview": true, "send_email": true}` on Lambda, or
+`python pipeline/run.py brief --preview --send-email` locally.
 
 **One-time setup, per AWS account:**
 
@@ -203,14 +206,14 @@ below isn't set up yet - the PDF is still made and recorded either way.
 4. **Let the Lambda execution role send mail**: attach an inline policy
    granting `ses:SendRawEmail` (`Resource: "*"`, or scoped to the sender
    identity's ARN).
-5. **Put the real recipient list in `pipeline/recipients.json`** (or upload
-   `config/recipients.json` to the bucket instead, to change it without
-   redeploying): `[{"name": "...", "email": "..."}, ...]`. Only entries with
-   an `email` are used.
+5. **Set `BRIEFING_RECIPIENTS`** on the Lambda function's environment
+   variables: the recipient addresses, comma separated
+   (`a@example.com, b@example.com`). Changing it needs no redeploy. While the
+   account is in the sandbox, every address here must be verified (step 2) -
+   one unverified address makes SES reject the whole send.
 
-If `BRIEFING_SENDER` isn't set, or no entry in `recipients.json` has an
-`email`, the next `brief` run just logs that emailing was skipped - nothing
-fails, nothing is retried.
+If `BRIEFING_SENDER` or `BRIEFING_RECIPIENTS` isn't set, the next `brief` run
+just logs that emailing was skipped - nothing fails, nothing is retried.
 
 ## Useful options
 

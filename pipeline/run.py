@@ -366,13 +366,14 @@ def next_pdf_path(preview: bool) -> str:
 
 
 def email_briefing(rel: str) -> dict | None:
-    """Email the PDF at rel to everyone in recipients.json. Skipped with a
-    message (not an error) if no one is configured or BRIEFING_SENDER isn't
-    set; a failed send is logged, never raised."""
-    recipients = [r["email"] for r in storage.read_config("recipients.json") if r.get("email")]
+    """Email the PDF at rel to everyone in BRIEFING_RECIPIENTS (comma
+    separated). Skipped with a message (not an error) if BRIEFING_RECIPIENTS
+    or BRIEFING_SENDER isn't set; a failed send is logged, never raised."""
+    recipients = [e.strip() for e in os.environ.get("BRIEFING_RECIPIENTS", "").split(",")
+                  if e.strip()]
     sender = os.environ.get("BRIEFING_SENDER")
     if not recipients:
-        print("  no recipients configured (pipeline/recipients.json) - skipped emailing")
+        print("  ! BRIEFING_RECIPIENTS not set - skipped emailing the briefing")
         return None
     if not sender:
         print("  ! BRIEFING_SENDER not set - skipped emailing the briefing")
@@ -390,7 +391,7 @@ def email_briefing(rel: str) -> dict | None:
 
 def run_brief(conn, preview: bool = False, send_email: bool = False) -> dict:
     """Render the PDF. A real briefing marks its insights as briefed and is
-    emailed to everyone in recipients.json. A preview marks nothing and is not
+    emailed to everyone in BRIEFING_RECIPIENTS. A preview marks nothing and is not
     emailed - unless send_email is set, which is how to test the email
     without using up the batch."""
     rows = conn.execute(BRIEFABLE).fetchall()
