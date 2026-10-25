@@ -7,7 +7,8 @@ e.g. one AIHW report and one ABS release) and writes a single PDF with a title
 block, then follows the agreed briefing format
 (Healthcare_Intelligence_Briefing_sample_output.docx):
 
-    Executive Summary            top 5 findings + early signals to watch (LLM)
+    Executive Summary            top 5 findings + early signals to watch (LLM),
+                                 then a Top 5 Insights list linking to cards
     Clinical Insights            insight cards grouped by insight_type,
     Pharmaceutical Insights      highest priority first, each with its
     Prosthesis & Medical         priority tag (Watchlist items stay in their
@@ -130,6 +131,14 @@ S = {
     "bullet": ParagraphStyle("bullet", fontName="Helvetica", fontSize=9,
                              leading=13, textColor=TEXT, leftIndent=10,
                              bulletIndent=0, spaceAfter=3),
+    "top_no": ParagraphStyle("top_no", fontName="Helvetica-Bold", fontSize=11,
+                             leading=13, textColor=BRAND),
+    "top_title": ParagraphStyle("top_title", fontName="Helvetica-Bold",
+                                fontSize=9, leading=12, textColor=TEXT),
+    "top_figure": ParagraphStyle("top_figure", fontName="Helvetica",
+                                 fontSize=9, leading=12, textColor=TEXT),
+    "top_link": ParagraphStyle("top_link", fontName="Helvetica", fontSize=8.5,
+                               leading=12, textColor=BRAND),
     "note": ParagraphStyle("note", fontName="Helvetica-Oblique", fontSize=7.5,
                            leading=10, textColor=MUTED, spaceAfter=4),
     "empty": ParagraphStyle("empty", fontName="Helvetica-Oblique", fontSize=9,
@@ -353,19 +362,64 @@ def _insight_links(refs):
     return f'<font color="#5F6B7A">{word} {", ".join(links)}</font>'
 
 
+def top_insights_block(entries, width):
+    """Top 5 Insights: numbered rows of title, key figure and a link that
+    jumps to the insight's card further down the briefing."""
+    rows = []
+    for n, entry in enumerate(entries, start=1):
+        number = entry["ref"][1:]
+        link = (f'<link href="#insight{number}" color="#0B3D91">'
+                f'<u>Insight {number}</u> \u2192</link>')
+        rows.append([
+            Paragraph(str(n), S["top_no"]),
+            Paragraph(txt(entry.get("title")), S["top_title"]),
+            Paragraph(txt(entry.get("key_figure"), default="See insight card"),
+                      S["top_figure"]),
+            Paragraph(link, S["top_link"]),
+        ])
+    table = Table(rows, colWidths=[8 * mm, 58 * mm, None, 22 * mm])
+    style = [
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("BOX", (0, 0), (-1, -1), 0.6, CARD_BORDER),
+        ("LINEBEFORE", (0, 0), (0, -1), 3, BRAND),
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ("ALIGN", (-1, 0), (-1, -1), "RIGHT"),
+    ]
+    for r in range(len(rows)):
+        if r % 2 == 0:
+            style.append(("BACKGROUND", (0, r), (-1, r), CARD_BG))
+        if r:
+            style.append(("LINEABOVE", (0, r), (-1, r), 0.4, CARD_BORDER))
+    table.setStyle(TableStyle(style))
+    return [Paragraph("Top 5 Insights", S["h2"]), table]
+
+
 def executive_summary_block(summary, width):
     """Executive Summary: key findings, then (if any) early signals to watch,
-    with links to the insights both paragraphs are based on."""
+    then the Top 5 Insights list, each row linking to its insight card."""
     story = [Paragraph("Executive Summary", S["h1"]),
              Paragraph(txt(summary.get("executive_summary")), S["summary"])]
     if summary.get("watch_summary"):
         story.append(Spacer(1, 2 * mm))
         story.append(Paragraph(txt(summary["watch_summary"]), S["summary"]))
-    refs = list(dict.fromkeys((summary.get("summary_refs") or [])
-                              + (summary.get("watch_refs") or [])))
+    top = summary.get("top_insights") or []
+    # The Top 5 rows link to their own cards, so the "Based on" line only
+    # needs the insights they don't cover (the early signals).
+    covered = {entry["ref"] for entry in top}
+    refs = [r for r in dict.fromkeys((summary.get("summary_refs") or [])
+                                     + (summary.get("watch_refs") or []))
+            if r not in covered]
     if refs:
         story.append(Spacer(1, 2 * mm))
-        story.append(Paragraph(f"Based on {_insight_links(refs)}", S["note"]))
+        lead = "Early signals based on" if top else "Based on"
+        story.append(Paragraph(f"{lead} {_insight_links(refs)}", S["note"]))
+    if top:
+        story.append(Spacer(1, 3 * mm))
+        story += top_insights_block(top, width)
     story.append(Spacer(1, 6 * mm))
     return story
 
