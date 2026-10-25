@@ -6,6 +6,8 @@ AWS Lambda entry point. One function runs every stage; the event says which:
     {"stage": "assess",  "limit": 1}
     {"stage": "brief"}
     {"stage": "brief", "preview": true}  make the PDF without marking anything as briefed
+    {"stage": "brief", "preview": true, "send_email": true}
+                                         same, and email the preview (to test SES)
 
 Handler setting on the function:  pipeline.lambda_handler.handler
 
@@ -31,6 +33,12 @@ For the explicit api_key alternative, configure EXTRACT_API_URL,
 EXTRACT_API_KEY, PRIORITY_ASSESSMENT_API_URL, and
 PRIORITY_ASSESSMENT_API_KEY. This changes only the transport; prompts,
 schemas, validation, and downstream processing remain the same.
+
+BRIEFING_SENDER and BRIEFING_RECIPIENTS are optional, for emailing the brief
+stage's PDF (via SES) once it's made:
+    BRIEFING_SENDER      an SES-verified "From" address
+    BRIEFING_RECIPIENTS  comma-separated "To" addresses, e.g. "a@x.com, b@y.com"
+Without both, brief still makes and records the PDF, just skips emailing it.
 """
 
 import os
@@ -53,4 +61,5 @@ def handler(event, context):
     stage = event.get("stage")
     if stage not in run.STAGES:
         raise ValueError(f'event needs "stage": one of {", ".join(run.STAGES)} (got {stage!r})')
-    return run.run_stage(stage, limit=event.get("limit"), preview=bool(event.get("preview")))
+    return run.run_stage(stage, limit=event.get("limit"), preview=bool(event.get("preview")),
+                         send_email=bool(event.get("send_email")))

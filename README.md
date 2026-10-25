@@ -174,6 +174,47 @@ On Lambda, files live in `/tmp/data` and are synced with the S3 bucket in `PIPEL
 
 To start from scratch, delete `data/pipeline.db`. To retry a failed document: `sqlite3 data/pipeline.db "UPDATE documents SET status='new', attempts=0 WHERE id=<id>"` (use `status='extracted'` if it failed at the assess stage).
 
+### Emailing the briefing (SES)
+
+After a real (non-preview) `brief` run makes the PDF, it also emails it as
+an attachment to everyone in the `BRIEFING_RECIPIENTS` environment variable.
+This is skipped quietly, not treated as an error, if either piece below
+isn't set up yet - the PDF is still made and recorded either way.
+
+To test the email without marking anything as briefed, send a preview:
+`{"stage": "brief", "preview": true, "send_email": true}` on Lambda, or
+`python pipeline/run.py brief --preview --send-email` locally.
+
+**One-time setup, per AWS account:**
+
+1. **Verify a sender identity in SES**, in the region the Lambda runs in
+   (e.g. `ap-southeast-2`): SES console -> *Verified identities* -> *Create
+   identity* -> *Email address*. Use an address you control - SES emails you
+   a confirmation link you have to click before it's usable.
+2. **Verify each recipient address too**, unless the account has been moved
+   out of the SES sandbox. A brand-new AWS account starts in the sandbox,
+   where you can only send to addresses that are *also* verified identities
+   - same steps as above, once per recipient. Requesting production access
+   removes this limit, but on an AWS account managed under an Organization
+   (as this one is), that request may be blocked by an org-level Service
+   Control Policy - if "Request production access" is greyed out in the
+   console, ask whoever administers the AWS Organization to grant it, or
+   just keep verifying recipients individually (fine for a small fixed
+   list).
+3. **Set `BRIEFING_SENDER`** on the Lambda function's environment variables
+   to the address verified in step 1.
+4. **Let the Lambda execution role send mail**: attach an inline policy
+   granting `ses:SendRawEmail` (`Resource: "*"`, or scoped to the sender
+   identity's ARN).
+5. **Set `BRIEFING_RECIPIENTS`** on the Lambda function's environment
+   variables: the recipient addresses, comma separated
+   (`a@example.com, b@example.com`). Changing it needs no redeploy. While the
+   account is in the sandbox, every address here must be verified (step 2) -
+   one unverified address makes SES reject the whole send.
+
+If `BRIEFING_SENDER` or `BRIEFING_RECIPIENTS` isn't set, the next `brief` run
+just logs that emailing was skipped - nothing fails, nothing is retried.
+
 ## Useful options
 
 ```bash
