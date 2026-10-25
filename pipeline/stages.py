@@ -459,7 +459,7 @@ def send_briefing_email(pdf_path: Path, recipients: list[str], sender: str,
     msg["From"] = sender
     msg["To"] = ", ".join(recipients)
     msg.attach(MIMEText(
-        "Attached is this quarter's AIHW/ABS health insights briefing.", "plain"))
+        "Attached is the latest health insights briefing.", "plain"))
 
     part = MIMEApplication(pdf_path.read_bytes(), _subtype="pdf")
     part.add_header("Content-Disposition", "attachment", filename=pdf_path.name)

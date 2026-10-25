@@ -27,6 +27,7 @@ Usage:
     python pipeline/run.py extract            # one stage only
     python pipeline/run.py extract --limit 1  # at most one document this run
     python pipeline/run.py brief --preview    # PDF only, nothing marked as briefed
+    python pipeline/run.py brief --preview --send-email   # test the email too
     python pipeline/run.py brief              # PDF, and mark its insights as briefed
 """
 
@@ -364,10 +365,34 @@ def next_pdf_path(preview: bool) -> str:
     return rel
 
 
-def run_brief(conn, preview: bool = False) -> dict:
-    """Render the PDF and, for a real briefing (never on preview), email it to
-    everyone in pipeline/recipients.json - skipped with a message rather than
-    an error if there's no one configured or BRIEFING_SENDER isn't set."""
+def email_briefing(rel: str) -> dict | None:
+    """Email the PDF at rel to everyone in recipients.json. Skipped with a
+    message (not an error) if no one is configured or BRIEFING_SENDER isn't
+    set; a failed send is logged, never raised."""
+    recipients = [r["email"] for r in storage.read_config("recipients.json") if r.get("email")]
+    sender = os.environ.get("BRIEFING_SENDER")
+    if not recipients:
+        print("  no recipients configured (pipeline/recipients.json) - skipped emailing")
+        return None
+    if not sender:
+        print("  ! BRIEFING_SENDER not set - skipped emailing the briefing")
+        return None
+    try:
+        email_out = stages.send_briefing_email(
+            storage.local(rel), recipients, sender,
+            subject=f"Health Insight Briefing - {date.today():%B %Y}")
+        print(f"  emailed to {len(recipients)} recipient(s): {email_out['message_id']}")
+        return email_out
+    except Exception as exc:  # the briefing is already made either way
+        print(f"  ! failed to email briefing: {exc}")
+        return {"error": str(exc)}
+
+
+def run_brief(conn, preview: bool = False, send_email: bool = False) -> dict:
+    """Render the PDF. A real briefing marks its insights as briefed and is
+    emailed to everyone in recipients.json. A preview marks nothing and is not
+    emailed - unless send_email is set, which is how to test the email
+    without using up the batch."""
     rows = conn.execute(BRIEFABLE).fetchall()
     if not rows:
         print("  nothing new to brief - no PDF made")
@@ -382,6 +407,10 @@ def run_brief(conn, preview: bool = False) -> dict:
               "preview": preview}
     if preview:
         print("  preview only - nothing marked as briefed")
+        if send_email:
+            email_out = email_briefing(rel)
+            if email_out:
+                result["email"] = email_out
         return result
 
     with conn:
@@ -395,28 +424,17 @@ def run_brief(conn, preview: bool = False) -> dict:
     print(f"  recorded as briefing #{cur.lastrowid}; {len(rows)} insight(s) marked as briefed")
     result["briefing_id"] = cur.lastrowid
 
-    recipients = [r["email"] for r in storage.read_config("recipients.json") if r.get("email")]
-    sender = os.environ.get("BRIEFING_SENDER")
-    if not recipients:
-        print("  no recipients configured (pipeline/recipients.json) - skipped emailing")
-    elif not sender:
-        print("  ! BRIEFING_SENDER not set - skipped emailing the briefing")
-    else:
-        try:
-            email_out = stages.send_briefing_email(
-                storage.local(rel), recipients, sender,
-                subject=f"Health Insight Briefing - {date.today():%B %Y}")
-            print(f"  emailed to {len(recipients)} recipient(s): {email_out['message_id']}")
-            result["email"] = email_out
-        except Exception as exc:  # the briefing is already recorded either way
-            print(f"  ! failed to email briefing: {exc}")
+    email_out = email_briefing(rel)
+    if email_out:
+        result["email"] = email_out
 
     return result
 
 
 # -------------------------------------------------------------------- main
 
-def run_stage(stage: str, limit=None, preview: bool = False) -> dict:
+def run_stage(stage: str, limit=None, preview: bool = False,
+              send_email: bool = False) -> dict:
     """Run one stage end to end: open the database (from S3 when set), do
     the work, and return a short summary. Used by main() and by Lambda."""
     conn = db.open_db()
@@ -431,7 +449,7 @@ def run_stage(stage: str, limit=None, preview: bool = False) -> dict:
         elif stage == "assess":
             result = run_assess(conn, limit)
         elif stage == "brief":
-            result = run_brief(conn, preview)
+            result = run_brief(conn, preview, send_email)
         else:
             raise ValueError(f"unknown stage {stage!r}; expected one of {STAGES}")
         db.checkpoint(conn)
@@ -448,11 +466,13 @@ def main() -> None:
                     help="extract/assess: handle at most this many documents this run")
     ap.add_argument("--preview", action="store_true",
                     help="brief only: make the PDF without marking anything as briefed")
+    ap.add_argument("--send-email", action="store_true",
+                    help="brief --preview only: also email the preview PDF (to test SES)")
     args = ap.parse_args()
 
     steps = ["collect", "extract", "assess"] if args.stage == "all" else [args.stage]
     for step in steps:
-        print(run_stage(step, args.limit, args.preview))
+        print(run_stage(step, args.limit, args.preview, args.send_email))
     print("\nSee everything with: python pipeline/db.py")
 
 
