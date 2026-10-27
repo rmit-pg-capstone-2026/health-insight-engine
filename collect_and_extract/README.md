@@ -1,348 +1,422 @@
-# Health insight engine
+# Layer 1 — Collect and Extract
 
-This README is written so that someone with **zero prior context** on this
-project can read it top to bottom and understand what it does, why it's
-built the way it is, and how to run it. If you're new here, start at
-section 1 and read in order — later sections assume you know the terms
-introduced earlier.
+This folder is **Layer 1** of the Health Insight Engine. Its job is to find
+Australian health publications from two government agencies, download them,
+and turn each one into a clean Markdown file that the next layer (insight
+extraction, an LLM) can read.
 
----
-
-## 1. What this project is
-
-**In one sentence:** this project automatically finds Australian health
-reports published by two government agencies, downloads them, converts
-them into clean text files, and keeps track of every change to every
-report over time — so an LLM team can read those text files and pull out
-insights, without worrying about web scraping, duplicate reports, or
-whether a report they already read has since been quietly updated.
-
-**The two agencies this pulls from:**
 - **AIHW** — Australian Institute of Health and Welfare (`aihw.gov.au`).
-  Publishes long-form reports (e.g. "Dementia in Australia").
-- **ABS** — Australian Bureau of Statistics (`abs.gov.au`). Publishes
-  shorter statistical articles and releases (e.g. "Deaths due to acute
-  respiratory infections").
+  Long reports such as "Dementia in Australia".
+- **ABS** — Australian Bureau of Statistics (`abs.gov.au`). Statistical
+  releases and shorter articles.
 
-**What "clean text" means here:** a real webpage is full of things that
-aren't the actual content — navigation menus, "Download as PDF" buttons,
-cookie banners, related-article widgets, chart UI controls. This project's
-job is to strip all of that away and keep only the real report content, as
-Markdown, because Markdown is what gets fed into an LLM later. Getting this
-right is most of what this codebase actually does — see section 9 for the
-specific problems that came up and how each one was solved.
-
-**What this project explicitly does NOT do** (see section 8 for the full
-list): it doesn't call an LLM itself, doesn't parse PDFs, doesn't download
-the actual `.xlsx`/`.csv` data files it finds links to (just records that
-they exist), and isn't wired into any production codebase — it's a
-standalone sandbox that produces files for someone else's pipeline to pick
-up afterward.
+If you are new to the project, read sections 1 to 3 first. They explain what
+this layer does and how it fits the rest of the system. The later sections go
+into detail.
 
 ---
 
-## 2. Current status — two phases exist, one is current
+## Contents
 
-This project was built in two phases, and **the code for both phases is
-still in this folder right now.** Understanding this is the single most
-important thing for a new reader, because looking at the code without this
-context is confusing — there are two different "front doors" into the same
-engine.
-
-### Phase 1 — manual prototype (where this project started)
-
-The very first version of this pipeline worked like this: you run the
-script, it asks you to type in two AIHW URLs, then asks "do you have more
-URLs?" in a loop until you say no, then does the same thing for ABS, then
-asks a yes/no question about whether to re-check everything for updates.
-A human has to already know which URLs to paste in.
-
-### Phase 2 — automated discovery (what this project is now)
-
-Phase 2 adds a layer in front of Phase 1 that does the "which URLs" step
-automatically. Instead of a human typing in URLs, three small programs ask
-each agency's website directly: *"what have you published that's new since
-the last time I checked?"* Those URLs are then fed into the **exact same**
-fetch/extract/save machinery Phase 1 always had — Phase 2 did not rewrite
-that part, it just gave it an automatic source of input instead of a human
-typing at a prompt.
-
-### Side-by-side comparison
-
-| | Phase 1 (manual) | Phase 2 (automated) |
-|---|---|---|
-| **You run** | `python collect_and_extract.py` | `python discover_and_run.py` |
-| **How URLs are found** | You type them in, one at a time | Discovered automatically from each agency's own website |
-| **Checking for silent updates** | One manual yes/no question, checks *everything* if you say yes | A small automatic batch every run, checks a *few* oldest-checked URLs |
-| **Is this the recommended way to run the project today?** | No — kept as a fallback, explained below | **Yes — this is primary** |
-
-### Why Phase 1's code is still here
-
-Phase 1 isn't dead code — it's kept on purpose as a manual escape hatch.
-The three automatic "discovery" programs can only find reports that show
-up on the specific listing pages they check (see section 8). If a report
-ever needs to be added that doesn't show up there for whatever reason,
-Phase 1's interactive prompt is still the way to feed that one URL through
-the pipeline by hand. The two entry points are completely independent —
-running one never calls the other.
+1. [Workflow at a glance](#1-workflow-at-a-glance)
+2. [Where this layer sits in the whole pipeline](#2-where-this-layer-sits-in-the-whole-pipeline)
+3. [Skeleton of this layer](#3-skeleton-of-this-layer)
+4. [Step 1 — Finding pages](#4-step-1--finding-pages)
+5. [Step 2 — Fetching and extracting a page](#5-step-2--fetching-and-extracting-a-page)
+6. [Step 3 — Change detection and versioning](#6-step-3--change-detection-and-versioning)
+7. [What this layer produces](#7-what-this-layer-produces)
+8. [Running it](#8-running-it)
+9. [Problems we solved and why the code looks the way it does](#9-problems-we-solved-and-why-the-code-looks-the-way-it-does)
+10. [Standalone mode (earlier versions)](#10-standalone-mode-earlier-versions)
+11. [Known limitations — scope of this release](#11-known-limitations--scope-of-this-release)
 
 ---
 
-## 3. Architecture — how the pieces fit together
+## 1. Workflow at a glance
 
-### The shape of the system
+### The whole job, in one picture
 
 ```
-                 ┌─────────────────────┐
-                 │  discover_aihw.py    │──┐
-                 ├─────────────────────┤  │
-                 │ discover_abs_        │──┼──> discover_and_run.py
-                 │ articles.py          │  │      (the conductor)
-                 ├─────────────────────┤  │             │
-                 │ discover_abs_        │──┘             │
-                 │ statistics.py        │                ▼
-                 └─────────────────────┘      process_source()
-                                               (lives inside
-                                                collect_and_extract.py)
-                                                        │
-                                                        ▼
-                                          fetch → extract → hash → save
-                                                        │
-                                                        ▼
-                                          source-extracted-files/
-                                          (the actual output)
+   AIHW website                          ABS website
+ (report search API)          (articles listing)   (release calendar)
+        │                            │                    │
+        ▼                            ▼                    ▼
+ discover_aihw.py        discover_abs_articles.py   discover_abs_statistics.py
+        │                            │                    │
+        └──────────────┬─────────────┴────────────────────┘
+                       ▼
+              pipeline/discover.py
+      "pages dated in the last 14 days" + filters
+      (skip hub pages, skip unrelated AIHW topics)
+                       │
+                       │      pipeline/sources.json
+                       │      (manual extra pages, checked every run)
+                       ▼                │
+                 list of page URLs ◄────┘
+                       │
+                       ▼   for each URL (one at a time)
+        ┌─────────────────────────────────────────┐
+        │  fetch_and_extract()                    │
+        │                                         │
+        │  1. fetch the page                      │
+        │  2. find the rest of the report         │
+        │     (AIHW sections, ABS methodology     │
+        │      page, AIHW hub cards)              │
+        │  3. extract each page to Markdown       │
+        │     (AIHW and ABS use different logic)  │
+        │  4. clean it (nav, charts, references)  │
+        │  5. join the sections into one document │
+        └───────────────────┬─────────────────────┘
+                            ▼
+              SHA-256 hash of the document text
+                            │
+              ┌─────────────┴─────────────┐
+              ▼                           ▼
+   hash already known?             hash is new
+   → "unchanged", save nothing     → save a versioned .md file
+                                   → add a row to `documents`
+                                     (status = new)
+                                           │
+                                           ▼
+                          Layer 2 reads documents with status "new"
 ```
 
-### A few terms you'll see constantly, explained once
+### How a single page is processed
 
-- **Cursor** — a saved timestamp, one per discovery source, recording
-  "the last time I checked this source, here's what I'd already seen."
-  Each of the three discovery sources keeps its own cursor, stored in
-  `manifest.json` under a special `_discovery` key.
-- **Manifest** — `source-extracted-files/manifest.json`. A single JSON
-  file that remembers everything this pipeline needs to recall between
-  runs: which URLs have already been saved, what their content looked
-  like last time, when they were last checked, and the three discovery
-  cursors. Without it, every run would look like the very first run.
-- **Content hash** — a short fingerprint (SHA-256) of a report's extracted
-  text. Two runs that produce the exact same hash mean "nothing really
-  changed," even if the page's raw HTML looks different (agencies
-  reshuffle page layout without changing content fairly often). This is
-  how the pipeline tells a *real* content change apart from a cosmetic one.
-- **Revalidation** — periodically re-checking a report that's already been
-  saved, even though nothing told this pipeline it had changed. Explained
-  fully below — it exists to catch changes an agency makes *without*
-  updating their own "last updated" date.
-- **Versioning** — never deleting or overwriting a saved report. If a
-  report's content genuinely changes, the old file is kept and a new file
-  is added alongside it.
-
-### Walking through one real run, step by step
-
-Say you run `python discover_and_run.py` today. Here's exactly what
-happens, in order:
-
-1. **Load the manifest.** Everything this pipeline remembers from every
-   previous run is read from `source-extracted-files/manifest.json`. If
-   this file doesn't exist yet (first run ever), it starts from empty.
-2. **Ask each of the three discovery sources "what's new?"**
-   - `discover_aihw.py` calls AIHW's internal report-search API and asks
-     for everything published since its own saved cursor.
-   - `discover_abs_articles.py` checks ABS's public "Articles" listing
-     page, filtered to the Health topic.
-   - `discover_abs_statistics.py` checks ABS's release calendar, also
-     filtered to Health.
-   - These three run independently. If one of them fails (e.g. the
-     website is down, or its HTML changed shape unexpectedly), that one
-     source is skipped with a warning — its cursor is **not** moved
-     forward, so nothing it might have found gets silently missed later.
-     The other two sources are unaffected.
-3. **Fetch, extract, and save every newly discovered URL.** Each URL goes
-   through `process_source()`: download the page, run it through the
-   correct extraction logic for that agency (AIHW and ABS need genuinely
-   different approaches — see section 9), compute a content hash, compare
-   it against what the manifest remembers, and save a new `.md` file only
-   if the content actually changed or it's brand new.
-4. **Revalidate a small batch of older, already-saved reports.** Separately
-   from step 2/3, the pipeline also picks a handful of reports it hasn't
-   personally re-checked in the longest time (regardless of whether the
-   agency flagged them as updated) and re-runs them through the exact same
-   fetch/extract/save path. This is the safety net described below.
-5. **Save the updated manifest.** New discovery cursors, new content
-   hashes, new "last checked" timestamps — all written back to
-   `manifest.json` so the next run picks up exactly where this one left
-   off.
-
-### Why revalidation exists as its own separate step
-
-This is one of the most important design decisions in the whole project,
-so it's worth explaining in plain terms here (the full incident that
-caused this is in section 10, Scenario 4).
-
-Step 2 above — discovery — only works by trusting each agency's own
-"here's what's new" signal (for AIHW and ABS, that's a publish/update
-date). But what if an agency quietly edits a report's actual content
-*without* updating that date? Discovery would compare the (unchanged) date
-against its cursor, conclude "nothing new here," and that report would
-never be looked at again — not next week, not next year, not ever, no
-matter how many times this pipeline runs.
-
-Revalidation exists purely to close that gap. It doesn't trust the
-agency's "updated" signal at all — it just periodically re-fetches reports
-that haven't personally been re-checked in a while and compares the
-content hash directly. It's slower (a real re-fetch, not just a date
-comparison) so it only checks a small batch per run (25 by default)
-instead of everything — a full sweep of ~104 tracked reports takes about 5
-runs, which is an acceptable tradeoff since these reports have been
-observed to change content maybe a couple of times a year, not daily.
+```
+ URL ──► fetch ──► is it an AIHW multi-page report? ──yes──► fetch every section
+                │                                             in its sidebar
+                ├──► ABS page with a "Methodology" link? ──yes──► also fetch that page
+                ├──► AIHW hub page with link cards? ──────yes──► also fetch each card's page
+                ▼
+        for every page fetched:
+          ABS  → walk the page's real elements in order, convert each one
+          AIHW → fix collapsible sections, split into content blocks,
+                 convert each block
+          then → strip nav / chart data / references / auto citation line
+        ▼
+   sections joined with "## <title>" and "Source: <url>" lines
+        ▼
+   one Markdown document + YAML header (title, url, last updated, hashes)
+```
 
 ---
 
-## 4. Setup
+## 2. Where this layer sits in the whole pipeline
+
+The project turns public ABS and AIHW health publications into a prioritised
+briefing (PDF) for a private health insurer. It has four layers. Each layer
+reads what the previous one saved and writes its own output.
 
 ```
-pip install -r requirements.txt
+ ┌──────────────────────┐   ┌─────────────────────┐   ┌───────────────────────┐   ┌─────────────────┐
+ │ 1. collect_and_      │   │ 2. insight-         │   │ 3. priority_          │   │ 4. briefing/    │
+ │    extract/          │──►│    extraction-test/ │──►│    assessment/        │──►│                 │
+ │ (THIS LAYER)         │   │                     │   │                       │   │                 │
+ │ web pages → Markdown │   │ LLM finds up to 10  │   │ LLM rates relevance   │   │ renders the     │
+ │ files                │   │ insights per        │   │ and priority of each  │   │ PDF briefing    │
+ │ (no LLM here)        │   │ document, with      │   │ insight               │   │ and emails it   │
+ │                      │   │ verbatim quotes     │   │                       │   │                 │
+ └──────────────────────┘   └─────────────────────┘   └───────────────────────┘   └─────────────────┘
 ```
 
-That installs the four packages this project depends on: `requests` (HTTP
-fetching), `trafilatura` (HTML-to-Markdown conversion), `lxml` (HTML
-parsing), and `beautifulsoup4` (also HTML parsing, used in a few specific
-spots). No API keys, no accounts, no config files needed — everything else
-this pipeline needs, it figures out from the public web pages themselves.
+**What this layer hands to Layer 2:** one Markdown file per page version, plus
+a row in the `documents` table pointing at that file. Layer 2 quotes text
+directly from these files, and every quote is checked against the file
+afterwards. That is why this layer works so hard to produce **complete** and
+**clean** text. Content lost here can never become an insight, and noise left
+in here can end up inside a quote.
+
+### How it runs in the deployed system
+
+```
+ Step Functions (weekly)
+   └─ "Collect" state
+        └─ AWS Lambda  health-insight-pipeline   event: {"stage": "collect"}
+             └─ pipeline/lambda_handler.py
+                  └─ pipeline/run.py  → run_collect()
+                       ├─ pipeline/discover.py       finds the page URLs
+                       ├─ pipeline/stages.py         collect(): calls this folder's
+                       │                             fetch_and_extract() and save_markdown()
+                       ├─ pipeline/db.py             SQLite: sources, documents
+                       └─ pipeline/storage.py        /tmp/data on Lambda, synced with S3
+```
+
+The same code runs on a laptop with `python pipeline/run.py collect`. When no
+S3 bucket is configured, everything stays in the local `data/` folder.
 
 ---
 
-## 5. Usage
+## 3. Skeleton of this layer
 
-### Automated (current, recommended entry point)
-
-```
-python discover_and_run.py
-```
-
-Running it with no flags uses sensible defaults for everything. The
-available flags, for when you want non-default behavior:
-
-| Flag | Default | What it does | When you'd use it |
-|---|---|---|---|
-| `--lookback-days N` | `90` | Only matters the *very first time* a discovery source has no saved cursor yet — tells it how far back to look for a starting point. | Bootstrapping a source for the first time, or re-bootstrapping one after wiping the manifest. |
-| `--force-refresh` | off | Re-fetches and re-extracts every URL *discovery finds this run*, even ones that already have an unchanged, cached copy. | You suspect something about the extraction logic itself changed and want to re-verify already-saved reports, not just new ones. |
-| `--revalidate-batch-size N` | `25` | How many already-saved reports to re-check this run (oldest-checked-first), independent of what discovery found. `0` turns this off entirely for this run. | Turn it up to sweep through the backlog faster; turn it to `0` for a quick discovery-only check. |
-
-Example commands:
-```
-python discover_and_run.py                             # normal run, all defaults
-python discover_and_run.py --lookback-days 30           # bootstrap a source looking back only 30 days
-python discover_and_run.py --force-refresh               # force re-check of everything discovery finds
-python discover_and_run.py --revalidate-batch-size 50    # sweep through the backlog twice as fast
-python discover_and_run.py --revalidate-batch-size 0      # discovery only, skip revalidation this run
-```
-
-**What you'll see printed to the screen**, roughly:
-```
---- Discovery summary ---
-  AIHW: 2 URL(s)
-  ABS:  1 URL(s)
-
-Extracting AIHW URLs...
-  Saved: source-extracted-files/AIHW/some-report-...md [AIHW, CHANGED, ...]
-
---- Revalidation: re-checking 25 previously-saved URL(s), oldest-checked-first ---
-Extracting AIHW URLs...
-  Already have: ...md (last checked 2026-09-01) - skipping re-fetch
-  ...
-
-Done.
-```
-A `Skipped (...)` line means one specific URL failed (bad network request,
-unreachable page, etc.) — it does not stop the rest of the batch from
-processing.
-
-### Manual (legacy, still available as a fallback)
+### Files in this folder
 
 ```
-python collect_and_extract.py
+collect_and_extract/
+├── collect_and_extract.py     the extraction engine (used by the deployed pipeline)
+├── discover_aihw.py           finder: AIHW report search API
+├── discover_abs_articles.py   finder: ABS health articles listing
+├── discover_abs_statistics.py finder: ABS release calendar (health statistics)
+├── discover_and_run.py        standalone runner with its own state file (see section 10)
+├── requirements.txt           Python packages for this folder on its own
+└── README.md                  this file
 ```
 
-This is Phase 1's original interactive flow:
-
-1. It asks: `Please enter AIHW-1 URL:` and then `Please enter AIHW-2 URL:`
-   — both mandatory. A URL that isn't on `aihw.gov.au` is rejected and
-   re-asked.
-2. Then it asks `Do you have more URLs? (y/n)` in a loop. Answer `y` to add
-   AIHW-3, AIHW-4, and so on; answer `n` to move on.
-3. The same two steps (steps 1–2) then repeat for ABS URLs.
-4. Once both lists are finalized, it asks once: `Re-check already-extracted
-   URLs for content updates? (y/n)`. Answering `n` (or just pressing Enter)
-   skips any URL that's already saved and unchanged — fast. Answering `y`
-   force-refreshes everything you just typed in.
-5. Every URL is then fetched, extracted, and saved exactly the same way
-   the automated path does it — same functions, same manifest, same
-   versioning rules.
-
-Use this when you have a specific URL in hand that the automated discovery
-sources don't surface on their own.
-
----
-
-## 6. Project structure
-
-```
-health-insight-engine/
-├── discover_and_run.py            <- PRIMARY entry point (Phase 2)
-├── discover_aihw.py                <- discovery source: AIHW's report-search API
-├── discover_abs_articles.py        <- discovery source: ABS "Articles" listing
-├── discover_abs_statistics.py      <- discovery source: ABS release calendar
-├── collect_and_extract.py          <- the shared engine + Phase 1 manual entry point
-├── requirements.txt                <- the 4 Python packages this needs
-├── README.md                       <- this file
-└── source-extracted-files/         <- all output lives here (created automatically)
-    ├── manifest.json               <- the pipeline's memory across runs
-    ├── AIHW/*.md                   <- every version of every AIHW report, ever
-    ├── ABS/*.md                    <- every version of every ABS report, ever
-    └── Current/
-        ├── AIHW/*.md               <- only AIHW reports new/changed in the most recent run
-        └── ABS/*.md                <- only ABS reports new/changed in the most recent run
-```
-
-| File | What's actually in it |
+| File | What it does |
 |---|---|
-| `discover_and_run.py` | The conductor: calls the three discovery modules, hands their output to the shared engine, runs revalidation, saves the manifest. This is what you run day-to-day. |
-| `discover_aihw.py` | Talks to AIHW's own internal report-search API directly (not scraping HTML — it calls the same API AIHW's own search box uses). |
-| `discover_abs_articles.py` | Scrapes ABS's public "Articles" listing page, Health topic only. |
-| `discover_abs_statistics.py` | Scrapes ABS's release calendar, Health topic only. |
-| `collect_and_extract.py` | The biggest file by far. Contains: URL fetching, AIHW-specific extraction logic, ABS-specific extraction logic, shared extraction helpers, file saving, change detection, versioning, and — separately — Phase 1's manual interactive `main()` function. |
-| `source-extracted-files/manifest.json` | One big JSON object. Every report URL is a key; the value holds its title, every version it's ever had, and timestamps. A special `_discovery` key (not a real report) holds the three discovery cursors. |
-| `source-extracted-files/<AIHW\|ABS>/*.md` | The permanent historical archive — every distinct version of every report that's ever been extracted, going back to the first time this pipeline ran. Nothing in here is ever deleted or overwritten. |
-| `source-extracted-files/Current/<AIHW\|ABS>/*.md` | A much smaller, "what's worth a second look" folder — only reports that were new or had real content changes in the most recent run. This file gets overwritten each time that specific report changes again. |
+| `collect_and_extract.py` | The engine. Fetches a URL, finds the other pages of the same report, converts HTML to clean Markdown (separate logic for AIHW and ABS), hashes the result and saves a versioned `.md` file. It also contains the original interactive prompt flow (`main()`), which the deployed pipeline does not use. |
+| `discover_aihw.py` | Asks AIHW's own report-search API for every report released after a given date. Returns title, URL, release date, type and topic. |
+| `discover_abs_articles.py` | Reads ABS's server-rendered Health "related articles" listing page by page and returns articles released after a given date. |
+| `discover_abs_statistics.py` | Reads ABS's site-wide release calendar and keeps only rows under `/statistics/health/`. |
+| `discover_and_run.py` | A self-contained runner for this folder. It uses a `manifest.json` file for state, remembers a "since" date per finder and re-checks old pages in small batches. It is **not** part of the deployed flow. |
+| `requirements.txt` | `requests`, `trafilatura`, `lxml`, `beautifulsoup4`. The whole project is installed from the root `requirements.txt`, which also adds `lxml_html_clean`. |
+
+### Main parts inside `collect_and_extract.py`
+
+| Group | Functions | Purpose |
+|---|---|---|
+| Fetching | `fetch_html`, `_fetch_page_with_retry` | Download a page (20 s timeout). Sub-pages get 3 attempts. |
+| Finding the rest of a report | `discover_report_pages`, `discover_methodology_page`, `discover_hub_card_pages` | AIHW sidebar sections, the ABS methodology page, AIHW hub cards. |
+| Orchestration | `fetch_and_extract` | Runs the whole page → document process and returns an `ExtractResult`. |
+| Choosing a strategy | `extract_markdown` | Picks the extraction path for the page template. |
+| ABS extraction | `extract_abs_article_markdown`, `_extract_abs_content_blocks` | Walk the page's real elements in document order. |
+| AIHW extraction | `_convert_aihw_accordions`, `_expand_block`, `_expand_widget`, `_split_by_headings`, `_extract_block` | Fix collapsible sections, split nested content into leaf blocks, convert each block. |
+| Tables, lists, captions | `_extract_table`, `_table_to_markdown`, `_list_to_markdown` | Our own converters, because the library dropped cells and rows. |
+| Cleanup | `_strip_chart_data`, `_strip_chart_controls`, `_strip_nav_elements`, `_strip_downloadable_resources`, `strip_boilerplate`, `strip_reference_sections` | Remove everything that is not report content. |
+| Metadata | `extract_last_updated`, `extract_abs_release_date`, `extract_data_links` | Last-updated date and links to downloadable data files. |
+| Saving | `save_markdown` | Write the `.md` file with a YAML header. |
+| Standalone-only | `record_content`, `process_source`, `save_current_copy`, `load_manifest`, `save_manifest`, `main` | Manifest bookkeeping and the interactive prompt (section 10). |
+
+### The pieces outside this folder that this layer plugs into
+
+| File | Role for this layer |
+|---|---|
+| `pipeline/discover.py` | Calls the three finders, applies the date window and the skip filters. |
+| `pipeline/collect_settings.json` | The window length and skip rules (section 4). |
+| `pipeline/sources.json` | Manually listed pages that are checked on every run. |
+| `pipeline/stages.py` → `collect()` | Calls `fetch_html`, `fetch_and_extract` and `save_markdown` for one page. |
+| `pipeline/run.py` → `run_collect()` | Loops over the pages, decides new / changed / unchanged and writes the database rows. |
+| `pipeline/db.py` | The `sources` and `documents` tables. |
+| `pipeline/storage.py` | Local folder and S3 file syncing. |
+| `pipeline/lambda_handler.py` and `stepfunctions/weekly.asl.json` | Run the collect stage on AWS every week. |
 
 ---
 
-## 7. Output / data format
+## 4. Step 1 — Finding pages
 
-### How files are named
+Three finders each ask a different part of the agencies' websites "what has
+been published since this date?". They are independent. If one fails (site
+down, page layout changed), it is reported and skipped, and the other two
+still run.
 
-Every saved report file looks like this:
+| Finder | Where it looks | How it works |
+|---|---|---|
+| `discover_aihw.py` | AIHW's internal report-search API (`/api/search/reports`) | Sends the same request AIHW's own search box sends, with browser-like headers because the API sits behind Cloudflare. Excludes reports hosted outside `aihw.gov.au`. |
+| `discover_abs_articles.py` | `abs.gov.au/statistics/health/related-articles` | Reads the listing's rows. This page is already limited to the Health topic. The general `/articles` page is not used, because its Health filter runs in JavaScript and a plain request returns every topic. |
+| `discover_abs_statistics.py` | `abs.gov.au/release-calendar/latest-releases` | The calendar covers all ABS topics and has no topic filter. Rows are kept only if the link starts with `/statistics/health/`, which also removes media-release rows. |
+
+**Paging rule used by all three:** results are only roughly newest-first, so
+the finders look at every item on a page and stop only when a whole page has
+nothing newer than the cut-off date. They do not stop at the first old item.
+
+### How the deployed pipeline uses the finders
+
+`pipeline/discover.py` calls each finder with a cut-off date of
+**today minus `discovery_days`** (14 by default). The window is deliberately
+wider than the weekly schedule, so a missed run loses nothing. It then
+applies these filters from `pipeline/collect_settings.json`:
+
+| Setting | Default | Effect |
+|---|---|---|
+| `discovery_days` | 14 | How far back the finders look on every run. |
+| `skip_hub_pages` | true | Skips AIHW landing pages one level deep, such as `/mental-health`. They merge many sub-pages into one document and their date changes whenever anything under them changes. |
+| `aihw_skip_topics` | housing, child protection, youth justice, adoptions, homelessness services, housing assistance, corporate publications, Australia's welfare | AIHW topics unrelated to health care. Matched on the topic in the address. |
+
+ABS finders need no topic filter, as they are already health-only.
+
+`pipeline/sources.json` is a manual list of extra pages (older reports, or
+pages the finders never surface). They are fetched on every run alongside the
+discovered ones. Each entry is `{"agency": "AIHW" | "ABS", "url": "..."}`.
+
+**What happens next, per page:**
+
+- A page that has never been seen becomes a new document.
+- A page seen before becomes a new document only if its content changed.
+- A page that fails to load is recorded with its error and retried next run.
+  It does not stop the other pages.
+
+---
+
+## 5. Step 2 — Fetching and extracting a page
+
+This is where most of the work in this layer is. A government web page is
+mostly not the report: it has menus, cookie banners, download buttons, chart
+controls, related-article widgets and reference lists. The goal is to keep
+only the real content, as Markdown.
+
+### 5.1 Expanding to the whole report
+
+One URL is often only part of a report, so `fetch_and_extract()` gathers the
+other parts first:
+
+| Situation | What the code does |
+|---|---|
+| **AIHW long report** — pages live under `…/contents/<section>` | Reads the sidebar table of contents and fetches every section (up to 150). |
+| **ABS release** with a separate methodology page | Follows the link labelled "Methodology" (only if it goes to a `/methodologies/` page on the same site) and appends that page. The inline "Methodology" section on ABS pages is often just a short stub. |
+| **AIHW hub / landing page** with link cards | Follows every link inside every card (same site only) and merges those pages in. |
+| **Anything else** | Just the one page. |
+
+Each extra page is fetched with up to 3 attempts. Pages that still fail are
+listed as `missing_pages` (see section 6). Pages are fetched one at a time
+with a 0.3 second pause between requests.
+
+### 5.2 Why AIHW and ABS need different extraction
+
+A general "turn this HTML into Markdown" library (trafilatura) works on many
+AIHW pages. On ABS pages, and on several AIHW templates, it silently throws
+away content: it scores page fragments and keeps the best one. We found
+whole sections disappearing with no sign in the output. So the code avoids
+that scoring step wherever it caused loss.
+
+**ABS pages**
+
+1. A document-order walker visits every heading, paragraph, list, table and
+   chart caption on the page, in the order they appear, and converts each
+   one directly. Nothing is left to a scoring step.
+2. It skips navigation sections ("breadcrumb", "APA", "citation", "ABS main
+   menu", "on this page") and a list of known button labels ("Download table
+   as CSV", "Share this page", "Back to top", and so on).
+3. Methodology, data download and footnote sections are **kept**.
+4. If the walker finds nothing, the page falls back to the general path
+   below, so it is never worse off.
+
+**AIHW pages** have several templates. The code detects which one it has:
+
+| Template | How it is recognised | What the code does |
+|---|---|---|
+| Long report | An element with id `page-content` | Expands nested `field__item` wrappers down to the lowest-level content blocks and extracts each separately, keeping each block's own heading. |
+| Short web article | A `l-web-article__content` container | Expands nested `widget` blocks the same way. A widget holding several headings is split into one piece per heading. |
+| Hub / microsite page | Widgets inside `<main>` | Same widget expansion. |
+| Anything else | None of the above | One extraction pass over `<main>`. |
+
+**Fixes applied to AIHW pages before extraction**
+
+- Collapsible sections: their titles are buttons, not headings, so the code
+  turns each button into a real heading. Without this, unrelated topics merged
+  into one block. "References" and "Bibliography" accordions are removed.
+- Chart data (`<pre>` JSON) is removed. A chart's caption is kept, because
+  it describes what the chart shows.
+- Chart tab switchers and "download" button rows are removed.
+- `<nav>` elements are removed, since they only hold navigation.
+- AIHW's downloadable-data tab is removed from the text (its links are
+  recorded separately, see 5.4).
+
+### 5.3 Converting the pieces
+
+- **Tables** are rendered by our own converter, which keeps every row and
+  cell and the table caption. The library had dropped cells and shifted
+  columns. Tables with merged cells (`rowspan`/`colspan`) are handed to the
+  library, which handles those correctly.
+- **Lists and chart captions** are pulled out and rendered separately, for the
+  same reason (the library dropped a whole bullet list from a block).
+- Each block keeps its own heading.
+
+**Clean-up after conversion**
+
+- Orphan navigation labels ("On this page", "In this section", "Go back to
+  top", "Feedback") are removed, matching whole lines only.
+- Sections titled **References**, **Bibliography** or **Citation** are
+  removed, up to the next heading of the same or higher level.
+- The auto-generated line `accessed <day> <month> <year>.` is removed. It
+  holds the date the pipeline ran, not anything the source says, so keeping it
+  would make a page look changed every day (section 9, problem 3).
+
+When a report has several pages, the sections are joined like this, so a
+piece of text stays traceable to its page even on its own:
+
 ```
-dementia-in-australia-8f2cfd2c-90f8253e.md
-└──────── title ───────┘ └ url hash ┘ └ content hash ┘
+## <page title>
+
+Source: <page url>
+
+<page content>
+
+---
+
+## <next page title>
+...
 ```
-- The **title** part is the report's title, lowercased and cleaned up to
-  be filename-safe.
-- The **URL hash** (8 characters) guarantees two different reports that
-  happen to share a generic title (e.g. two different reports both titled
-  "Summary") never overwrite each other.
-- The **content hash** (8 characters) is what makes versioning work: if a
-  report's content hasn't changed, re-running the pipeline produces the
-  exact same hash, so it reuses the exact same filename — nothing new gets
-  written. Only a genuine content change produces a new hash, and
-  therefore a new file, alongside the old one (which is never deleted).
 
-### What's inside each file: the frontmatter
+### 5.4 Extra information collected
 
-Every `.md` file starts with a block of metadata (between two `---` lines)
-before the actual report content. This is called **frontmatter**, and it
-looks like this (illustrative example):
+| Item | How it is found |
+|---|---|
+| **Last updated date** (YYYY-MM-DD) | Tried in order: ABS release-date field → AIHW footer "last updated" tag → report title date tag → a single other date tag → "Last updated" text. |
+| **Data file links** (`.xlsx`, `.xls`, `.csv`, `.zip`) | ABS: found directly in the HTML. AIHW: the Data tab is filled in by JavaScript, so the code sends the same request that tab sends to AIHW's API and reads the links from the answer. The files are **recorded, not downloaded**. |
+| **Title** | From the page metadata. For a multi-page report, a trailing "About" or "Summary" is removed. |
+
+---
+
+## 6. Step 3 — Change detection and versioning
+
+**Purpose:** never lose the exact text an insight was quoted from, even if
+the agency later edits the page, and never treat a cosmetic change as a real
+one.
+
+1. The final document text (the Markdown body, **not** the YAML header) is
+   hashed with SHA-256.
+2. The hash is compared with the hashes already stored for that page.
+3. **Same hash** → `unchanged`. Nothing is saved.
+4. **New hash** → a new file is saved and a new row is added to `documents`
+   with status `new`. The old file stays where it is.
+5. If an older version of the same page is still waiting to be processed by
+   Layer 2 (status `new`), it is marked `superseded` and skipped, so no
+   effort goes into text that is already out of date.
+
+**File names** include the title, a hash of the URL and a hash of the
+content:
+
+```
+abs-national-health-survey-2022-ec4e2569-a91c3e2b.md
+│   └──── title (max 60 chars) ────┘ └ URL ┘ └ content ┘
+└ agency
+```
+
+- The **URL hash** stops two pages with the same generic title (for example
+  "Summary") from overwriting each other.
+- The **content hash** gives every version its own file. A version file is
+  never overwritten or deleted.
+
+**Incomplete captures.** If some sub-pages of a multi-page report did not
+load even after retrying, the result is incomplete.
+
+- For a page already stored, the new capture is **not** saved. The existing
+  version is kept and the page is retried next run. Otherwise a truncated
+  copy would look like a real change.
+- For a page never seen before, the partial capture is saved anyway (partial
+  is better than nothing), and the number of missing pages is reported.
+
+**What the collect step records in the database**
+
+| Table | Collect-stage fields |
+|---|---|
+| `sources` | `url`, `agency`, `origin` (`manual` or `discovered`), `topic`, `title`, `release_date` (from the finder), `last_checked_at`, `last_error` |
+| `documents` | `source_id`, `content_hash`, `fetched_at`, `title`, `markdown_path` (relative to the data folder, also the S3 key), `status` = `new` |
+
+The database never stores the file contents. It stores only the path.
+
+**Run summary** printed (and returned by the Lambda) after each collect:
+`found`, `skipped`, `finder_errors`, `new`, `changed`, `unchanged`,
+`incomplete`, `errors`.
+
+---
+
+## 7. What this layer produces
+
+One Markdown file per page version, in `data/source-extracted-files/versions/`
+(locally) or under the same key in S3.
+
+### File layout
 
 ```yaml
 ---
@@ -362,370 +436,266 @@ data_links:
   - https://www.aihw.gov.au/getmedia/.../data-tables.xlsx
 ---
 
-(the actual extracted report content starts here, as Markdown)
+(report content as Markdown starts here)
 ```
 
-**If you're on the LLM team reading this**, here's which of those fields
-are actually worth sending to a model, and which are purely this
-pipeline's own internal bookkeeping:
+| Header field | Meaning |
+|---|---|
+| `source`, `url`, `title` | Which agency and page the text came from. Used to cite findings. |
+| `extracted_at` | When the pipeline ran, not a fact about the report. |
+| `content_hash` | The hash used for change detection. |
+| `last_updated` | The agency's own date for the page. |
+| `page_count`, `pages` | The pages combined into this document, each with its own date and hash. |
+| `data_link_count`, `data_links` | Downloadable data tables found. Recorded for future use, not downloaded. |
 
-| Field | What it's really for | Send it to the LLM? |
-|---|---|---|
-| `source`, `url`, `title` | Knowing which agency and which exact page a piece of content came from | **Yes** — needed so the LLM (or a human) can cite findings back to a real source |
-| `last_updated` | How current the underlying statistics actually are | **Yes** — useful context, e.g. "this stat is from a report last updated 2 years ago" |
-| `extracted_at` | When *this pipeline* happened to run, not a fact about the report | Only marginally useful |
-| `content_hash` | This pipeline's own way of detecting if a report changed since last time | **No** — meaningless to anything outside this repo |
-| `page_count`, `pages:` | Lets this pipeline pinpoint which *specific section* of a multi-page report changed, instead of just "something changed" | **No** — pure bookkeeping, and on a large report this can be the single biggest chunk of the whole frontmatter block |
-| `data_link_count`, `data_links:` | Links to the underlying `.xlsx`/`.csv`/`.zip` data tables a report references (not downloaded by this pipeline, just recorded) | Not useful for *text* extraction, but **don't throw these away** — a future phase that reads actual numeric tables will need them |
+### What Layer 2 does with it
 
-**Why this matters in practice:** the frontmatter adds roughly 1.3%–6.3%
-of a file's total size — on a large multi-section report, that can be over
-10,000 characters of pure bookkeeping that costs real money/tokens in an
-LLM prompt for zero reasoning value. **Recommended handling:** split each
-file on the closing `---` line, send only the body below it to the model,
-and if you still want provenance in the prompt, re-add just `title` + `url`
-+ `last_updated` as plain text instead of the raw YAML block.
+Layer 2 reads the file at `markdown_path` and sends its text to the
+extraction model. It quotes passages from it, and each quote is checked
+against the same text afterwards. The whole file is read, header included.
 
-One more detail: inside the body itself, each combined section also
-carries its own small `Source: <url>` line. This is intentional and
-separate from the frontmatter — if your pipeline later splits these
-documents into smaller chunks for a retrieval/embedding system, a chunk
-pulled out on its own will still carry this line, so it stays traceable
-back to its exact source page even without its original frontmatter.
+---
 
-### What's inside `manifest.json`
+## 8. Running it
 
-One JSON object. Every key is a canonical report URL (after redirects are
-resolved), except for one special `_discovery` key. Illustrative shape:
+### Setup (once, from the repository root)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Collect needs no API keys and no model. It only reads public web pages.
+
+### Run only this layer through the pipeline
+
+```bash
+python pipeline/run.py collect
+```
+
+It prints the look-back date, then one line per page:
+
+```
+  looking back to 2026-10-13 (14 days)
+  AIHW (discovered)  https://www.aihw.gov.au/reports/...
+    NEW -> document #7: Dementia in Australia
+  ABS (manual)  https://www.abs.gov.au/statistics/health/...
+    unchanged
+```
+
+See what is stored:
+
+```bash
+python pipeline/db.py
+```
+
+To change what is tracked, edit `pipeline/collect_settings.json` or
+`pipeline/sources.json`.
+
+### Run on AWS
+
+The deployed function `health-insight-pipeline` (handler
+`pipeline.lambda_handler.handler`) runs this layer with:
 
 ```json
-{
-  "_discovery": {
-    "last_run_at": {
-      "aihw": "2026-10-05T00:00:00+00:00",
-      "abs_articles": "2026-10-05T00:00:00+00:00",
-      "abs_statistics": "2026-10-05T00:00:00+00:00"
-    }
-  },
-  "https://www.aihw.gov.au/reports/.../contents/about": {
-    "title": "Dementia in Australia",
-    "first_seen_at": "2026-08-01T00:00:00+00:00",
-    "last_seen_at": "2026-10-05T00:00:00+00:00",
-    "last_changed_at": "2026-09-12T00:00:00+00:00",
-    "last_revalidated_at": "2026-10-05T00:00:00+00:00",
-    "versions": [
-      { "content_hash": "aaa111...", "path": "source-extracted-files/AIHW/old-file.md", "created_at": "2026-08-01T00:00:00+00:00", "status": "superseded" },
-      { "content_hash": "bbb222...", "path": "source-extracted-files/AIHW/new-file.md", "created_at": "2026-09-12T00:00:00+00:00", "status": "current" }
-    ],
-    "pages": { "...": "per-section hash/date detail, same idea as the top level" }
-  }
-}
+{"stage": "collect"}
 ```
 
-- `versions` is the full history for that URL — every genuinely distinct
-  version it's ever had, oldest first, with exactly one marked `"current"`
-  at any time and the rest marked `"superseded"`.
-- `last_revalidated_at` is what drives revalidation's "oldest-checked-first"
-  ordering (section 3) — it gets updated on *every* check of that URL,
-  whether or not anything actually changed.
+- `stepfunctions/weekly.asl.json` runs it first each week, then moves on to
+  extract and assess.
+- On Lambda the data folder is `/tmp/data`, synced with the S3 bucket in
+  `PIPELINE_S3_BUCKET`. The database is downloaded at the start of the call
+  and uploaded after each page. Each new version file is uploaded **before**
+  its database row is written, so the database never points at a file that is
+  not in S3.
+- To change `sources.json` or `collect_settings.json` on AWS without
+  redeploying, upload the edited file to `config/<name>` in the bucket. It
+  takes priority over the copy in the code.
+- Only one call should run at a time, because two would overwrite each
+  other's database.
 
 ---
 
-## 8. Known limitations — what this deliberately doesn't do
+## 9. Problems we solved and why the code looks the way it does
 
-- **Discovery only sees what its three listing pages show it.** AIHW's
-  search API, ABS's Articles listing, and ABS's release calendar are the
-  *only* places this pipeline looks for new reports automatically. A
-  report published somewhere else on either site won't be found — use the
-  manual path (section 5) for that one.
-- **Methodology-page detection is narrow on purpose.** It only recognizes
-  one specific pattern: a link literally labelled "Methodology". Other
-  possible companion pages (e.g. "Explanatory notes", "Quality
-  declaration") aren't searched for.
-- **No PDF support.** If a URL ends in `.pdf`, nothing special happens —
-  the underlying extraction library only understands HTML.
-- **No limit on how many versions a report can accumulate, and nothing
-  ever gets automatically deleted.** This was a deliberate choice, not an
-  oversight — these reports have been observed to genuinely change content
-  maybe a couple of times a year, so unbounded growth isn't a real problem
-  yet. Worth revisiting only if some report turns out to be far more
-  volatile than that.
-- **Revalidation and manual force-refresh are both tied to *runs*, not to
-  a calendar.** There's no scheduler or cron job built in — someone has to
-  actually run `discover_and_run.py` for any of this to happen. This is
-  intentional for the same "doesn't need to be tight yet" reasoning as the
-  point above.
-- **No automated test suite.** Every fix described in section 9/10 below
-  was verified by hand against real live pages during development — there
-  is no committed set of tests that would catch a regression automatically
-  if this code changes in the future.
-- **Not wired into any production codebase.** This duplicates logic that
-  may also exist elsewhere (e.g. a team's own `src/common/fetch.py`) — it
-  is a standalone demo, not the production integration.
-- **No LLM step at all.** This pipeline's job ends at producing clean
-  `.md` files. Reading them and extracting insights is a separate,
-  later phase owned by someone else.
-- **One defensive gap, flagged but not yet seen in practice:** AIHW's
-  References/Bibliography sections are removed by matching a button
-  element to its content panel via an `aria-controls`/`id` link in the
-  page's HTML. If that link is ever missing or broken on some page this
-  pipeline hasn't encountered yet, a warning is printed, but the
-  unlabeled content would still end up in the output, because the
-  downstream safety net for stripping references works by matching
-  *headings*, and this content wouldn't have one.
+Each entry: **what happened → why it mattered → what we did.**
 
----
+**1. AIHW hides section titles inside buttons.**
+Topic labels in collapsible sections are `<button>` elements, not headings, so
+unrelated topics merged into one block (a "Childhood dementia" section ran
+straight into an unrelated "data gaps" topic). *Fix:* turn each button's
+label into a real heading before extraction.
 
-## 9. Design notes — the reasoning behind non-obvious decisions
+**2. ABS nests content many layers deep and extraction silently dropped half
+of it.**
+One section had 32 nested wrappers. A "Crisis support services" section with
+two sub-topics kept only the first, duplicated, and lost the second with no
+sign of it. *Fix:* expand every wrapper down to its lowest-level pieces and
+extract each piece directly, re-attaching each piece's heading. For ABS pages
+the document-order walker avoids the problem altogether.
 
-This section explains *why* things work the way they do, for anyone
-making future changes. Section 10 below tells the same underlying stories
-but framed as concrete problem → solution scenarios, which may be the
-easier starting point for a first read.
+**3. An auto-generated citation line made 37 of 63 reports look changed.**
+Each AIHW page got a citation line ending "accessed <today's date>". That
+line changes daily, so every re-run changed the page's hash. *Fix:* remove
+that line (and `Citation` sections) before hashing, checked against every
+saved file.
 
-**Why AIHW and ABS need completely different extraction code.** A simple
-one-pass "convert this whole page to Markdown" approach works fine for
-AIHW pages but actively loses content on ABS pages, because of how deeply
-ABS nests its real content inside wrapper `<div>` elements — a scoring
-algorithm looking at the page as fragments tends to pick one nested piece
-and silently discard its siblings. ABS extraction instead walks every
-real element on the page in the order it actually appears and converts
-each one directly, so there's no scoring step left to lose anything.
+**4. Silent edits by the agency.**
+Finding new pages relies on the agency's own date. If a page's content is
+edited without its date changing, a date-based check never looks again. The
+standalone runner (section 10) closes this with a rolling re-check. The
+deployed pipeline does not, see section 11.
 
-**Why References/Bibliography sections and AIHW's citation line are both
-removed.** Bibliography lists are low-value for insight extraction, so
-that one's simple. The more important case is a single auto-generated
-line that includes today's date — because it changes every single day
-regardless of whether the report's real content changed, and an early
-version of this pipeline's change-detection logic couldn't tell that
-apart from a genuine content change, producing a huge batch of false
-"this report changed!" flags.
+**5. An interrupted run left the state out of step with the saved file.**
+A file had been saved but its record was not. Trusting the record would have
+created a duplicate version. *Fix (standalone runner):* re-read and re-hash
+the saved file instead of trusting the stored hash. In the deployed pipeline
+the database is written after the file, with a checkpoint after every page.
 
-**Why nothing is ever overwritten (versioning).** The purpose of this
-whole pipeline is to produce *traceable* evidence for insight reports — if
-an agency revises a report after someone has already cited a fact from
-it, silently overwriting the old file would destroy the one proof of what
-the evidence actually said at the time it was cited.
+**6. Saving a file on Windows corrupted its own hash.**
+Python's default text mode turns `\n` into `\r\n`, but some AIHW labels
+contain a literal `\r`. Reading the file back gave a different hash from the
+text before saving. *Fix:* write and read with newline translation turned
+off, so text round-trips exactly.
 
-**Why revalidation exists separately from discovery.** Already explained
-in detail in section 3 — the short version is that discovery alone can be
-permanently fooled by a source that edits content without updating its own
-"last updated" signal.
+**7. New page types broke extraction in different ways.**
+Turning on automated discovery surfaced AIHW templates never tested by hand:
+hub pages, short web articles, microsites. On a short article, 2 of 5 similar
+pages lost almost all content while the other 3 were fine, with nothing in
+the output to show which. *Fix:* a dedicated, verified extraction path for each
+template (section 5.2).
 
-**A real bug that was found and fixed along the way, worth knowing about
-if you ever touch file-saving code on Windows:** saving a file using
-Python's normal text-write mode silently translates `\n` into `\r\n` on
-Windows. That's invisible almost all the time, but a few AIHW labels carry
-a literal `\r` character already baked into their source HTML — and
-translating the surrounding characters while leaving that one alone made
-re-reading a freshly-saved file produce a *different* hash than hashing
-the exact same text before it was ever saved, which looked exactly like a
-real content change. Fixed by disabling that automatic translation
-entirely wherever this pipeline reads or writes a report file.
+**8. AIHW data-file links were invisible.**
+The Data tab is filled in by JavaScript, so the raw HTML contained no
+`.xlsx` or `.csv` links at all. *Fix:* send the same request the tab's
+JavaScript sends and read the answer.
+
+**9. Chart data looked unrecoverable, but wasn't.**
+Some charts embed their numbers as JSON in a script tag. All 36 such widgets
+checked also contained a real data table (the chart's accessible
+alternative), which normal table extraction already captures. No JSON parser
+was needed.
+
+**10. Library tables, lists and captions lost content.**
+Cells wrapped in paragraphs shifted columns, a first row vanished, a whole
+bullet list was dropped from a block, and chart captions disappeared. *Fix:*
+our own table, list and caption handling (section 5.3).
 
 ---
 
-## 10. Use case scenarios — real situations encountered and how they were solved
+## 10. Standalone mode (earlier versions)
 
-This section tells the same engineering history as section 9, but as
-concrete "here's what happened" stories. Each one follows the same shape:
-**Situation → Why it mattered → How it was solved.**
+Before the database pipeline existed, this folder ran on its own, and that
+code is still here. The deployed system does **not** use it, but it is useful
+for trying a single URL without setting up the pipeline.
 
-### Scenario 1: AIHW hides section titles inside collapsible buttons, not real headings
+**Interactive prompts** — you type the URLs:
 
-**Situation.** AIHW reports often group content into expandable/collapsible
-sections — click a topic name, it expands to show the content underneath.
-On a real page, a topic label like "Impact on health, aged care and social
-systems" turned out to be a plain `<button>` element in the HTML, not a
-heading tag (`<h2>`, `<h3>`, etc.) at all — the extraction library had no
-way to know that one topic ended and the next began.
+```bash
+python collect_and_extract/collect_and_extract.py
+```
 
-**Why it mattered.** Without a real heading marking the boundary, two
-completely unrelated topics were silently merging into one undifferentiated
-block of text in the extracted output — confirmed on a real report where a
-"Childhood dementia" section flowed directly into an unrelated "data gaps
-and limitations" topic with no separation between them at all.
+It asks for at least two AIHW and two ABS URLs (a URL on the wrong domain is
+rejected), then asks whether to re-check pages already saved. Files are saved
+in `source-extracted-files/AIHW/` and `source-extracted-files/ABS/` **relative
+to the folder you run it from**, with a `manifest.json` that stores each URL's
+hashes and version history. Pages that are new or changed are also copied to
+`source-extracted-files/Current/`.
 
-**How it was solved.** Before running the main extraction step, this
-pipeline first scans the raw page for these specific button elements and
-converts each one's own label text into a real heading tag, so by the time
-extraction actually runs, the page looks like it always had proper headings.
+**Automatic discovery** — the finders pick the URLs:
 
-### Scenario 2: ABS nests content so deeply that extraction silently drops half of it
+```bash
+python collect_and_extract/discover_and_run.py
+python collect_and_extract/discover_and_run.py --lookback-days 30
+python collect_and_extract/discover_and_run.py --force-refresh
+python collect_and_extract/discover_and_run.py --revalidate-batch-size 50
+python collect_and_extract/discover_and_run.py --revalidate-batch-size 0
+python collect_and_extract/discover_and_run.py --quiet
+```
 
-**Situation.** An ABS page's real content sat many layers deep inside
-repeated wrapper `<div>` elements. A section could contain several
-sub-topics (a callout box, a collapsible sub-section, a chart-and-table
-pairing, a plain paragraph) nested inside each other — one real section
-was found to have 32 such nested layers.
+| Flag | Default | Meaning |
+|---|---|---|
+| `--lookback-days N` | 90 | Only used the first time a finder has no saved date. |
+| `--force-refresh` | off | Re-fetch pages even if saved and unchanged. |
+| `--revalidate-batch-size N` | 25 | How many already-saved pages to re-check each run, oldest-checked first, whether or not the agency flagged them. `0` turns it off. |
+| `--quiet` | off | Print only new, changed and failed pages, plus the summary. |
 
-**Why it mattered.** The extraction library's normal approach picks out
-what it thinks is "the" main content fragment and ignores the rest.
-Confirmed on a real "Crisis support services" section with two sub-topics
-side by side ("24 hours, 7 days" and "COVID-19") — only the first one
-survived in the output (and was even duplicated); the second vanished
-completely, with nothing in the output hinting that anything was missing.
+This mode keeps one "since" date per finder in `manifest.json`. A finder's
+date moves forward only when that finder succeeds, so an outage never skips
+what was published meanwhile.
 
-**How it was solved.** Instead of trusting that automatic selection, this
-pipeline recursively expands every nested wrapper all the way down to its
-real individual pieces, and extracts each piece directly and completely,
-re-attaching each piece's own heading along the way so nothing ends up as
-floating, unlabeled text.
+Because this mode writes to its own folder, its files are not picked up by
+Layer 2 unless you copy them to `data/source-extracted-files/`.
 
-### Scenario 3: An auto-generated citation line made it look like 37 reports had changed, when none of them had
+---
 
-**Situation.** Every extracted AIHW page automatically got a short
-citation line added to it (something like "AIHW (2026) Dementia in
-Australia, AIHW, Australian Government, accessed 3 October 2026."). The
-"accessed <date>" part in that line is simply *today's date* — the date
-this pipeline happened to run — not anything the actual report page says.
+## 11. Known limitations — scope of this release
 
-**Why it mattered.** Because that one line changes every single day purely
-from being re-extracted on a different date, and this pipeline detects
-"did this report change?" by comparing a fingerprint of its *entire* text,
-that one constantly-changing line made it look like real content had
-changed. In one real run, 37 out of 63 reports got flagged as "changed"
-this way — none of them had actually changed on the agency's website at
-all.
+These describe what this release covers. They are boundaries, not faults.
 
-**How it was solved.** This specific auto-generated citation block is now
-recognized and removed before the fingerprint is calculated, the same way
-real References/Bibliography sections already were. Verified afterward
-against every single saved file individually (not just a pattern search)
-to confirm the fix actually holds and no real content was accidentally
-caught by the same rule.
+**Sources and discovery**
 
-### Scenario 4: An agency could silently edit a report and this pipeline would never notice, ever
+- **Two agencies only.** Only `aihw.gov.au` and `abs.gov.au` pages are
+  accepted. Other sources named in the later prompts, such as PBS listings or
+  the Prescribed List, are not collected here.
+- **Three listing sources.** A new report is found only if it appears in
+  AIHW's report search, the ABS health articles listing or the ABS release
+  calendar. Anything else must be added by hand in `sources.json`.
+- **Fixed look-back window.** Each run looks at pages dated in the last 14
+  days, plus the pages in `sources.json`. A page found earlier is not
+  re-checked unless the agency re-dates it. A silent edit to an old page that
+  keeps its date is therefore not detected. The re-check batch described in
+  section 10 exists only in standalone mode.
+- **Skip rules.** The hub-page and topic skips apply to AIHW only (ABS
+  finders are already health-only). The topic list is a fixed setting, so a
+  new unrelated AIHW topic needs a settings change.
+- **Depends on site structure.** Discovery uses an internal AIHW API and the
+  layout of ABS listing pages. If either site changes, that finder fails.
+  The failure is reported, the other finders still run, and the missed pages
+  appear in a later run while still inside the window.
 
-**Situation.** This pipeline's automatic discovery step only knows a report
-might have changed by checking the agency's own self-reported "last
-updated" date against what it saw last time. That check never looks at the
-actual saved content at all — it fully trusts the agency's own date field.
+**Content captured**
 
-**Why it mattered.** If an agency quietly edits a report's real content —
-a correction, a backend data refresh — without ever bumping that visible
-date, discovery's comparison stays "nothing new" forever for that one
-report. It would never be re-checked again, by anyone, no matter how many
-times this pipeline runs in the future. This wasn't a hypothetical: the one
-genuine silent content change actually found during development (on the
-"chronic conditions dashboard" report) was only caught by a one-off,
-expensive, manual re-check of every single tracked report — exactly the
-kind of check nobody should have to remember to run by hand.
+- **HTML only.** PDFs are not read.
+- **Data files are not downloaded.** `.xlsx`, `.csv` and `.zip` links are
+  recorded in the file header, not fetched or read.
+- **Chart numbers are captured only if the chart has an accompanying table.**
+  Charts drawn by live Tableau embeds contribute their title and description
+  but not their values. ABS chart JSON is dropped in favour of the table
+  that sits next to it.
+- **Narrow methodology detection.** Only a link labelled exactly
+  "Methodology" that leads to a `/methodologies/` page is followed. "Explanatory
+  notes" or "Quality declaration" pages are not.
+- **Templates seen so far.** The extraction paths were built and verified
+  against the page types encountered. A new template may come out thin
+  without any warning in the output, and there is no automated test suite to
+  catch it. Each fix was checked by hand against real pages.
+- **Reference removal on AIHW** matches a button to its content panel by id.
+  If that link is missing on some page, a warning is printed and the
+  reference text stays in.
 
-**How it was solved.** The automated pipeline now runs a small, bounded
-"revalidation" sweep every single time it runs — a batch of the reports
-it's personally re-checked least recently get re-fetched and re-compared
-for real, regardless of what the agency's own date field says. Over
-several runs, every tracked report eventually gets this real check, without
-anyone having to remember to trigger it. The first full sweep across all
-104 tracked reports came back with zero silent changes found — which is
-the expected, reassuring result, not a sign the fix was unnecessary; the
-value of this fix is in it continuing to confirm that on every future
-sweep.
+**Change handling**
 
-### Scenario 5: A run getting interrupted left the manifest out of sync with the actual saved file
+- **Versions are whole documents.** If one section of a multi-page report
+  changes, the whole report is saved as a new version. Per-section hashes are
+  written into the file header but not stored in the database.
+- **Changes in our own extraction code look like content changes.** A
+  version is a new hash of the text, so improving the extractor can produce
+  new versions of unchanged pages. Layer 2 removes insights whose evidence
+  quote it has already seen for the same page.
+- **Partial first captures are saved.** A never-seen page with sub-pages that
+  failed is stored as it is. The missing count is printed but not stored.
+- **No version limit and no clean-up.** Version files are never deleted.
 
-**Situation.** This pipeline saves a report's `.md` file and updates its
-record in `manifest.json` as two separate steps. On a real run that got
-killed partway through (e.g. the process was stopped), a report's file had
-already been correctly saved with its new content — but the manifest's
-record of that file's fingerprint never got written before the process
-died.
+**Running**
 
-**Why it mattered.** If the pipeline simply trusted the manifest's
-(now-stale) fingerprint on the next run, it would wrongly conclude that the
-file's actual, already-correct content was "new" all over again, creating
-a pointless duplicate version of something that hadn't changed a second
-time.
-
-**How it was solved.** Before trusting the manifest's recorded fingerprint
-for any comparison, this pipeline now re-reads the actual saved file
-straight off disk and re-calculates its real fingerprint on the spot,
-rather than relying on what the manifest merely remembers. The manifest is
-treated as a cache that can go stale, never as the source of truth.
-
-### Scenario 6: Saving a file on Windows quietly corrupted its own fingerprint
-
-**Situation.** When Python writes a text file using its normal default
-settings, it automatically converts every plain `\n` line ending into
-`\r\n` on Windows. Normally invisible — but a handful of AIHW labels (e.g.
-an "...Updated 23 Sep 2026" button caption) carry a literal `\r` character
-that was already present straight from the source HTML, before this
-pipeline ever touched it.
-
-**Why it mattered.** Translating all the surrounding `\n` characters while
-leaving that one pre-existing `\r` untouched meant that reading a file
-right back after writing it produced a *different* fingerprint than
-fingerprinting the exact same text just before it was saved — confirmed
-directly by writing, then immediately reading back and comparing. That
-inconsistency could make an unchanged report look like it had changed,
-purely from the act of saving and re-reading it.
-
-**How it was solved.** Both the saving step and the re-checking step now
-explicitly disable that automatic newline translation, so a file's content
-round-trips byte-for-byte no matter what line-ending characters it
-contains.
-
-### Scenario 7: Turning on automated discovery immediately found page types manual testing had never seen
-
-**Situation.** Once the automated discovery pipeline started running for
-real, it very quickly surfaced AIHW page types nobody had tested by hand
-before — "topic hub" pages (like a general "Hospitals" overview page),
-short single-topic "web article" pages, and "microsite" landing pages —
-each one built on a different underlying page template than the
-long-report pages this pipeline was originally designed around.
-
-**Why it mattered.** Each of those templates broke extraction in its own
-way. One real example: on a short "web article" page, 2 of 5 similar
-sibling articles in the same report lost almost all of their content (down
-to a tiny citation block and a nav list) while the other 3 extracted just
-fine — same template, same website, same run, with nothing in the output
-flagging which pages were silently broken.
-
-**How it was solved.** Each newly-discovered page template got its own
-dedicated extraction fallback, built and verified against the real pages
-that exposed the problem (not just the first one found) — including, along
-the way, fixing related gaps in how flat runs of headings, plain bullet
-lists, and specific chart-widget types were each being handled.
-
-### Scenario 8: AIHW's downloadable data files were completely invisible to this pipeline
-
-**Situation.** AIHW report pages have a "Data" tab listing downloadable
-`.xlsx` data tables — but a direct check of a real report's raw HTML
-confirmed there were **zero** occurrences of `.xlsx`, `.csv`, or similar
-file extensions anywhere in the page source this pipeline actually
-receives.
-
-**Why it mattered.** That tab's content is loaded afterward by AIHW's own
-JavaScript, which makes a separate request to AIHW's own internal API
-after the page loads in a real browser. Since this pipeline only fetches
-the initial HTML (it doesn't run a browser or JavaScript), it was recording
-zero data-file links for every single AIHW report, even when real data
-tables genuinely existed.
-
-**How it was solved.** The exact same API request AIHW's own JavaScript
-makes is replayed directly by this pipeline, using the same identifying
-information (report ID, etc.) that's already present in the HTML it does
-receive — no browser or JavaScript execution needed. Verified on real
-reports that this recovered genuine data-table links that had been
-completely invisible before.
-
-### Scenario 9: A chart's data looked unrecoverable, until it turned out it already wasn't
-
-**Situation.** Some AIHW charts embed their underlying numeric data as raw
-JSON inside a `<script>` tag — initially flagged as a real gap that would
-need a dedicated JSON parser built specifically for it, since the pipeline
-had no way to read numbers out of embedded JSON at the time.
-
-**Why it mattered.** Before spending the effort building that parser, every
-single one of these chart widgets (36 of them, found via a full check of
-every page that had this pattern — not just the one originally spotted)
-was checked directly against the real page.
-
-**How it was solved.** It turned out every single one of those 36 widgets
-*also* includes a real, already-populated `<table>` right alongside the
-JSON — the chart's own built-in accessible alternative, intended for screen
-readers. This pipeline's existing table-extraction logic already picks
-that up automatically as part of normal extraction. No JSON parser was
-needed at all — the data had already been fully captured the whole time,
-just not yet confirmed.
+- **One sequential call.** Collect fetches pages one at a time with a short
+  pause, and runs as a single Lambda call. A very large batch of new pages
+  would take correspondingly long.
+- **One run at a time.** Two simultaneous runs would overwrite each other's
+  database.
+- **Polite, not policy-aware.** Requests are paced at 0.3 seconds apart, but
+  `robots.txt` is not consulted.
+- **Standalone mode is separate.** Its manifest, `Current/` folder and
+  re-check batch do not feed the database pipeline.
