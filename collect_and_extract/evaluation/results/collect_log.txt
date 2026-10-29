@@ -1,0 +1,96 @@
+=== RUN 1 start 23:20:21
+2026-10-27 23:20:31,274 INFO AIHW discovery: found 10 new report(s) since 2026-10-13 12:20:28.364387+00:00
+2026-10-27 23:20:31,516 INFO ABS articles discovery: found 0 new article(s) since 2026-10-13 12:20:28.364387+00:00
+2026-10-27 23:20:32,181 INFO ABS statistics discovery: found 3 new release(s) since 2026-10-13 12:20:28.364387+00:00
+2026-10-27 23:20:37,986 INFO     Combined 3/3 report sections
+2026-10-27 23:21:01,058 INFO     Combined 13/13 report sections
+2026-10-27 23:21:26,095 INFO     Combined 13/13 report sections
+2026-10-27 23:23:02,927 INFO     Combined 43/43 report sections
+2026-10-27 23:23:37,044 INFO     Combined 17/17 report sections
+2026-10-27 23:23:43,102 INFO     Combined 2/2 report sections
+2026-10-27 23:23:44,644 INFO     Combined 2/2 report sections
+2026-10-27 23:23:46,482 INFO     Combined 2/2 report sections
+2026-10-27 23:24:54,092 INFO     Combined 34/34 report sections
+
+== collect ==
+  looking back to 2026-10-13 (14 days)
+  - skip (hub page): https://www.aihw.gov.au/suicide-self-harm-monitoring
+  - skip (hub page): https://www.aihw.gov.au/family-domestic-and-sexual-violence
+  AIHW (discovered)  https://www.aihw.gov.au/reports/medicines/pbs-monthly-data
+    NEW -> document #1: Pharmaceutical Benefits Scheme prescriptions: monthly data
+  AIHW (discovered)  https://www.aihw.gov.au/reports/primary-health-care/gp-care-mental-health
+    NEW -> document #2: General practice care for people with a mental health condition
+  AIHW (discovered)  https://www.aihw.gov.au/reports/injury/e-scooter-e-bike-injuries-deaths-in-australia
+    NEW -> document #3: E-scooter and e-bike injuries and deaths in Australia: national trends and data limitations
+  AIHW (discovered)  https://www.aihw.gov.au/reports/indigenous-australians/hearing-health-outreach-services-2012-25
+    NEW -> document #4: Hearing health outreach services for Aboriginal and Torres Strait Islander children in the Northern Territory: July 2012 to June 2025
+  AIHW (discovered)  https://www.aihw.gov.au/reports/health-welfare-expenditure/health-expenditure-australia-2024-25
+    NEW -> document #5: Health expenditure Australia 2024–25
+  AIHW (discovered)  https://www.aihw.gov.au/reports/health-welfare-expenditure/health-system-spending-disease-injury-2024-25
+    NEW -> document #6: Health system spending on disease and injury in Australia 2024–25
+  AIHW (discovered)  https://www.aihw.gov.au/reports/health-welfare-expenditure/growth-decomposition-health-system-spending
+    NEW -> document #7: Health system spending on disease and injury in Australia 2024–25: Growth decomposition of health system spending on disease and injury in Australia
+  AIHW (discovered)  https://www.aihw.gov.au/reports/health-welfare-expenditure/health-expenditure
+    NEW -> document #8: Health expenditure
+  ABS (discovered)  https://www.abs.gov.au/statistics/health/causes-death/causes-death-australia/2025
+    NEW -> document #9: Causes of Death, Australia, 2025
+  ABS (discovered)  https://www.abs.gov.au/statistics/health/causes-death/deaths-external-causes/2025
+    NEW -> document #10: Deaths from external causes, 2025
+  ABS (discovered)  https://www.abs.gov.au/statistics/health/causes-death/intentional-self-harm-suicide-deaths/2025
+    NEW -> document #11: Intentional self-harm (suicide) deaths, 2025
+  AIHW (manual)  https://www.aihw.gov.au/reports/diabetes/diabetes/contents/summary
+    NEW -> document #12: Diabetes: Australian facts
+  ABS (manual)  https://www.abs.gov.au/statistics/health/health-conditions-and-risks/national-health-survey/latest-release
+    NEW -> document #13: National Health Survey, 2022
+{'stage': 'collect', 'found': 11, 'skipped': 2, 'finder_errors': 0, 'new': 13, 'changed': 0, 'unchanged': 0, 'incomplete': 0, 'errors': 0}
+
+See everything with: python pipeline/db.py
+=== RUN 1 secs 273
+=== RUN 2 start 23:24:54
+2026-10-27 23:24:58,815 INFO AIHW discovery: found 10 new report(s) since 2026-10-13 12:24:56.144665+00:00
+2026-10-27 23:24:59,053 INFO ABS articles discovery: found 0 new article(s) since 2026-10-13 12:24:56.144665+00:00
+2026-10-27 23:24:59,718 INFO ABS statistics discovery: found 3 new release(s) since 2026-10-13 12:24:56.144665+00:00
+2026-10-27 23:25:05,164 INFO     Combined 3/3 report sections
+2026-10-27 23:25:28,537 INFO     Combined 13/13 report sections
+2026-10-27 23:25:51,047 INFO     Combined 13/13 report sections
+2026-10-27 23:27:11,217 INFO     Combined 43/43 report sections
+2026-10-27 23:27:42,958 INFO     Combined 17/17 report sections
+2026-10-27 23:27:47,625 INFO     Combined 2/2 report sections
+2026-10-27 23:27:49,107 INFO     Combined 2/2 report sections
+2026-10-27 23:27:50,907 INFO     Combined 2/2 report sections
+2026-10-27 23:28:54,349 INFO     Combined 34/34 report sections
+
+== collect ==
+  looking back to 2026-10-13 (14 days)
+  - skip (hub page): https://www.aihw.gov.au/suicide-self-harm-monitoring
+  - skip (hub page): https://www.aihw.gov.au/family-domestic-and-sexual-violence
+  AIHW (discovered)  https://www.aihw.gov.au/reports/medicines/pbs-monthly-data
+    unchanged
+  AIHW (discovered)  https://www.aihw.gov.au/reports/primary-health-care/gp-care-mental-health
+    unchanged
+  AIHW (discovered)  https://www.aihw.gov.au/reports/injury/e-scooter-e-bike-injuries-deaths-in-australia
+    unchanged
+  AIHW (discovered)  https://www.aihw.gov.au/reports/indigenous-australians/hearing-health-outreach-services-2012-25
+    unchanged
+  AIHW (discovered)  https://www.aihw.gov.au/reports/health-welfare-expenditure/health-expenditure-australia-2024-25
+    unchanged
+  AIHW (discovered)  https://www.aihw.gov.au/reports/health-welfare-expenditure/health-system-spending-disease-injury-2024-25
+    unchanged
+  AIHW (discovered)  https://www.aihw.gov.au/reports/health-welfare-expenditure/growth-decomposition-health-system-spending
+    unchanged
+  AIHW (discovered)  https://www.aihw.gov.au/reports/health-welfare-expenditure/health-expenditure
+    unchanged
+  ABS (discovered)  https://www.abs.gov.au/statistics/health/causes-death/causes-death-australia/2025
+    unchanged
+  ABS (discovered)  https://www.abs.gov.au/statistics/health/causes-death/deaths-external-causes/2025
+    unchanged
+  ABS (discovered)  https://www.abs.gov.au/statistics/health/causes-death/intentional-self-harm-suicide-deaths/2025
+    unchanged
+  AIHW (manual)  https://www.aihw.gov.au/reports/diabetes/diabetes/contents/summary
+    unchanged
+  ABS (manual)  https://www.abs.gov.au/statistics/health/health-conditions-and-risks/national-health-survey/latest-release
+    unchanged
+{'stage': 'collect', 'found': 11, 'skipped': 2, 'finder_errors': 0, 'new': 0, 'changed': 0, 'unchanged': 13, 'incomplete': 0, 'errors': 0}
+
+See everything with: python pipeline/db.py
+=== RUN 2 secs 240

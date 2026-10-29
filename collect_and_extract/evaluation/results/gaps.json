@@ -1,0 +1,254 @@
+[
+  {
+    "url": "https://www.aihw.gov.au/reports/medicines/pbs-monthly-data",
+    "agency": "AIHW",
+    "ref_stat": 2,
+    "missing": 0,
+    "missing_in_figure_text": 0,
+    "missing_other": 0,
+    "recall": 1.0,
+    "recall_excl_figure_text": 1.0,
+    "heads": 19,
+    "heads_missing": 12,
+    "heads_missing_boiler": 9,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 3,
+    "other_head_samples": [
+      "search",
+      "search",
+      "search"
+    ],
+    "other_num_samples": []
+  },
+  {
+    "url": "https://www.aihw.gov.au/reports/primary-health-care/gp-care-mental-health",
+    "agency": "AIHW",
+    "ref_stat": 131,
+    "missing": 4,
+    "missing_in_figure_text": 0,
+    "missing_other": 4,
+    "recall": 0.9695,
+    "recall_excl_figure_text": 0.9695,
+    "heads": 132,
+    "heads_missing": 39,
+    "heads_missing_boiler": 39,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 0,
+    "other_head_samples": [],
+    "other_num_samples": [
+      "1.9",
+      "10.1016",
+      "10.1177",
+      "2025.05"
+    ]
+  },
+  {
+    "url": "https://www.aihw.gov.au/reports/injury/e-scooter-e-bike-injuries-deaths-in-australia",
+    "agency": "AIHW",
+    "ref_stat": 345,
+    "missing": 5,
+    "missing_in_figure_text": 0,
+    "missing_other": 5,
+    "recall": 0.9855,
+    "recall_excl_figure_text": 0.9855,
+    "heads": 146,
+    "heads_missing": 41,
+    "heads_missing_boiler": 41,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 0,
+    "other_head_samples": [],
+    "other_num_samples": [
+      "10.1016",
+      "10.26180",
+      "10.64628",
+      "2023.04",
+      "2026.113446"
+    ]
+  },
+  {
+    "url": "https://www.aihw.gov.au/reports/indigenous-australians/hearing-health-outreach-services-2012-25",
+    "agency": "AIHW",
+    "ref_stat": 53,
+    "missing": 5,
+    "missing_in_figure_text": 0,
+    "missing_other": 5,
+    "recall": 0.9057,
+    "recall_excl_figure_text": 0.9057,
+    "heads": 19,
+    "heads_missing": 4,
+    "heads_missing_boiler": 3,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 1,
+    "other_head_samples": [
+      "search"
+    ],
+    "other_num_samples": [
+      "10.25816",
+      "2.9",
+      "31",
+      "51",
+      "55"
+    ]
+  },
+  {
+    "url": "https://www.aihw.gov.au/reports/health-welfare-expenditure/health-expenditure-australia-2024-25",
+    "agency": "AIHW",
+    "ref_stat": 277,
+    "missing": 79,
+    "missing_in_figure_text": 72,
+    "missing_other": 7,
+    "recall": 0.7148,
+    "recall_excl_figure_text": 0.9747,
+    "heads": 451,
+    "heads_missing": 122,
+    "heads_missing_boiler": 97,
+    "heads_missing_figure_titles": 25,
+    "heads_missing_other": 0,
+    "other_head_samples": [],
+    "other_num_samples": [
+      "3101.0",
+      "4390.0",
+      "5204.041",
+      "5206.036",
+      "5216.0",
+      "5512.0",
+      "6302.003"
+    ]
+  },
+  {
+    "url": "https://www.aihw.gov.au/reports/health-welfare-expenditure/health-system-spending-disease-injury-2024-25",
+    "agency": "AIHW",
+    "ref_stat": 120,
+    "missing": 0,
+    "missing_in_figure_text": 0,
+    "missing_other": 0,
+    "recall": 1.0,
+    "recall_excl_figure_text": 1.0,
+    "heads": 174,
+    "heads_missing": 73,
+    "heads_missing_boiler": 52,
+    "heads_missing_figure_titles": 16,
+    "heads_missing_other": 5,
+    "other_head_samples": [
+      "inclusion of cost per service",
+      "inclusion of expenditure by remoteness and socioeconomic status",
+      "inclusion of expenditure for first nations people",
+      "inclusion of community and public health expenditure",
+      "inclusion of expenditure on cancer screening programs by age group and sex"
+    ],
+    "other_num_samples": []
+  },
+  {
+    "url": "https://www.aihw.gov.au/reports/health-welfare-expenditure/growth-decomposition-health-system-spending",
+    "agency": "AIHW",
+    "ref_stat": 40,
+    "missing": 0,
+    "missing_in_figure_text": 0,
+    "missing_other": 0,
+    "recall": 1.0,
+    "recall_excl_figure_text": 1.0,
+    "heads": 29,
+    "heads_missing": 7,
+    "heads_missing_boiler": 4,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 3,
+    "other_head_samples": [
+      "growth decomposition of health system spending on disease and injury in australia",
+      "related material",
+      "search"
+    ],
+    "other_num_samples": []
+  },
+  {
+    "url": "https://www.aihw.gov.au/reports/health-welfare-expenditure/health-expenditure",
+    "agency": "AIHW",
+    "ref_stat": 59,
+    "missing": 4,
+    "missing_in_figure_text": 4,
+    "missing_other": 0,
+    "recall": 0.9322,
+    "recall_excl_figure_text": 1.0,
+    "heads": 18,
+    "heads_missing": 4,
+    "heads_missing_boiler": 3,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 1,
+    "other_head_samples": [
+      "data development"
+    ],
+    "other_num_samples": []
+  },
+  {
+    "url": "https://www.abs.gov.au/statistics/health/causes-death/causes-death-australia/2025",
+    "agency": "ABS",
+    "ref_stat": 1437,
+    "missing": 2,
+    "missing_in_figure_text": 0,
+    "missing_other": 2,
+    "recall": 0.9986,
+    "recall_excl_figure_text": 0.9986,
+    "heads": 208,
+    "heads_missing": 8,
+    "heads_missing_boiler": 4,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 4,
+    "other_head_samples": [
+      "apa",
+      "apa",
+      "apa",
+      "apa"
+    ],
+    "other_num_samples": [
+      "8.44",
+      "80.56"
+    ]
+  },
+  {
+    "url": "https://www.abs.gov.au/statistics/health/causes-death/deaths-external-causes/2025",
+    "agency": "ABS",
+    "ref_stat": 717,
+    "missing": 1,
+    "missing_in_figure_text": 0,
+    "missing_other": 1,
+    "recall": 0.9986,
+    "recall_excl_figure_text": 0.9986,
+    "heads": 188,
+    "heads_missing": 8,
+    "heads_missing_boiler": 4,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 4,
+    "other_head_samples": [
+      "apa",
+      "apa",
+      "apa",
+      "apa"
+    ],
+    "other_num_samples": [
+      "80.56"
+    ]
+  },
+  {
+    "url": "https://www.abs.gov.au/statistics/health/causes-death/intentional-self-harm-suicide-deaths/2025",
+    "agency": "ABS",
+    "ref_stat": 768,
+    "missing": 1,
+    "missing_in_figure_text": 0,
+    "missing_other": 1,
+    "recall": 0.9987,
+    "recall_excl_figure_text": 0.9987,
+    "heads": 207,
+    "heads_missing": 8,
+    "heads_missing_boiler": 4,
+    "heads_missing_figure_titles": 0,
+    "heads_missing_other": 4,
+    "other_head_samples": [
+      "apa",
+      "apa",
+      "apa",
+      "apa"
+    ],
+    "other_num_samples": [
+      "80.56"
+    ]
+  }
+]

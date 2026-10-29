@@ -1,0 +1,35 @@
+2026-10-27 23:58:19,194 INFO     Combined 3/3 report sections
+2026-10-27 23:58:45,499 INFO     Combined 13/13 report sections
+2026-10-27 23:59:10,430 INFO     Combined 13/13 report sections
+2026-10-28 00:00:34,234 INFO     Combined 43/43 report sections
+2026-10-28 00:01:13,266 INFO     Combined 17/17 report sections
+2026-10-28 00:01:20,826 INFO     Combined 2/2 report sections
+2026-10-28 00:01:22,393 INFO     Combined 2/2 report sections
+2026-10-28 00:01:24,296 INFO     Combined 2/2 report sections
+2026-10-28 00:01:26,207 INFO     Combined 2/2 report sections
+2026-10-28 00:01:27,311 INFO     Combined 2/2 report sections
+2026-10-28 00:01:28,743 INFO     Combined 2/2 report sections
+{'AIHW': 58, 'ABS': 149}
+{'doc': 'gp-care-mental-health', 'page': 'health-outcomes', 'raw_shape': (5, 4), 'md_shape': (5, 4), 'cells': 20, 'cell_recall': 1.0, 'positional_match': 1.0}
+{'doc': 'e-scooter-e-bike-injuries-deaths-i', 'page': 'hospitalisations-falls-involvi', 'raw_shape': (6, 3), 'md_shape': (6, 3), 'cells': 18, 'cell_recall': 1.0, 'positional_match': 1.0}
+{'doc': 'e-scooter-e-bike-injuries-deaths-i', 'page': 'hospitalisations-transport-gro', 'raw_shape': (11, 3), 'md_shape': (11, 4), 'cells': 33, 'cell_recall': 0.394, 'positional_match': 0.394}
+{'doc': 'health-expenditure-australia-2024-', 'page': 'data-processing-australian-gov', 'raw_shape': (2, 3), 'md_shape': (2, 3), 'cells': 6, 'cell_recall': 0.667, 'positional_match': 0.667}
+{'doc': 'health-expenditure-australia-2024-', 'page': 'abbreviations', 'raw_shape': (65, 2), 'md_shape': (65, 2), 'cells': 130, 'cell_recall': 1.0, 'positional_match': 1.0}
+{'doc': '2025', 'page': '2025', 'raw_shape': (26, 4), 'md_shape': (26, 4), 'cells': 103, 'cell_recall': 1.0, 'positional_match': 1.0}
+{'doc': '2025', 'page': '2025', 'raw_shape': (20, 8), 'md_shape': (20, 8), 'cells': 117, 'cell_recall': 1.0, 'positional_match': 1.0}
+{'doc': '2025', 'page': '2025', 'raw_shape': (7, 6), 'md_shape': (7, 6), 'cells': 42, 'cell_recall': 1.0, 'positional_match': 1.0}
+{'doc': '2025', 'page': '2025', 'raw_shape': (11, 9), 'md_shape': (11, 9), 'cells': 99, 'cell_recall': 1.0, 'positional_match': 1.0}
+{'doc': '2025', 'page': '2025', 'raw_shape': (16, 3), 'md_shape': (15, 3), 'cells': 29, 'cell_recall': 0.897, 'positional_match': None}
+TOTAL cells 597 found 572 = 95.8 % | tables with every cell found: 7 of 10
+tables with positional match 100%: 7 of 9
+hearing-health 51 | p.s-report-citation__item__detail < div.s-report-citation__item < div.s-report-citation__content < div.s-report-citation__inner | , AIHW, Australian Government, accessed 27 October 2026, doi:10.25816/51s4-vh12. 
+hearing-health 2.9 | p.s-report-download-addon__description < div.s-report-download__details < div.s-report-download-addon < div.e-page-title__addon |  | 2.9MB 
+hearing-health 51 | span < li.s-report-details__publication-details__item < ul.s-report-details__publication-details < div.s-report-details__text-wrapper | 10.25816/51s4-vh12
+hearing-health 51 | p.s-report-overview__text < div.s-report-overview__item__inner < li.s-report-overview__item < ul.s-report-overview__list |  Jan 2024–Jun 2025, 51% of First Nations children in the NTRAI with at least 1 ear condition experienced heari
+hearing-health 31 | p.s-report-overview__text < div.s-report-overview__item__inner < li.s-report-overview__item < ul.s-report-overview__list |  Jan 2024–Jun 2025, 31% of First Nations children receiving audiology services had hearing loss, down from 55%
+hearing-health 55 | p.s-report-overview__text < div.s-report-overview__item__inner < li.s-report-overview__item < ul.s-report-overview__list |  Jan 2024–Jun 2025, 31% of First Nations children receiving audiology services had hearing loss, down from 55%
+hearing-health 51 | li < ul < li < ul | more than 51,500 services have been delivered to over 12,000 children
+2025 8.44 | a.anchor-button < div.anchor-button-wrapper < div.field < div.abs-data-download-header | Download all (8.44 MB)
+2025 80.56 | span.size < a < span.download-link < div.field__item | [80.56 KB]
+2025 80.56 | span.size < a < span.download-link < div.field__item | [80.56 KB]
+2025 80.56 | span.size < a < span.download-link < div.field__item | [80.56 KB]

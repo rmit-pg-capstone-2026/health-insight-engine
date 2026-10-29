@@ -1,0 +1,94 @@
+{
+  "since": "2026-10-13",
+  "found": [
+    {
+      "url": "https://www.aihw.gov.au/reports/medicines/pbs-monthly-data",
+      "agency": "AIHW",
+      "title": "Pharmaceutical Benefits Scheme prescriptions: monthly data",
+      "release_date": "2026-10-27",
+      "topic": "medicines"
+    },
+    {
+      "url": "https://www.aihw.gov.au/reports/primary-health-care/gp-care-mental-health",
+      "agency": "AIHW",
+      "title": "General practice care for people with a mental health condition ",
+      "release_date": "2026-10-22",
+      "topic": "primary-health-care"
+    },
+    {
+      "url": "https://www.aihw.gov.au/reports/injury/e-scooter-e-bike-injuries-deaths-in-australia",
+      "agency": "AIHW",
+      "title": "E-scooter and e-bike injuries and deaths in Australia: national trends and data limitations",
+      "release_date": "2026-10-22",
+      "topic": "injury"
+    },
+    {
+      "url": "https://www.aihw.gov.au/reports/indigenous-australians/hearing-health-outreach-services-2012-25",
+      "agency": "AIHW",
+      "title": "Hearing health outreach services for Aboriginal and Torres Strait Islander children in the Northern Territory: July 2012 to June 2025",
+      "release_date": "2026-10-21",
+      "topic": "indigenous-australians"
+    },
+    {
+      "url": "https://www.aihw.gov.au/reports/health-welfare-expenditure/health-expenditure-australia-2024-25",
+      "agency": "AIHW",
+      "title": "Health expenditure Australia 2024\u201325",
+      "release_date": "2026-10-14",
+      "topic": "health-welfare-expenditure"
+    },
+    {
+      "url": "https://www.aihw.gov.au/reports/health-welfare-expenditure/health-system-spending-disease-injury-2024-25",
+      "agency": "AIHW",
+      "title": "Health system spending on disease and injury in Australia 2024\u201325",
+      "release_date": "2026-10-14",
+      "topic": "health-welfare-expenditure"
+    },
+    {
+      "url": "https://www.aihw.gov.au/reports/health-welfare-expenditure/growth-decomposition-health-system-spending",
+      "agency": "AIHW",
+      "title": "Growth decomposition of health system spending on disease and injury in Australia",
+      "release_date": "2026-10-14",
+      "topic": "health-welfare-expenditure"
+    },
+    {
+      "url": "https://www.aihw.gov.au/reports/health-welfare-expenditure/health-expenditure",
+      "agency": "AIHW",
+      "title": "Health expenditure",
+      "release_date": "2026-10-14",
+      "topic": "health-welfare-expenditure"
+    },
+    {
+      "url": "https://www.abs.gov.au/statistics/health/causes-death/causes-death-australia/2025",
+      "agency": "ABS",
+      "title": "Causes of Death, Australia",
+      "release_date": "2026-10-27",
+      "topic": "causes-death"
+    },
+    {
+      "url": "https://www.abs.gov.au/statistics/health/causes-death/deaths-external-causes/2025",
+      "agency": "ABS",
+      "title": "Deaths from external causes",
+      "release_date": "2026-10-27",
+      "topic": "causes-death"
+    },
+    {
+      "url": "https://www.abs.gov.au/statistics/health/causes-death/intentional-self-harm-suicide-deaths/2025",
+      "agency": "ABS",
+      "title": "Intentional self-harm (suicide) deaths",
+      "release_date": "2026-10-27",
+      "topic": "causes-death"
+    }
+  ],
+  "skipped": [
+    {
+      "url": "https://www.aihw.gov.au/suicide-self-harm-monitoring",
+      "reason": "hub page"
+    },
+    {
+      "url": "https://www.aihw.gov.au/family-domestic-and-sexual-violence",
+      "reason": "hub page"
+    }
+  ],
+  "errors": {},
+  "seconds": 8.2
+}

@@ -1,0 +1,14 @@
+2026-10-28 00:02:54,719 INFO     Combined 3/3 report sections
+2026-10-28 00:03:18,046 INFO     Combined 13/13 report sections
+2026-10-28 00:03:42,732 INFO     Combined 13/13 report sections
+2026-10-28 00:05:10,692 INFO     Combined 43/43 report sections
+2026-10-28 00:05:45,254 INFO     Combined 17/17 report sections
+pbs-monthly-data overview items: 4 missing: 0 []
+gp-care-mental-health overview items: 4 missing: 0 []
+e-scooter-e-bike-injuries-deaths-in-aust overview items: 4 missing: 0 []
+hearing-health-outreach-services-2012-25 overview items: 4 missing: 4 ['from january 2024 to june 2025, 2,752 first nations children and young people in nt receiv', 'jan 2024–jun 2025, 48% of first nations children who received hearing outreach services ha']
+health-expenditure-australia-2024-25 overview items: 4 missing: 0 []
+health-system-spending-disease-injury-20 overview items: 4 missing: 0 []
+growth-decomposition-health-system-spend overview items: 0 missing: 0 []
+health-expenditure overview items: 0 missing: 0 []
+TOTAL overview items 24 missing 4
